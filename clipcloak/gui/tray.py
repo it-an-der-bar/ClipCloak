@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 from ..i18n import t
 from ..meta import APP_DISPLAY_NAME
 from . import icons
-from .language_menu import add_language_menu
+from .project_bar import fill_project_menu
 
 WATCH_MODES = ["off", "notify", "critical", "always"]
 
@@ -76,25 +76,7 @@ class Tray(QSystemTrayIcon):
                 a.triggered.connect(lambda _=False, n=minutes: self.c.pause(n))
 
         prj_menu = m.addMenu(t("tray.project"))
-        grp3 = QActionGroup(prj_menu)
-        a = QAction(t("project.session"), prj_menu, checkable=True)
-        a.setChecked(self.c.project is None)
-        a.triggered.connect(lambda: self.c.open_project(None))
-        grp3.addAction(a)
-        prj_menu.addAction(a)
-        for info in self.c.store.list():
-            label = info.name + ("  🔒" if info.encrypted else "")
-            a = QAction(label, prj_menu, checkable=True)
-            a.setChecked(self.c.project is not None and self.c.project.name == info.name)
-            a.triggered.connect(lambda _=False, n=info.name: self.c.open_project(n))
-            grp3.addAction(a)
-            prj_menu.addAction(a)
-        prj_menu.addSeparator()
-        prj_menu.addAction(t("project.new")).triggered.connect(self.c.new_project)
-        if self.c.project is not None:
-            prj_menu.addAction(t("project.delete")).triggered.connect(self.c.delete_project)
-        else:
-            prj_menu.addAction(t("project.clear_session")).triggered.connect(self.c.clear_mappings_confirm)
+        fill_project_menu(prj_menu, self.c)
 
         m.addSeparator()
         m.addAction(t("file.menu")).triggered.connect(lambda: self.c.process_file())
@@ -102,7 +84,6 @@ class Tray(QSystemTrayIcon):
         m.addAction(t("tray.history")).triggered.connect(lambda: self.c.show_main("history"))
         m.addAction(t("tray.mappings")).triggered.connect(lambda: self.c.show_main("mappings"))
         m.addAction(t("tray.settings")).triggered.connect(self.c.show_settings)
-        add_language_menu(m, self.c)
         m.addAction(t("tray.about")).triggered.connect(self.c.show_about)
         m.addSeparator()
         m.addAction(t("tray.quit")).triggered.connect(self.c.quit)

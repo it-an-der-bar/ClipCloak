@@ -113,7 +113,7 @@ class SettingsDialog(QDialog):
     _test_done = Signal(str, str)      # target, message
     _models_done = Signal(object, str, str)   # models or None, message, working URL
 
-    def __init__(self, controller, parent=None):
+    def __init__(self, controller, parent=None, initial_tab: str | None = None):
         super().__init__(parent)
         self.c = controller
         self.data = copy.deepcopy(controller.cfg.data)
@@ -130,6 +130,8 @@ class SettingsDialog(QDialog):
         tabs.addTab(_scroll(self._ner()), t("settings.tab.ner"))
         if controller.project is not None:
             tabs.addTab(self._project(), t("settings.tab.project"))
+            if initial_tab == "project":
+                tabs.setCurrentIndex(tabs.count() - 1)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel | QDialogButtonBox.RestoreDefaults)
         bb.accepted.connect(self._accept)
         bb.rejected.connect(self.reject)

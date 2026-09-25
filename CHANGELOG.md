@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.6
+
+- Projects in the main window:
+  - A bar above the tabs with the active project (drop-down), its status (saved / RAM only, number of mappings, encrypted or not) and the buttons *New project*, *Project settings* and *Delete project*.
+  - A *Project* menu in the menu bar; the tray uses the same menu.
+- The separate "Sprache / Language" menu is removed from the menu bar and the tray. The language is set in the settings (General).
+- About: shows the project page https://github.com/it-an-der-bar/ClipCloak as a clickable link. The release link in the NER setup points to its releases.
+
 ## 0.1.5
 
 - Activity is visible:

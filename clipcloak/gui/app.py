@@ -115,6 +115,7 @@ class Controller(QObject):
         from .tray import Tray
         self.tray = Tray(self)
         self.activity_changed.connect(self._on_activity)
+        self.mappings_changed.connect(self._on_mappings)
         self.apply_config(initial=True)
 
     # ================================================================= infra
@@ -163,6 +164,10 @@ class Controller(QObject):
     def active_jobs(self) -> list[str]:
         with self._active_lock:
             return list(self._active.values())
+
+    def _on_mappings(self):
+        if self.main is not None:
+            self.main.project_bar.refresh()
 
     def _on_activity(self):
         if self.tray is not None:
@@ -770,17 +775,35 @@ class Controller(QObject):
             w.workbench.set_text(text)
         self.show_main("workbench")
 
-    def show_settings(self):
+    def show_settings(self, tab: str | None = None):
         from .settings_dialog import SettingsDialog
-        dlg = SettingsDialog(self, self.main)
+        dlg = SettingsDialog(self, self.main, tab if isinstance(tab, str) else None)
         dlg.setWindowIcon(icons.icon())
         dlg.exec()
 
     def show_about(self):
-        QMessageBox.about(self.main, APP_DISPLAY_NAME, t("about.text", name=APP_DISPLAY_NAME, version=__version__,
-                                                         license=APP_LICENSE, url=APP_URL or "-",
-                                                         config=str(paths.config_file()),
-                                                         data=str(paths.data_dir())))
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout
+        dlg = QDialog(self.main)
+        dlg.setWindowTitle(t("tray.about"))
+        dlg.setWindowIcon(icons.icon())
+        url = f'<a href="{APP_URL}">{APP_URL}</a>' if APP_URL else "-"
+        lab = QLabel(t("about.text", name=APP_DISPLAY_NAME, version=__version__, license=APP_LICENSE, url=url,
+                       config=str(paths.config_file()), data=str(paths.data_dir())))
+        lab.setTextFormat(Qt.RichText)
+        lab.setOpenExternalLinks(True)
+        lab.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        lab.setWordWrap(True)
+        icon = QLabel()
+        icon.setPixmap(icons.draw(64))
+        bb = QDialogButtonBox(QDialogButtonBox.Ok)
+        bb.accepted.connect(dlg.accept)
+        lay = QVBoxLayout(dlg)
+        lay.addWidget(icon, 0, Qt.AlignHCenter)
+        lay.addWidget(lab)
+        lay.addWidget(bb)
+        dlg.resize(460, 280)
+        dlg.exec()
 
     # ================================================================= lifecycle
     def start(self, show_window: bool = False):

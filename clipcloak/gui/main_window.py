@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from PySide6.QtWidgets import QLabel, QMainWindow, QProgressBar, QTabWidget
+from PySide6.QtWidgets import QLabel, QMainWindow, QProgressBar, QTabWidget, QVBoxLayout, QWidget
 
 from .. import __version__
-from ..i18n import LANGUAGES, t
+from ..i18n import t
 from ..meta import APP_DISPLAY_NAME
 from . import icons
-from .language_menu import add_language_menu
+from .project_bar import ProjectBar, fill_project_menu
 from .history_view import HistoryView
 from .log_view import LogView
 from .mapping_view import MappingView
@@ -42,7 +42,13 @@ class MainWindow(QMainWindow):
         self.busy_bar.setTextVisible(False)
         self.statusBar().addPermanentWidget(self.busy_label)
         self.statusBar().addPermanentWidget(self.busy_bar)
-        self.setCentralWidget(self.tabs)
+        self.project_bar = ProjectBar(controller)
+        central = QWidget()
+        cl = QVBoxLayout(central)
+        cl.setContentsMargins(6, 6, 6, 0)
+        cl.addWidget(self.project_bar)
+        cl.addWidget(self.tabs, 1)
+        self.setCentralWidget(central)
         m = self.menuBar()
         f = m.addMenu(t("menu.file"))
         f.addAction(t("file.menu")).triggered.connect(lambda: controller.process_file())
@@ -51,18 +57,13 @@ class MainWindow(QMainWindow):
         f.addSeparator()
         f.addAction(t("menu.close")).triggered.connect(self.close)
         f.addAction(t("tray.quit")).triggered.connect(controller.quit)
-        self.lang_menu = add_language_menu(m, controller)
-        self.lang_menu.aboutToShow.connect(self._sync_language_checks)
+        self.project_menu = m.addMenu(t("tray.project"))
+        self.project_menu.aboutToShow.connect(lambda: fill_project_menu(self.project_menu, controller))
+        fill_project_menu(self.project_menu, controller)
         h = m.addMenu(t("menu.help"))
         h.addAction(t("tray.about")).triggered.connect(controller.show_about)
         self.update_status()
         self.update_activity()
-
-    def _sync_language_checks(self):
-        cur = self.c.cfg.get("general.language", "auto")
-        codes = ["auto"] + list(LANGUAGES)
-        for a, code in zip(self.lang_menu.actions(), codes):
-            a.setChecked(code == cur)
 
     def select(self, tab: str):
         if tab in TABS:
@@ -74,6 +75,7 @@ class MainWindow(QMainWindow):
         self.busy_bar.setVisible(bool(jobs))
 
     def update_status(self):
+        self.project_bar.refresh()
         wm = t("watch." + (self.c.cfg.get("watcher.mode") or "off"))
         self.statusBar().showMessage(t("tray.tooltip", project=self.c.project_label(), watch=wm))
 

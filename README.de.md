@@ -89,8 +89,8 @@ Unter Wayland zusätzlich `wl-clipboard` installieren. GNOME braucht für das Tr
 Die Werkbank hat einen Button pro Aktion. Das Ergebnis landet automatisch in der Zwischenablage;
 die Checkbox neben den Buttons (bzw. `general.workbench_auto_copy`) schaltet das ab.
 
-Die Sprache stellst du im Tray-Menü oder im Hauptfenster unter **Sprache / Language** um. Nach der
-Änderung startet das Programm selbst neu.
+Die Sprache stellst du unter Einstellungen › Allgemein › Sprache / Language ein; danach bietet das Programm einen Neustart an.
+Projekte wechselst, legst an und konfigurierst du in der Leiste über den Tabs des Hauptfensters, im Menü *Projekt* oder im Tray.
 
 Alle Kürzel sind einstellbar, und weitere Aktionen lassen sich belegen: Verarbeiten im
 Standardmodus, Screenshot → Text, Überwachung ein/aus. Das Tray-Menü enthält alle Aktionen sowie

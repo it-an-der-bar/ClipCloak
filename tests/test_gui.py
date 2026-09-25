@@ -106,7 +106,7 @@ class GuiTest(unittest.TestCase):
         self.assertTrue(c.restart_requested)
         c.tray.rebuild()
         titles = [a.text() for a in c.tray.menu.actions()]
-        self.assertIn("Sprache / Language", titles)
+        self.assertNotIn("Sprache / Language", titles)      # language lives in the settings only
         from clipcloak import i18n
         i18n.init("en")
 
@@ -247,6 +247,24 @@ class GuiTest(unittest.TestCase):
         c.process_file(out, "revert", back)
         self.assertTrue(wait_for(lambda: len(c.history.entries) == 2, 60000))
         self.assertEqual(open(back, encoding="utf-8", newline="").read(), text)
+
+    def test_project_bar_in_main_window(self):
+        c = self.c
+        c.store.create("Kunde A")
+        c.show_main()
+        bar = c.main.project_bar
+        bar.refresh()
+        names = [bar.combo.itemData(i) for i in range(bar.combo.count())]
+        self.assertIn("Kunde A", names)
+        bar._chosen(names.index("Kunde A"))
+        self.assertEqual(c.project.name, "Kunde A")
+        self.assertEqual(bar.combo.currentData(), "Kunde A")
+        self.assertTrue(bar.btn_delete.isEnabled())
+        menu_texts = [a.text() for a in c.main.project_menu.actions()]
+        self.assertTrue(any("Kunde A" in x for x in menu_texts))
+        bar._chosen(0)
+        self.assertIsNone(c.project)
+        self.assertFalse(bar.btn_delete.isEnabled())
 
     def test_projects_switch(self):
         c = self.c

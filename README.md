@@ -88,8 +88,8 @@ On Wayland also install `wl-clipboard`. GNOME needs the *AppIndicator* extension
 The workbench has one button per action. The result is copied to the clipboard automatically;
 the checkbox next to the buttons (or `general.workbench_auto_copy`) switches this off.
 
-The language is set in the tray menu or the main window under **Sprache / Language**. After a change,
-the program restarts itself.
+The language is set under Settings › General › Sprache / Language; the program then offers to restart.
+Projects are switched, created and configured in the bar above the tabs of the main window, in the *Project* menu or in the tray.
 
 All shortcuts are configurable, and additional actions can be bound: process with default mode,
 screenshot → text, toggle watcher. The tray menu contains all actions plus the default mode,
