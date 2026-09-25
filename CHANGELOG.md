@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.7
+
+- Releases: one download per platform.
+  - Windows: `clipcloak-<version>-windows-x86_64.zip`, Linux: `clipcloak-<version>-linux-x86_64.tar.gz`.
+  - Each contains the program, the NER plugin (`clipcloak-ner`), README and license; the Linux archive also a `.desktop` file and the icon, with executable bits set.
+  - The archives are stored in the project's package registry, so GitLab's 100 MB limit for job artifacts does not apply to them. The program-only binaries are still linked.
+- Clipboard popup: the buttons show their global shortcut (e.g. *Pseudonymise / Ctrl+Alt+P*), if one is set and registered.
+- New `tools/package_release.py` builds the archives (also usable locally).
+- README: installation and NER setup rewritten for the archives; duplicated NER section removed.
+
 ## 0.1.6
 
 - Projects in the main window:

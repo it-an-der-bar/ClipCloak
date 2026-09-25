@@ -508,13 +508,21 @@ class Controller(QObject):
         event("log.watch_change", chars=len(text))
         self.submit(lambda: engine.analyze(text), done, label=t("job.watch"), quiet=True)
 
+    def hotkey_text(self, action: str) -> str:
+        """Configured global shortcut of an action, or "" if none or it could not be registered."""
+        seq = self.cfg.get("hotkeys." + action) or ""
+        if not seq or action in self.hotkey_errors or self.hotkeys.backend == "none":
+            return ""
+        return seq
+
     def _findings_popup(self, findings, content, h):
         from .popup import Popup
         counts: dict[str, int] = {}
         for f in findings:
             counts[f.type] = counts.get(f.type, 0) + 1
         summary = ", ".join(f"{k} ×{v}" for k, v in sorted(counts.items(), key=lambda kv: -kv[1]))
-        actions = [(m, t("mode." + m)) for m in ("pseudonymize", "anonymize", "redact")] + [("details", t("popup.details"))]
+        actions = [(m, t("mode." + m), self.hotkey_text(m)) for m in ("pseudonymize", "anonymize", "redact")]
+        actions.append(("details", t("popup.details"), ""))
         self._show_popup(Popup(t("popup.found_title"), t("popup.found_text", summary=summary), actions,
                                int(self.cfg.get("watcher.popup_timeout", 12))),
                          lambda key: self._popup_choice(key, content, h))

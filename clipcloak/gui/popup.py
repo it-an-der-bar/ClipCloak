@@ -13,7 +13,7 @@ from ..meta import APP_DISPLAY_NAME
 class Popup(QWidget):
     chosen = Signal(str)     # action name or "" for dismissed
 
-    def __init__(self, title: str, text: str, actions: list[tuple[str, str]], timeout_s: int = 12,
+    def __init__(self, title: str, text: str, actions: list[tuple], timeout_s: int = 12,
                  parent=None):
         super().__init__(parent, Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
                          | Qt.WindowDoesNotAcceptFocus)
@@ -29,8 +29,14 @@ class Popup(QWidget):
         body.setTextFormat(Qt.PlainText)
         body.setMaximumWidth(380)
         btns = QHBoxLayout()
-        for key, label in actions:
-            b = QPushButton(label)
+        self.buttons: dict[str, QPushButton] = {}
+        for key, label, *rest in actions:
+            shortcut = rest[0] if rest else ""
+            # the global shortcut is shown right on the button, so it is learnt by use
+            b = QPushButton(f"{label}\n{shortcut}" if shortcut else label)
+            if shortcut:
+                b.setToolTip(f"{label} ({shortcut})")
+            self.buttons[key] = b
             b.setFocusPolicy(Qt.NoFocus)
             b.clicked.connect(lambda _=False, k=key: self._choose(k))
             btns.addWidget(b)

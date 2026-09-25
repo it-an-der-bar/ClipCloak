@@ -63,13 +63,15 @@ Nachher  yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/2
 
 ## Installation
 
-Die Binaries gibt es auf der GitLab-Release-Seite:
+Ein Archiv von der Release-Seite laden, irgendwohin entpacken und das Programm starten. Eine Installation ist nicht nötig.
 
-| Datei | Zweck |
+| Datei | Inhalt |
 |---|---|
-| `clipcloak-vX.Y.Z-windows-x86_64.exe` | Windows-Programm (keine Installation nötig) |
-| `clipcloak-vX.Y.Z-linux-x86_64` | Linux-Programm (`chmod +x`) |
-| `clipcloak-ner-…` | optionales NER-Plugin; **neben** das Programm legen (wird automatisch gefunden) |
+| `clipcloak-vX.Y.Z-windows-x86_64.zip` | `clipcloak.exe`, NER-Plugin `clipcloak-ner.exe`, README, Lizenz |
+| `clipcloak-vX.Y.Z-linux-x86_64.tar.gz` | `clipcloak`, NER-Plugin `clipcloak-ner`, `.desktop`-Datei, Icon, README, Lizenz (mit `tar xzf` entpacken, die Ausführungsrechte bleiben erhalten) |
+| `clipcloak-vX.Y.Z-…` (nur Programm) | nur das Programm, ohne NER-Plugin |
+
+Das NER-Plugin läuft nur, wenn es in den Einstellungen aktiviert ist; sonst liegt es nur im Ordner.
 
 Unter Linux braucht das Binary glibc ≥ 2.36 (Debian 12, Ubuntu 24.04, Fedora 37 oder neuer) und die
 üblichen Qt/X11-Bibliotheken. Unter Debian/Ubuntu sind das `libxcb-cursor0 libxkbcommon-x11-0 libegl1`.
@@ -144,15 +146,10 @@ mit `--passphrase-env` angegebenen Umgebungsvariable oder wird interaktiv abgefr
 
 ## NER-Plugin
 
-1. Auf der Release-Seite `clipcloak-ner-vX.Y.Z-windows-x86_64.exe` (Windows) bzw. `clipcloak-ner-vX.Y.Z-linux-x86_64` (Linux, danach `chmod +x`) laden. Die Datei enthält spaCy und das deutsche/englische Modell (~120 MB).
-2. Die Datei in denselben Ordner wie das Programm legen; der Dateiname kann bleiben.
-3. Unter Einstellungen › NER-Plugin *NER aktivieren* anhaken, *Testen* klicken und mit OK speichern. Der Reiter zeigt an, ob der Helfer gefunden wurde, und hat Buttons für die Release-Seite und den Programmordner.
+ZIP und tar.gz enthalten das Plugin (`clipcloak-ner`) bereits neben dem Programm. Es enthält spaCy und das deutsche/englische Modell und läuft komplett lokal.
 
-## NER-Plugin
-
-1. Auf der Release-Seite `clipcloak-ner-vX.Y.Z-windows-x86_64.exe` (Windows) bzw. `clipcloak-ner-vX.Y.Z-linux-x86_64` (Linux, danach `chmod +x`) laden. Die Datei enthält spaCy und das deutsche/englische Modell (~120 MB).
-2. Die Datei in denselben Ordner wie das Programm legen; der Dateiname kann bleiben.
-3. Unter Einstellungen › NER-Plugin *NER aktivieren* anhaken, *Testen* klicken und mit OK speichern. Der Reiter zeigt an, ob der Helfer gefunden wurde, und hat Buttons für die Release-Seite und den Programmordner.
+1. Unter Einstellungen › NER-Plugin *NER aktivieren* anhaken, *Testen* klicken und mit OK speichern. Der Reiter zeigt an, ob der Helfer gefunden wurde.
+2. Wer nur das Programm geladen hat, legt den NER-Helfer aus einem Archiv (oder eine ältere einzelne `clipcloak-ner-…`-Datei) in denselben Ordner wie das Programm. Der Dateiname kann bleiben.
 
 ## LLM
 
@@ -193,7 +190,7 @@ QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -p "test_*.py" -v
 
 Für das NER-Plugin aus dem Quellcode `pip install -r requirements-ner.txt` ausführen; es wird dann
 automatisch über `python -m clipcloak.ner_helper` genutzt. Zum Bauen der Binaries siehe
-`.gitlab-ci.yml`. Die CI testet bei jedem Push und baut und veröffentlicht bei Tags `vX.Y.Z`, die
+`.gitlab-ci.yml`; `python tools/package_release.py vX.Y.Z --dist dist` packt sie in ZIP und tar.gz. Die CI testet bei jedem Push und baut und veröffentlicht bei Tags `vX.Y.Z`, die
 zur Version in `clipcloak/__init__.py` passen müssen.
 
 ### Umbenennen

@@ -2,7 +2,7 @@
 # application plus the optional NER helper and publishes them as GitLab release.
 # Intermediate pushes only run the test job.
 
-stages: [test, build, release]
+stages: [test, build, package, release]
 
 variables:
   APP_NAME: clipcloak
@@ -120,10 +120,13 @@ build:ner:windows:
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+/'
 
-# ---------------------------------------------------------------- Release
-release:
-  stage: release
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
+# ---------------------------------------------------------------- Package
+# One download per platform: Windows ZIP and Linux tar.gz, each with program + NER plugin + docs.
+# The archives (~150 MB) go into the generic package registry, not into job artifacts,
+# so GitLab's 100 MB artifact limit does not apply to them.
+package:
+  stage: package
+  image: python:3.12-slim-bookworm
   needs:
     - job: build:linux
       artifacts: true
@@ -137,20 +140,34 @@ release:
       artifacts: true
       optional: true
   script:
+    - python tools/package_release.py "$CI_COMMIT_TAG" --dist dist --upload
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+/'
+
+# ---------------------------------------------------------------- Release
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: package
+      artifacts: false
+  script:
     - echo "Release ${CI_COMMIT_TAG}"
   release:
     tag_name: '$CI_COMMIT_TAG'
     name: '${APP_NAME} ${CI_COMMIT_TAG}'
-    description: 'Automatic build of ${CI_COMMIT_TAG}. The -ner files are the optional NER plugin: place them next to the main program.'
+    description: 'Automatic build of ${CI_COMMIT_TAG}. Download the ZIP (Windows) or tar.gz (Linux), unpack it and start ${APP_NAME}. The NER plugin (${APP_NAME}-ner) is already next to the program.'
     assets:
       links:
-        - name: '${APP_NAME} ${CI_COMMIT_TAG} (Linux, x86_64)'
-          url: '${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/dist/${APP_NAME}-${CI_COMMIT_TAG}-linux-x86_64?job=build:linux'
-        - name: '${APP_NAME} ${CI_COMMIT_TAG} (Windows, x86_64)'
+        - name: '${APP_NAME} ${CI_COMMIT_TAG} Windows x86_64 (ZIP: program + NER plugin)'
+          url: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${APP_NAME}/${CI_COMMIT_TAG}/${APP_NAME}-${CI_COMMIT_TAG}-windows-x86_64.zip'
+          link_type: package
+        - name: '${APP_NAME} ${CI_COMMIT_TAG} Linux x86_64 (tar.gz: program + NER plugin)'
+          url: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${APP_NAME}/${CI_COMMIT_TAG}/${APP_NAME}-${CI_COMMIT_TAG}-linux-x86_64.tar.gz'
+          link_type: package
+        - name: '${APP_NAME} ${CI_COMMIT_TAG} Windows x86_64 (program only)'
           url: '${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/dist/${APP_NAME}-${CI_COMMIT_TAG}-windows-x86_64.exe?job=build:windows'
-        - name: '${APP_NAME}-ner ${CI_COMMIT_TAG} (Linux, x86_64, optional NER plugin)'
-          url: '${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/dist/${APP_NAME}-ner-${CI_COMMIT_TAG}-linux-x86_64?job=build:ner:linux'
-        - name: '${APP_NAME}-ner ${CI_COMMIT_TAG} (Windows, x86_64, optional NER plugin)'
-          url: '${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/dist/${APP_NAME}-ner-${CI_COMMIT_TAG}-windows-x86_64.exe?job=build:ner:windows'
+        - name: '${APP_NAME} ${CI_COMMIT_TAG} Linux x86_64 (program only)'
+          url: '${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/dist/${APP_NAME}-${CI_COMMIT_TAG}-linux-x86_64?job=build:linux'
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+/'

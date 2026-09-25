@@ -140,6 +140,22 @@ class GuiTest(unittest.TestCase):
         self.assertTrue(c.clip.read().text.startswith("token glpat-"))
         c.set_watch_mode("off")
 
+    def test_popup_shows_shortcuts(self):
+        c = self.c
+        c.cfg.set("hotkeys.pseudonymize", "Ctrl+Alt+P")
+        c.hotkeys.backend = "x11"           # pretend the shortcut is registered
+        c.hotkey_errors = {}
+        c.clip.write("mail jonas.hartmann@contoso.com", None)
+        c._findings_popup(c.engine.analyze("mail jonas.hartmann@contoso.com"), None, None)
+        pop = c._popup
+        self.assertIn("Ctrl+Alt+P", pop.buttons["pseudonymize"].text())
+        self.assertNotIn("\n", pop.buttons["anonymize"].text())   # no shortcut configured
+        c.hotkey_errors = {"pseudonymize": "taken"}
+        self.assertEqual(c.hotkey_text("pseudonymize"), "")
+        c.hotkeys.backend = "none"
+        pop._choose("")
+        spin(50)
+
     def test_settings_dialog_roundtrip(self):
         from clipcloak.gui.settings_dialog import SettingsDialog
         d = SettingsDialog(self.c)
