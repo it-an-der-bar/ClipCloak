@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.5
+
+- Activity is visible:
+  - While a job runs, the status bar of the main window shows "Working: … " with a progress animation, the tray icon turns blue and the tray tooltip names the job.
+  - The workbench shows its own status while working.
+- New **Log** tab: shows what the program does, with times and durations:
+  - actions and results (counts per type)
+  - watcher decisions
+  - LLM requests: purpose, host, model, duration, errors, and the items the check reported
+  - NER: helper start, model loading, candidates vs. accepted entities
+  - shortcuts, project switches, all notifications
+- Clipboard contents never go into the log. LLM check results appear only in the Log tab (RAM), not in the log file.
+
 ## 0.1.4
 
 - NER: far fewer false positives. Every entity from the NER plugin is now checked before it is used; this also applies to older NER helper versions, where the checks run without part-of-speech tags:

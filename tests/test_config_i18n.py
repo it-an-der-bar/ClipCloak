@@ -79,6 +79,7 @@ class I18nTest(unittest.TestCase):
             "anonstyle.": ["realistic", "placeholder"], "tld.": ["keep", "example"],
             "llmverify.": ["off", "warn"], "nerlang.": ["auto", "de", "en", "both"],
             "wb.btn_tip.": ["pseudonymize", "anonymize", "redact", "revert"],
+            "llmpurpose.": ["verify", "detect", "screenshot", "models", "chat"],
             "lists.": [k + s for k in ("known_domains", "allow_terms", "allow_domains", "allow_ip_ranges",
                                        "generic_labels_extra", "extra_tlds") for s in ("", "_help")],
         }

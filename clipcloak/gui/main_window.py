@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtWidgets import QMainWindow, QTabWidget
+from PySide6.QtWidgets import QLabel, QMainWindow, QProgressBar, QTabWidget
 
 from .. import __version__
 from ..i18n import LANGUAGES, t
@@ -10,10 +10,11 @@ from ..meta import APP_DISPLAY_NAME
 from . import icons
 from .language_menu import add_language_menu
 from .history_view import HistoryView
+from .log_view import LogView
 from .mapping_view import MappingView
 from .workbench import Workbench
 
-TABS = ["workbench", "history", "mappings"]
+TABS = ["workbench", "history", "mappings", "log"]
 
 
 class MainWindow(QMainWindow):
@@ -30,6 +31,17 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.workbench, t("tab.workbench"))
         self.tabs.addTab(self.history, t("tab.history"))
         self.tabs.addTab(self.mappings, t("tab.mappings"))
+        self.log = LogView(controller.log_handler)
+        self.tabs.addTab(self.log, t("tab.log"))
+        # activity indicator (right side of the status bar)
+        self.busy_label = QLabel("")
+        self.busy_bar = QProgressBar()
+        self.busy_bar.setRange(0, 0)          # indeterminate animation
+        self.busy_bar.setMaximumWidth(120)
+        self.busy_bar.setMaximumHeight(14)
+        self.busy_bar.setTextVisible(False)
+        self.statusBar().addPermanentWidget(self.busy_label)
+        self.statusBar().addPermanentWidget(self.busy_bar)
         self.setCentralWidget(self.tabs)
         m = self.menuBar()
         f = m.addMenu(t("menu.file"))
@@ -44,6 +56,7 @@ class MainWindow(QMainWindow):
         h = m.addMenu(t("menu.help"))
         h.addAction(t("tray.about")).triggered.connect(controller.show_about)
         self.update_status()
+        self.update_activity()
 
     def _sync_language_checks(self):
         cur = self.c.cfg.get("general.language", "auto")
@@ -54,6 +67,11 @@ class MainWindow(QMainWindow):
     def select(self, tab: str):
         if tab in TABS:
             self.tabs.setCurrentIndex(TABS.index(tab))
+
+    def update_activity(self):
+        jobs = self.c.active_jobs()
+        self.busy_label.setText(t("status.busy", what=", ".join(jobs)) if jobs else t("status.idle"))
+        self.busy_bar.setVisible(bool(jobs))
 
     def update_status(self):
         wm = t("watch." + (self.c.cfg.get("watcher.mode") or "off"))

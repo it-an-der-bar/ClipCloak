@@ -110,6 +110,27 @@ class GuiTest(unittest.TestCase):
         from clipcloak import i18n
         i18n.init("en")
 
+    def test_busy_indicator_and_log(self):
+        import threading
+        c = self.c
+        c.show_main("log")
+        gate = threading.Event()
+        c.submit(lambda: gate.wait(5), label="Testjob")
+        self.assertTrue(wait_for(lambda: c.active_jobs() == ["Testjob"]))
+        self.assertTrue(wait_for(lambda: c.main.busy_bar.isVisible()))
+        self.assertIn("Testjob", c.main.busy_label.text())
+        gate.set()
+        self.assertTrue(wait_for(lambda: not c.active_jobs()))
+        self.assertTrue(wait_for(lambda: not c.main.busy_bar.isVisible()))
+        c.clip.write("Server 10.1.2.3 password: Geheim99", None)
+        c.run_action("pseudonymize", "hotkey")
+        self.assertTrue(wait_for(lambda: len(c.history.entries) == 1))
+        spin(100)
+        log_text = c.main.log.text.toPlainText()
+        self.assertIn("Testjob", log_text)
+        self.assertIn("IPV4", log_text)
+        self.assertNotIn("Geheim99", log_text)          # no clipboard contents in the log
+
     def test_watcher_critical(self):
         c = self.c
         c.set_watch_mode("critical")

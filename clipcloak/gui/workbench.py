@@ -185,7 +185,8 @@ class Workbench(QWidget):
 
     def analyze(self):
         text = self.input.toPlainText()
-        self.c.submit(lambda: self.c.engine.analyze(text), self._show_findings)
+        self.c.submit(lambda: self.c.engine.analyze(text), self._show_findings,
+                      label=t("job.analyze"), quiet=len(text) < 200_000)
 
     def _show_findings(self, findings):
         self._findings = findings
@@ -233,7 +234,9 @@ class Workbench(QWidget):
         if not text:
             self.status.setText(t("wb.empty"))
             return
-        self.c.submit(lambda: self.c.engine.process(text, mode), self._show_result)
+        self.status.setText(t("status.busy", what=t("mode." + mode)))
+        self.c.submit(lambda: self.c.engine.process(text, mode), self._show_result,
+                      label=t("job.workbench", mode=t("mode." + mode)))
 
     def _show_result(self, res: Result):
         self._last = res

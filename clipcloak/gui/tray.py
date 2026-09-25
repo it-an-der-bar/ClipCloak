@@ -108,7 +108,8 @@ class Tray(QSystemTrayIcon):
         m.addAction(t("tray.quit")).triggered.connect(self.c.quit)
 
     def update_state(self, busy: bool = False):
-        if busy:
+        jobs = self.c.active_jobs() if hasattr(self.c, "active_jobs") else []
+        if busy or jobs:
             state = "busy"
         elif self.c.is_paused():
             state = "paused"
@@ -117,4 +118,7 @@ class Tray(QSystemTrayIcon):
             state = {"off": "idle", "notify": "watch", "critical": "critical", "always": "watch"}.get(wm, "idle")
         self.setIcon(icons.icon(state))
         wm = t("watch." + (self.c.cfg.get("watcher.mode") or "off"))
-        self.setToolTip(f"{APP_DISPLAY_NAME}\n{t('tray.tooltip', project=self.c.project_label(), watch=wm)}")
+        tip = f"{APP_DISPLAY_NAME}\n{t('tray.tooltip', project=self.c.project_label(), watch=wm)}"
+        if jobs:
+            tip += "\n" + t("status.busy", what=", ".join(jobs))
+        self.setToolTip(tip)

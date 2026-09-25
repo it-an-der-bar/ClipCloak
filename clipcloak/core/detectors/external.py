@@ -11,8 +11,10 @@ import shutil
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
+from ...activity import event
 from ...meta import NER_HELPER_NAME
 from ..entities import EntityType as T
 from ..wordlists import GENERIC_LABELS
@@ -90,6 +92,7 @@ class NerClient:
                                      stderr=subprocess.DEVNULL, text=True, encoding="utf-8",
                                      bufsize=1, creationflags=flags, env=env)
         self._q = queue.Queue()
+        event("log.ner_start", cmd=" ".join(self.cmd))
         t = threading.Thread(target=self._reader, args=(self.proc, self._q), daemon=True)
         t.start()
 
@@ -247,12 +250,14 @@ class NerDetector(Detector):
     def warm_up(self) -> None:
         """Start the helper and load the models before the first real request."""
         if self.client is not None:
+            event("log.ner_loading")
             lang = "both" if self.language == "auto" else self.language
             self.client.request({"text": "Hallo Welt. Hello world.", "lang": lang, "models": self.models})
 
     def find(self, text, ctx):
         if self.client is None:
             raise RuntimeError("NER helper not found")
+        t0 = time.monotonic()
         data = self.client.request({"text": text, "lang": self.language, "models": self.models})
         out = []
         for ent in data.get("entities", []):
@@ -265,6 +270,8 @@ class NerDetector(Detector):
             span = plausible_entity(text, s, e, typ, ent.get("tokens"))
             if span is not None:
                 out.append(self.mk(span[0], span[1], typ, text))
+        event("log.ner_result", n=len(data.get("entities", [])), kept=len(out),
+              ms=int((time.monotonic() - t0) * 1000))
         return out
 
 

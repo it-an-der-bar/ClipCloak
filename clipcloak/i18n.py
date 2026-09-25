@@ -58,6 +58,8 @@ def current() -> str:
 
 
 def t(key: str, **kw) -> str:
+    if not _fallback:           # used before init() (CLI, tests): English
+        init("en")
     s = _strings.get(key) or _fallback.get(key) or key
     if kw:
         try:

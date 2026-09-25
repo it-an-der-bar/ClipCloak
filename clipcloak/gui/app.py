@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+import itertools
 import logging
+import os
+import threading
 import shlex
 import subprocess
 import sys
@@ -24,6 +27,7 @@ from ..core.formats import process_html, strip_cf_html
 from ..core.history import History
 from ..core.projects import Project, ProjectError, ProjectStore, WrongPassphrase
 from ..core.vault import Vault
+from ..activity import event, ui_only
 from ..i18n import t
 from ..llm.client import LLMClient, LLMSettings
 from ..meta import APP_DISPLAY_NAME, APP_LICENSE, APP_NAME, APP_URL
@@ -31,12 +35,20 @@ from ..platform import autostart, session
 from ..platform.clipboard import ClipContent, WlClipboard, make_backend
 from ..platform.hotkeys import HotkeyManager
 from . import icons
+from .log_view import UiLogHandler
 
 log = logging.getLogger(__name__)
 PROCESS_ACTIONS = ("pseudonymize", "anonymize", "redact", "revert")
 DEFAULT_PROJECT = "Standard"
 RAM_ONLY = "@ram"          # config value for "keep mappings in memory only"
 TOKEN_ROWS = {"WORD": "words", "FIRST_NAME": "first", "LAST_NAME": "last", "USER_TOKEN": "users"}
+
+
+def _summary(findings) -> str:
+    counts: dict[str, int] = {}
+    for f in findings:
+        counts[f.type] = counts.get(f.type, 0) + 1
+    return ", ".join(f"{k} ×{v}" for k, v in sorted(counts.items(), key=lambda kv: -kv[1]))
 
 
 def text_hash(text: str | None) -> str:
@@ -46,6 +58,7 @@ def text_hash(text: str | None) -> str:
 class Controller(QObject):
     history_changed = Signal()
     mappings_changed = Signal()
+    activity_changed = Signal()
     _hotkey = Signal(str)
     _job_done = Signal(object, object)
 
@@ -66,6 +79,15 @@ class Controller(QObject):
         self.history = History(int(cfg.get("general.history_size", 200)),
                                bool(cfg.get("general.history_store_originals", True)))
         self.engine = Engine(engine_settings(cfg), self.session_vault)
+        self._active: dict[int, str] = {}
+        self._active_lock = threading.Lock()
+        self._job_ids = itertools.count(1)
+        self.log_handler = UiLogHandler()
+        root = logging.getLogger()
+        if root.level > logging.INFO or root.level == logging.NOTSET:
+            root.setLevel(logging.INFO)
+        root.addHandler(self.log_handler)
+        ui_only.addHandler(self.log_handler)
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="engine")
         self.llm_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="llm")
         self._job_done.connect(self._run_callback)
@@ -92,19 +114,42 @@ class Controller(QObject):
         self.tray = None
         from .tray import Tray
         self.tray = Tray(self)
+        self.activity_changed.connect(self._on_activity)
         self.apply_config(initial=True)
 
     # ================================================================= infra
-    def submit(self, fn, callback=None, executor=None):
+    def submit(self, fn, callback=None, executor=None, label: str | None = None, quiet: bool = False):
+        """Run ``fn`` in a worker thread; ``label`` makes the job visible (status bar, tray, log)."""
+        job_id = next(self._job_ids)
+        started = time.monotonic()
+        if label:
+            with self._active_lock:
+                self._active[job_id] = label
+            self.activity_changed.emit()
+            if not quiet:
+                event("log.job_start", label=label)
         fut = (executor or self.executor).submit(fn)
 
+        def finished():
+            if label:
+                with self._active_lock:
+                    self._active.pop(job_id, None)
+                self.activity_changed.emit()
+
         def done(f):
+            ms = int((time.monotonic() - started) * 1000)
             try:
                 res = f.result()
             except Exception as exc:  # noqa: BLE001
                 log.error("background job failed: %s", exc, exc_info=exc)
+                if label:
+                    event("log.job_fail", logging.WARNING, label=label, err=str(exc))
+                finished()
                 self._job_done.emit(self._on_job_error, exc)
                 return
+            if label and not quiet:
+                event("log.job_done", label=label, ms=ms)
+            finished()
             if callback is not None:
                 self._job_done.emit(callback, res)
 
@@ -115,6 +160,16 @@ class Controller(QObject):
     def _run_callback(cb, res):
         cb(res)
 
+    def active_jobs(self) -> list[str]:
+        with self._active_lock:
+            return list(self._active.values())
+
+    def _on_activity(self):
+        if self.tray is not None:
+            self.tray.update_state()
+        if self.main is not None:
+            self.main.update_activity()
+
     def _on_job_error(self, exc):
         self.tray.update_state()
         self.notify(t("msg.error", err=str(exc)), error=True)
@@ -123,6 +178,7 @@ class Controller(QObject):
         return QSystemTrayIcon.isSystemTrayAvailable()
 
     def notify(self, msg: str, error: bool = False, force: bool = False):
+        event("log.notice", logging.WARNING if error else logging.INFO, msg=msg)
         if not (force or error or self.cfg.get("general.notify", True)):
             return
         if self.tray_available() and self.tray.isVisible():
@@ -130,8 +186,6 @@ class Controller(QObject):
                                   QSystemTrayIcon.Warning if error else QSystemTrayIcon.Information, 4000)
         elif self.main is not None and self.main.isVisible():
             self.main.statusBar().showMessage(msg, 8000)
-        else:
-            log.info("notification: %s", msg)
 
     def project_label(self) -> str:
         return self.project.name if self.project else t("project.session")
@@ -162,6 +216,9 @@ class Controller(QObject):
         # hotkeys
         bindings = {a: s for a, s in (cfg.get("hotkeys") or {}).items() if s}
         self.hotkey_errors = self.hotkeys.register(bindings)
+        ok = [f"{a}={seq}" for a, seq in bindings.items() if a not in self.hotkey_errors]
+        event("log.hotkeys", backend=self.hotkeys.backend, ok=", ".join(ok) or "-",
+              err="; ".join(f"{a}: {e}" for a, e in self.hotkey_errors.items()) or "-")
         if self.hotkey_errors and not initial and self.hotkeys.backend != "none":
             self.notify(t("msg.hotkey_errors", n=len(self.hotkey_errors)), error=True)
         if self.tray:
@@ -189,7 +246,7 @@ class Controller(QObject):
                 if cmd is None:
                     self.notify(t("ner.not_found", helper=APP_NAME + "-ner"), error=True)
                 else:
-                    self.submit(self._ner_det.warm_up)
+                    self.submit(self._ner_det.warm_up, label=t("job.ner_load"))
             self._ner_key = key
         self.engine.detectors = [d for d in self.engine.detectors if d.id not in ("ner", "llm")]
         if self._ner_det is not None:
@@ -286,8 +343,7 @@ class Controller(QObject):
                     and self.cfg.get("llm.verify_output") == "warn":
                 self.llm_verify(res.output, show=False, result=res)
 
-        self.tray.update_state(busy=True)
-        self.submit(job, done)
+        self.submit(job, done, label=t("job.clipboard", mode=t("mode." + mode)))
 
     def process_file(self, path: str | None = None, mode: str | None = None, out_path: str | None = None):
         """Process a whole text file (any size up to the engine limit) into a new file."""
@@ -330,8 +386,7 @@ class Controller(QObject):
                 self._save_timer.start()
             self.notify(t("file.done", n=len(res.replacements), dst=out_path), force=True)
 
-        self.tray.update_state(busy=True)
-        self.submit(job, done)
+        self.submit(job, done, label=t("job.file", mode=t("mode." + mode), name=os.path.basename(path)))
 
     def write_clipboard(self, text: str, html: str | None):
         self._own.append(text_hash(text))
@@ -347,6 +402,14 @@ class Controller(QObject):
             self._save_timer.start()
 
     def _notify_result(self, res: Result):
+        if res.changed:
+            event("log.process_result", mode=t("mode." + res.mode), n=len(res.replacements),
+                  details=", ".join(f"{k} ×{v}" for k, v in sorted(res.counts().items(), key=lambda kv: -kv[1])),
+                  chars=len(res.input))
+        else:
+            event("log.nothing", mode=t("mode." + res.mode), chars=len(res.input))
+        for w in res.warnings:
+            event("log.warning", logging.WARNING, msg=w)
         if not res.changed:
             self.notify(t("msg.nothing_reverted" if res.mode == "revert" else "msg.nothing_found"), force=True)
             return
@@ -418,17 +481,27 @@ class Controller(QObject):
 
         def done(findings):
             if not findings:
+                event("log.watch_none")
                 return
             crit_types = set(self.cfg.get("watcher.critical_types") or [])
             critical = [f for f in findings if f.type in crit_types]
+            summary = _summary(findings)
             if mode == "always":
-                self.process_clipboard(self.cfg.get("watcher.action", "pseudonymize"), "watcher", content, h)
+                act = self.cfg.get("watcher.action", "pseudonymize")
+                event("log.watch_findings", summary=summary, decision=t("mode." + act))
+                self.process_clipboard(act, "watcher", content, h)
             elif mode == "critical" and critical:
-                self.process_clipboard(self.cfg.get("watcher.critical_action", "pseudonymize"), "watcher", content, h)
+                act = self.cfg.get("watcher.critical_action", "pseudonymize")
+                event("log.watch_findings", summary=summary, decision=t("mode." + act))
+                self.process_clipboard(act, "watcher", content, h)
             elif mode == "notify" or (mode == "critical" and self.cfg.get("watcher.notify_noncritical", True)):
+                event("log.watch_findings", summary=summary, decision=t("log.decision_popup"))
                 self._findings_popup(findings, content, h)
+            else:
+                event("log.watch_findings", summary=summary, decision=t("log.decision_ignore"))
 
-        self.submit(lambda: engine.analyze(text), done)
+        event("log.watch_change", chars=len(text))
+        self.submit(lambda: engine.analyze(text), done, label=t("job.watch"), quiet=True)
 
     def _findings_popup(self, findings, content, h):
         from .popup import Popup
@@ -480,7 +553,7 @@ class Controller(QObject):
             self._show_popup(Popup(t("llm.verify_title"), "\n".join(lines), actions, 30),
                              lambda key: self._verify_choice(key, items, text if result is None else result.input))
 
-        self.submit(lambda: client.verify(text, safe), done, executor=self.llm_executor)
+        self.submit(lambda: client.verify(text, safe), done, executor=self.llm_executor, label=t("job.llm_verify"))
 
     def _verify_choice(self, key, items, original_text):
         self._popup = None
@@ -522,9 +595,8 @@ class Controller(QObject):
             self.mappings_changed.emit()
             self._notify_result(res) if res.changed else self.notify(t("msg.screenshot_text"), force=True)
 
-        self.tray.update_state(busy=True)
         self.notify(t("msg.screenshot_running"), force=True)
-        self.submit(job, done, executor=self.llm_executor)
+        self.submit(job, done, executor=self.llm_executor, label=t("job.screenshot"))
 
     # ================================================================= lists
     def add_custom_term(self, text: str, typ: str = "", apply: bool = True):
@@ -601,6 +673,7 @@ class Controller(QObject):
             self.engine.set_vault(prj.vault)
             self.history.load_list(prj.history if prj.store_history else [])
         self.cfg.set("project.last", prj.name if prj else RAM_ONLY)
+        event("log.project", name=self.project_label())
         self.cfg.save()
         self._apply_engine_settings()
         self.history_changed.emit()
@@ -733,6 +806,8 @@ class Controller(QObject):
             self.run_action(action, "cli")
 
     def shutdown(self):
+        logging.getLogger().removeHandler(self.log_handler)
+        ui_only.removeHandler(self.log_handler)
         self._save_project_now()
         self.hotkeys.unregister()
         if self.clip is not None:
