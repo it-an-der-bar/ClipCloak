@@ -10,6 +10,11 @@ from ..i18n import t
 RAM = "\x00ram"   # combo item data for "RAM only"
 
 
+def protection_label(protection: str) -> str:
+    return t({"passphrase": "project.enc_passphrase", "dpapi": "project.enc_dpapi"}.get(protection,
+                                                                                     "project.not_encrypted"))
+
+
 def fill_project_menu(menu, controller) -> None:
     """(Re)build a project menu: RAM only, all projects, new / settings / delete."""
     menu.clear()
@@ -77,9 +82,10 @@ class ProjectBar(QWidget):
             self.info.setText(t("project.info_ram"))
             self.info.setStyleSheet("color:#c0392b")
         else:
-            self.info.setText(t("project.info_saved", n=len(prj.vault.entries),
-                                enc=t("project.encrypted") if prj.encrypted else t("project.not_encrypted")))
-            self.info.setStyleSheet("")
+            self.info.setText(t("project.info_saved", n=len(prj.vault.entries), enc=protection_label(prj.protection)))
+            self.info.setStyleSheet("" if prj.encrypted else "color:#c0392b")
+            self.info.setToolTip(t("project.protection_tip." + (prj.protection if prj.protection in
+                                                                 ("passphrase", "dpapi") else "none")))
         self.btn_settings.setEnabled(prj is not None)
         self.btn_delete.setEnabled(prj is not None)
 

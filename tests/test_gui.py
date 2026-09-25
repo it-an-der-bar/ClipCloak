@@ -156,6 +156,34 @@ class GuiTest(unittest.TestCase):
         pop._choose("")
         spin(50)
 
+    def test_policy_locks_settings(self):
+        from clipcloak.gui.settings_dialog import SettingsDialog
+        from clipcloak.policy import SystemConfig
+        c = self.c
+        c.cfg.system = SystemConfig(policy={"watcher.mode": "critical", "hotkeys.revert": "Ctrl+Alt+U",
+                                            "detectors.enabled.kv-secrets": True,
+                                            "lists.known_domains": ["corp.local"]})
+        c.cfg.replace(c.cfg.data)
+        self.assertEqual(c.cfg.get("watcher.mode"), "critical")
+        c.set_watch_mode("off")
+        self.assertEqual(c.cfg.get("watcher.mode"), "critical")
+        dlg = SettingsDialog(c)
+        self.assertFalse(dlg.w["watcher.mode"].isEnabled())
+        self.assertTrue(dlg.w["watcher.action"].isEnabled())
+        self.assertFalse(dlg.hk_edits["revert"].isEnabled())
+        self.assertTrue(dlg.hk_edits["anonymize"].isEnabled())
+        self.assertFalse(dlg.det["kv-secrets"].isEnabled())
+        self.assertIn("corp.local", dlg.lists["known_domains"].items())
+        dlg.w["watcher.action"].setCurrentIndex(dlg.w["watcher.action"].findData("redact"))
+        dlg._accept()
+        self.assertEqual(c.cfg.get("watcher.action"), "redact")
+        self.assertEqual(c.cfg.get("watcher.mode"), "critical")
+        self.assertIn("corp.local", c.cfg.get("lists.known_domains"))
+        c.set_watch_mode("off")
+        c.cfg.set("watcher.mode", "critical")
+        dlg.deleteLater()
+        spin(50)
+
     def test_settings_dialog_roundtrip(self):
         from clipcloak.gui.settings_dialog import SettingsDialog
         d = SettingsDialog(self.c)

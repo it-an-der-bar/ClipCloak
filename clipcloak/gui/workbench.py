@@ -47,6 +47,9 @@ class Workbench(QWidget):
             self.action_buttons[m] = b
         self.auto_copy = QCheckBox(t("wb.auto_copy"))
         self.auto_copy.setChecked(bool(controller.cfg.get("general.workbench_auto_copy", True)))
+        if controller.cfg.is_locked("general.workbench_auto_copy"):
+            self.auto_copy.setEnabled(False)
+            self.auto_copy.setToolTip(t("settings.locked"))
         self.auto_copy.toggled.connect(self._auto_copy_toggled)
         self.btn_from = QPushButton(t("wb.from_clipboard"))
         self.btn_open = QPushButton(t("wb.open_file"))

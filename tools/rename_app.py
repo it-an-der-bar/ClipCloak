@@ -19,7 +19,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-TEXT_SUFFIXES = {".py", ".md", ".yml", ".yaml", ".toml", ".txt", ".json", ".desktop", ".cfg", ".ini"}
+TEXT_SUFFIXES = {".py", ".md", ".yml", ".yaml", ".toml", ".txt", ".json", ".desktop", ".cfg", ".ini",
+                 ".wxs", ".admx", ".adml", ".reg", ".ps1"}
 SKIP_DIRS = {".git", "build", "dist", "__pycache__", ".cache", "venv", ".venv"}
 
 

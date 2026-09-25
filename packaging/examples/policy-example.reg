@@ -1,0 +1,20 @@
+Windows Registry Editor Version 5.00
+
+; Enforced ClipCloak settings as registry values (the same values the ADMX templates write).
+; Import with: reg import policy-example.reg   (or deploy the values with baramundi / ESET / GPP)
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\it-an-der-bar\ClipCloak]
+"watcher.mode"="critical"
+"llm.enabled"=dword:00000001
+"llm.base_url"="https://llm.example.internal/v1"
+"llm.vision_timeout"=dword:0000012c
+"ner.enabled"=dword:00000001
+"project.os_encryption"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\it-an-der-bar\ClipCloak\lists.known_domains]
+"1"="example.internal"
+"2"="example.com"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\it-an-der-bar\ClipCloak\lists.custom_terms]
+"1"="Example Corp|ORG"
+"2"="Projekt Nordlicht|CUSTOM|Projekt A"

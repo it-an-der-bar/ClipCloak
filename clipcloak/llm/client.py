@@ -49,12 +49,14 @@ class LLMSettings:
     timeout: float = 60
     verify_tls: bool = True
     ca_bundle: str = ""
+    vision_timeout: float = 180       # screenshot -> text takes much longer than text requests
 
     @classmethod
     def from_config(cls, d: dict) -> "LLMSettings":
         return cls(d.get("base_url", ""), d.get("api_key", ""), d.get("model", ""),
                    d.get("vision_model", ""), float(d.get("timeout", 60) or 60),
-                   bool(d.get("verify_tls", True)), d.get("ca_bundle", ""))
+                   bool(d.get("verify_tls", True)), d.get("ca_bundle", ""),
+                   float(d.get("vision_timeout", 180) or 180))
 
 
 def _p(purpose: str) -> str:
@@ -105,12 +107,14 @@ class LLMClient:
             return self.s.base_url
 
     def chat(self, messages: list, model: str | None = None, json_mode: bool = False,
-             max_tokens: int | None = None, purpose: str = "chat") -> str:
+             max_tokens: int | None = None, purpose: str = "chat", timeout: float | None = None) -> str:
         model = model or self.s.model
-        event("log.llm_request", purpose=_p(purpose), model=model or "-", host=self._host())
+        timeout = timeout or self.s.timeout
+        event("log.llm_request", purpose=_p(purpose), model=model or "-", host=self._host(),
+              timeout=int(timeout))
         t0 = time.monotonic()
         try:
-            out = self._chat(messages, model, json_mode, max_tokens)
+            out = self._chat(messages, model, json_mode, max_tokens, timeout)
         except LLMError as exc:
             event("log.llm_fail", logging_level_warning(), purpose=_p(purpose),
                   ms=int((time.monotonic() - t0) * 1000), err=str(exc))
@@ -119,7 +123,7 @@ class LLMClient:
         return out
 
     def _chat(self, messages: list, model: str | None, json_mode: bool,
-              max_tokens: int | None) -> str:
+              max_tokens: int | None, timeout: float | None = None) -> str:
         url = self.s.base_url.rstrip("/") + "/chat/completions"
         payload = {"model": model or self.s.model, "messages": messages, "temperature": 0}
         if json_mode:
@@ -131,12 +135,12 @@ class LLMClient:
             headers["Authorization"] = "Bearer " + self.s.api_key
         req = urllib.request.Request(url, json.dumps(payload).encode("utf-8"), headers, method="POST")
         try:
-            with urllib.request.urlopen(req, timeout=self.s.timeout, context=self._ctx()) as resp:
+            with urllib.request.urlopen(req, timeout=timeout or self.s.timeout, context=self._ctx()) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", "replace")[:300]
             if json_mode and exc.code in (400, 422) and "response_format" in body:
-                return self._chat(messages, model, False, max_tokens)
+                return self._chat(messages, model, False, max_tokens, timeout)
             raise LLMError(f"HTTP {exc.code}: {body}") from exc
         except (urllib.error.URLError, OSError, ValueError) as exc:
             raise LLMError(str(exc)) from exc
@@ -151,7 +155,8 @@ class LLMClient:
         if self.s.api_key:
             headers["Authorization"] = "Bearer " + self.s.api_key
         req = urllib.request.Request(url, headers=headers)
-        event("log.llm_request", purpose=_p("models"), model="-", host=self._host())
+        event("log.llm_request", purpose=_p("models"), model="-", host=self._host(),
+              timeout=int(self.s.timeout))
         t0 = time.monotonic()
         try:
             with urllib.request.urlopen(req, timeout=self.s.timeout, context=self._ctx()) as resp:
@@ -171,7 +176,8 @@ class LLMClient:
             {"type": "text", "text": OCR_PROMPT},
             {"type": "image_url", "image_url": {"url": uri}},
         ]}]
-        text = self.chat(msgs, model=self.s.vision_model or self.s.model, purpose="screenshot")
+        text = self.chat(msgs, model=self.s.vision_model or self.s.model, purpose="screenshot",
+                         timeout=self.s.vision_timeout)
         m = re.fullmatch(r"\s*```[\w-]*\n(.*?)\n?```\s*", text, re.S)
         return m.group(1) if m else text
 

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Windows installer (WiX Toolset 5). Built in CI, see .gitlab-ci.yml (build:windows):
+
+    wix build packaging\windows\clipcloak.wxs -arch x64
+        -d Version=1.2.3 -d AppDir=<abs>\dist\clipcloak -d NerDir=<abs>\dist\clipcloak-ner
+        -d Icon=<abs>\clipcloak\resources\icon.ico -o clipcloak-v1.2.3-windows-x86_64.msi
+
+  Per-machine installation to "C:\Program Files\ClipCloak" (program in the folder,
+  NER plugin in "ner\"). Silent installation, e.g. for GPO, ESET PROTECT, baramundi:
+
+    msiexec /i clipcloak-v1.2.3-windows-x86_64.msi /qn
+    msiexec /i clipcloak-v1.2.3-windows-x86_64.msi /qn AUTOSTART=0 ADDLOCAL=Main
+    msiexec /x {product code} /qn     or     msiexec /x clipcloak-v1.2.3-windows-x86_64.msi /qn
+
+  Properties:
+    AUTOSTART=1        start for every user at logon (HKLM Run), default 1
+    DESKTOPSHORTCUT=1  shortcut on the common desktop, default 0
+  Features: Main (always), NER (plugin, default on; leave out with ADDLOCAL=Main)
+  A newer version replaces an older one (major upgrade, same UpgradeCode).
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="ClipCloak"
+           Manufacturer="it-an-der-bar"
+           Version="$(var.Version)"
+           UpgradeCode="F6A0337E-BD8E-448C-AEFF-A1E4D06678B7"
+           Scope="perMachine"
+           Compressed="yes">
+    <SummaryInformation Description="ClipCloak - redact, anonymise or pseudonymise clipboard contents" />
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="AppIcon" SourceFile="$(var.Icon)" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/it-an-der-bar/ClipCloak" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/it-an-der-bar/ClipCloak" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="AUTOSTART" Value="1" Secure="yes" />
+    <Property Id="DESKTOPSHORTCUT" Value="0" Secure="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="ClipCloak">
+        <Directory Id="NERFOLDER" Name="ner" />
+
+        <Component Id="InstallInfo" Guid="B1D6E12C-838E-43FC-8051-CAF6540260BF">
+          <RegistryValue Root="HKLM" Key="Software\it-an-der-bar\ClipCloak" Name="InstallDir"
+                         Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+          <RegistryValue Root="HKLM" Key="Software\it-an-der-bar\ClipCloak" Name="Version"
+                         Type="string" Value="$(var.Version)" />
+        </Component>
+
+        <Component Id="Autostart" Guid="090879F5-C7E5-46EE-8207-BB744EC70456" Condition="AUTOSTART = 1">
+          <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="clipcloak"
+                         Type="string" Value="&quot;[INSTALLFOLDER]clipcloak.exe&quot;" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="StartMenuShortcut" Guid="F04D7A70-518B-43A7-A442-8AE535B6D55C">
+        <Shortcut Id="StartMenuShortcut" Name="ClipCloak"
+                  Description="Redact, anonymise or pseudonymise clipboard contents"
+                  Target="[INSTALLFOLDER]clipcloak.exe" WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKLM" Key="Software\it-an-der-bar\ClipCloak" Name="StartMenuShortcut"
+                       Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="5B1F4CF9-6F21-4428-BEDE-2954BB9F8473" Condition="DESKTOPSHORTCUT = 1">
+        <Shortcut Id="DesktopShortcut" Name="ClipCloak"
+                  Description="Redact, anonymise or pseudonymise clipboard contents"
+                  Target="[INSTALLFOLDER]clipcloak.exe" WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKLM" Key="Software\it-an-der-bar\ClipCloak" Name="DesktopShortcut"
+                       Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(var.AppDir)\**" />
+    </ComponentGroup>
+
+    <ComponentGroup Id="NerFiles" Directory="NERFOLDER">
+      <Files Include="$(var.NerDir)\**" />
+    </ComponentGroup>
+
+    <Feature Id="Main" Title="ClipCloak" Level="1" AllowAbsent="no">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="InstallInfo" />
+      <ComponentRef Id="Autostart" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+    <Feature Id="NER" Title="NER plugin (names and companies, spaCy)" Level="1">
+      <ComponentGroupRef Id="NerFiles" />
+    </Feature>
+  </Package>
+</Wix>

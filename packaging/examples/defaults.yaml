@@ -1,0 +1,14 @@
+# Default values for all users of this machine; each user can still change them.
+# Windows: %ProgramData%\clipcloak\defaults.yaml    Linux: /etc/clipcloak/defaults.yaml
+# Same structure as the user's config.yaml.
+
+general:
+  language: de
+  mode: pseudonymize
+
+watcher:
+  mode: notify
+
+llm:
+  base_url: https://llm.example.internal/v1
+  timeout: 90

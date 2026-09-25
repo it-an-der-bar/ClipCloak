@@ -1,0 +1,33 @@
+# Enforced settings for all users of this machine (the users cannot change them).
+# Windows: %ProgramData%\clipcloak\policy.yaml    Linux: /etc/clipcloak/policy.yaml
+# Same structure as the user's config.yaml; only list what you want to enforce.
+# Entries under "lists:" are ADDED to the users' own lists instead of locking them.
+# Group Policy (ADMX) values in the registry take precedence over this file.
+
+watcher:
+  mode: critical            # off | notify | critical | always
+  critical_action: pseudonymize
+
+llm:
+  enabled: true
+  base_url: https://llm.example.internal/v1
+  model: qwen3-32b
+  vision_model: qwen2.5-vl-32b
+  vision_timeout: 300
+  detect: false             # never send original text to the LLM
+
+ner:
+  enabled: true
+
+project:
+  os_encryption: true       # Windows: encrypt projects with the user's account (DPAPI)
+
+lists:
+  known_domains:
+    - example.internal
+    - example.com
+  custom_terms:
+    - term: Example Corp
+      type: ORG
+    - term: Projekt Nordlicht
+      replacement: Projekt A

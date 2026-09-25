@@ -1,4 +1,10 @@
-"""Persistent projects: vault + history + project terms, optionally encrypted."""
+"""Persistent projects: vault + history + project terms, stored encrypted.
+
+Protection of a project file:
+  passphrase  AES-256-GCM, key from scrypt(passphrase)
+  dpapi       AES-256-GCM, random key wrapped with Windows DPAPI (account-bound, no passphrase)
+  none        plain JSON, mode 0600 (only where no account-bound protector exists)
+"""
 
 from __future__ import annotations
 
@@ -40,10 +46,11 @@ class Project:
     store_history: bool = True
     created: float = field(default_factory=time.time)
     passphrase: str | None = None
+    protection: str = "none"          # passphrase | dpapi | none (as stored on disk)
 
     @property
     def encrypted(self) -> bool:
-        return bool(self.passphrase)
+        return self.protection != "none"
 
     def payload(self) -> dict:
         return {"name": self.name, "created": self.created, "vault": self.vault.to_dict(),
@@ -76,11 +83,38 @@ def encrypt_payload(payload: dict, passphrase: str) -> dict:
             "cipher": "AES-256-GCM", "nonce": b64(nonce), "ciphertext": b64(ct)}
 
 
-def decrypt_payload(doc: dict, passphrase: str) -> dict:
+def encrypt_payload_os(payload: dict, prot) -> dict:
+    """Encrypt with a random key that the account-bound protector wraps."""
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    key, nonce = os.urandom(32), os.urandom(12)
+    ct = AESGCM(key).encrypt(nonce, json.dumps(payload).encode("utf-8"), FORMAT.encode())
+    b64 = lambda b: base64.b64encode(b).decode()
+    return {"format": FORMAT, "version": VERSION, "encrypted": True,
+            "kdf": {"name": prot.name, "wrapped_key": b64(prot.protect(key))},
+            "cipher": "AES-256-GCM", "nonce": b64(nonce), "ciphertext": b64(ct)}
+
+
+def doc_protection(doc: dict) -> str:
+    if not doc.get("encrypted"):
+        return "none"
+    return "passphrase" if (doc.get("kdf") or {}).get("name") == "scrypt" else (doc.get("kdf") or {}).get("name", "")
+
+
+def decrypt_payload(doc: dict, passphrase: str | None, prot=None) -> dict:
     from cryptography.exceptions import InvalidTag
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     k = doc["kdf"]
-    key = _derive(passphrase, base64.b64decode(k["salt"]), int(k["n"]), int(k["r"]), int(k["p"]))
+    if k.get("name") == "scrypt":
+        if not passphrase:
+            raise WrongPassphrase("passphrase required")
+        key = _derive(passphrase, base64.b64decode(k["salt"]), int(k["n"]), int(k["r"]), int(k["p"]))
+    else:
+        if prot is None or prot.name != k.get("name"):
+            raise ProjectError(f"project is protected with '{k.get('name')}', not available here")
+        try:
+            key = prot.unprotect(base64.b64decode(k["wrapped_key"]))
+        except OSError as exc:
+            raise ProjectError(f"cannot unlock the project with this account ({exc})") from exc
     try:
         pt = AESGCM(key).decrypt(base64.b64decode(doc["nonce"]), base64.b64decode(doc["ciphertext"]),
                                  FORMAT.encode())
@@ -95,11 +129,19 @@ class ProjectInfo:
     path: Path
     encrypted: bool
     modified: float
+    protection: str = "none"
+
+    @property
+    def needs_passphrase(self) -> bool:
+        return self.protection == "passphrase"
 
 
 class ProjectStore:
-    def __init__(self, directory: Path):
+    def __init__(self, directory: Path, protector=None):
+        """``protector``: account-bound key wrapper (see osprotect); ``None`` = plain files
+        for projects without passphrase."""
         self.dir = Path(directory)
+        self.protector = protector
 
     def path_for(self, name: str) -> Path:
         return self.dir / (slugify(name) + ".json")
@@ -116,7 +158,8 @@ class ProjectStore:
             if doc.get("format") != FORMAT:
                 continue
             name = doc.get("name") or (doc.get("data") or {}).get("name") or p.stem
-            out.append(ProjectInfo(name, p, bool(doc.get("encrypted")), p.stat().st_mtime))
+            out.append(ProjectInfo(name, p, bool(doc.get("encrypted")), p.stat().st_mtime,
+                                   doc_protection(doc)))
         return out
 
     def exists(self, name: str) -> bool:
@@ -133,20 +176,28 @@ class ProjectStore:
         doc = json.loads(self.path_for(name).read_text("utf-8"))
         return bool(doc.get("encrypted"))
 
-    def load(self, name: str, passphrase: str | None = None) -> Project:
+    def needs_passphrase(self, name: str) -> bool:
+        doc = json.loads(self.path_for(name).read_text("utf-8"))
+        return doc_protection(doc) == "passphrase"
+
+    def load(self, name: str, passphrase: str | None = None, upgrade: bool = False) -> Project:
+        """``upgrade``: rewrite a plain project file encrypted with the protector right away."""
         p = self.path_for(name)
         if not p.exists():
             raise ProjectError(f"project '{name}' not found")
         doc = json.loads(p.read_text("utf-8"))
         if doc.get("format") != FORMAT:
             raise ProjectError("not a project file")
+        protection = doc_protection(doc)
         if doc.get("encrypted"):
-            if not passphrase:
-                raise WrongPassphrase("passphrase required")
-            payload = decrypt_payload(doc, passphrase)
+            payload = decrypt_payload(doc, passphrase, self.protector)
         else:
             payload = doc["data"]
-        return Project.from_payload(payload, passphrase if doc.get("encrypted") else None)
+        prj = Project.from_payload(payload, passphrase if protection == "passphrase" else None)
+        prj.protection = protection
+        if upgrade and protection == "none" and self.protector is not None:
+            self.save(prj)
+        return prj
 
     def save(self, prj: Project) -> Path:
         self.dir.mkdir(parents=True, exist_ok=True)
@@ -154,8 +205,14 @@ class ProjectStore:
         if prj.passphrase:
             doc = encrypt_payload(payload, prj.passphrase)
             doc["name"] = prj.name
+            prj.protection = "passphrase"
+        elif self.protector is not None:
+            doc = encrypt_payload_os(payload, self.protector)
+            doc["name"] = prj.name
+            prj.protection = self.protector.name
         else:
             doc = {"format": FORMAT, "version": VERSION, "encrypted": False, "name": prj.name, "data": payload}
+            prj.protection = "none"
         p = self.path_for(prj.name)
         tmp = p.with_suffix(".tmp")
         tmp.write_text(json.dumps(doc, ensure_ascii=False, indent=1), "utf-8")

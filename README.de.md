@@ -57,21 +57,23 @@ Nachher  yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/2
 - **Werkbank** mit Live-Markierung, Fundtabelle und Rechtsklick-Aktionen (Ausnahme oder eigener Begriff).
 - **Verlauf** mit Vorher/Nachher-Diff jeder Aktion.
 - **Zuordnungsübersicht**: was wurde wodurch ersetzt, mit Filter und CSV-Export.
-- **Pseudonyme werden gespeichert.** Standardmäßig landen sie im Projekt *Standard*, damit das Zurückübersetzen auch nach einem Neustart klappt. Weitere Projekte (z. B. pro Kunde) lassen sich anlegen, optional mit Passphrase verschlüsselt (AES-256-GCM, scrypt), und jedes Projekt kann eigene Begriffe und bekannte Domains haben. *Nur RAM* muss man ausdrücklich wählen; es ist als "geht beim Beenden verloren" gekennzeichnet.
+- **Pseudonyme werden verschlüsselt gespeichert.** Standardmäßig landen sie im Projekt *Standard*, damit das Zurückübersetzen auch nach einem Neustart klappt. Unter Windows ist jede Projektdatei mit dem Windows-Konto des Benutzers verschlüsselt (DPAPI, ohne Passphrase); zusätzlich ist eine Projekt-Passphrase möglich (AES-256-GCM, scrypt). Weitere Projekte (z. B. pro Kunde) lassen sich anlegen, jedes mit eigenen Begriffen und bekannten Domains. *Nur RAM* muss man ausdrücklich wählen; es ist als "geht beim Beenden verloren" gekennzeichnet.
+- **Zentrale Verwaltung.** MSI für die stille Installation (GPO, ESET PROTECT, baramundi, Intune …), ADMX-Vorlagen für Gruppenrichtlinien, maschinenweite Standard- und Richtliniendateien. Vorgegebene Einstellungen sind in der Oberfläche gesperrt.
 - **HTML-Inhalte der Zwischenablage** (Outlook, Teams, Browser) werden mitverarbeitet. RTF wird verworfen, damit keine unbearbeitete Kopie übrig bleibt.
 - **Oberfläche** auf Deutsch und Englisch.
 
 ## Installation
 
-Ein Archiv von der Release-Seite laden, irgendwohin entpacken und das Programm starten. Eine Installation ist nicht nötig.
-
 | Datei | Inhalt |
 |---|---|
-| `clipcloak-vX.Y.Z-windows-x86_64.zip` | `clipcloak.exe`, NER-Plugin `clipcloak-ner.exe`, README, Lizenz |
-| `clipcloak-vX.Y.Z-linux-x86_64.tar.gz` | `clipcloak`, NER-Plugin `clipcloak-ner`, `.desktop`-Datei, Icon, README, Lizenz (mit `tar xzf` entpacken, die Ausführungsrechte bleiben erhalten) |
-| `clipcloak-vX.Y.Z-…` (nur Programm) | nur das Programm, ohne NER-Plugin |
+| `clipcloak-vX.Y.Z-windows-x86_64.msi` | Windows-Installer für alle Benutzer (`C:\Program Files\ClipCloak`), Programm + NER-Plugin; für die Softwareverteilung siehe [Verteilung](#verteilung-windows) |
+| `clipcloak-vX.Y.Z-windows-x86_64.zip` | Windows portabel: Ordner mit `clipcloak.exe`, NER-Plugin in `ner\`, ADMX-Vorlagen und Beispiel-Richtliniendateien in `policies\`, README, Lizenz |
+| `clipcloak-vX.Y.Z-linux-x86_64.tar.gz` | `clipcloak`, NER-Plugin `clipcloak-ner`, `.desktop`-Datei, Icon, Beispiel-Richtliniendateien, README, Lizenz (mit `tar xzf` entpacken, die Ausführungsrechte bleiben erhalten) |
+| `clipcloak-vX.Y.Z-linux-x86_64` | nur das Linux-Programm, ohne NER-Plugin |
 
-Das NER-Plugin läuft nur, wenn es in den Einstellungen aktiviert ist; sonst liegt es nur im Ordner.
+ZIP und tar.gz brauchen keine Installation: irgendwohin entpacken und das Programm starten. Den Ordner
+zusammenlassen – unter Windows braucht das Programm seinen Ordner `_internal`, das NER-Plugin den Ordner `ner`.
+Das NER-Plugin läuft nur, wenn es in den Einstellungen aktiviert ist.
 
 Unter Linux braucht das Binary glibc ≥ 2.36 (Debian 12, Ubuntu 24.04, Fedora 37 oder neuer) und die
 üblichen Qt/X11-Bibliotheken. Unter Debian/Ubuntu sind das `libxcb-cursor0 libxkbcommon-x11-0 libegl1`.
@@ -146,10 +148,10 @@ mit `--passphrase-env` angegebenen Umgebungsvariable oder wird interaktiv abgefr
 
 ## NER-Plugin
 
-ZIP und tar.gz enthalten das Plugin (`clipcloak-ner`) bereits neben dem Programm. Es enthält spaCy und das deutsche/englische Modell und läuft komplett lokal.
+MSI (Feature *NER*), ZIP (Ordner `ner\`) und tar.gz enthalten das Plugin bereits. Es enthält spaCy und das deutsche/englische Modell und läuft komplett lokal.
 
 1. Unter Einstellungen › NER-Plugin *NER aktivieren* anhaken, *Testen* klicken und mit OK speichern. Der Reiter zeigt an, ob der Helfer gefunden wurde.
-2. Wer nur das Programm geladen hat, legt den NER-Helfer aus einem Archiv (oder eine ältere einzelne `clipcloak-ner-…`-Datei) in denselben Ordner wie das Programm. Der Dateiname kann bleiben.
+2. Beim Linux-Download ohne NER `clipcloak-ner` aus dem tar.gz neben das Programm legen. Der Helfer wird neben dem Programm oder in dessen Unterordner `ner` gefunden; jeder andere Ort lässt sich unter *Helfer-Programm* eintragen.
 
 ## LLM
 
@@ -160,20 +162,80 @@ Einstellungen › LLM:
 3. Textmodell und optional Vision-Modell aus den Dropdowns wählen.
 4. Die gewünschten Funktionen einschalten.
 
+Screenshot → Text hat einen eigenen Timeout (Standard 180 s, *Timeout Screenshot → Text*), weil Vision-Modelle
+oft deutlich länger brauchen als Textanfragen (Standard 60 s). Der Protokoll-Reiter zeigt den Timeout jeder Anfrage.
+
 ## Konfiguration und Daten
 
 | | Windows | Linux |
 |---|---|---|
 | Einstellungen (`config.yaml`) | `%APPDATA%\clipcloak\` | `~/.config/clipcloak/` |
 | Projekte, Log | `%LOCALAPPDATA%\clipcloak\` | `~/.local/share/clipcloak/` |
+| Maschinenweite Standards / Richtlinie | `%ProgramData%\clipcloak\` | `/etc/clipcloak/` |
 
-Alles lässt sich im Einstellungsdialog ändern. Die YAML-Datei kann auch von Hand bearbeitet
-werden; fehlende Schlüssel werden mit den Standardwerten ergänzt.
+Alles lässt sich im Einstellungsdialog ändern. Die YAML-Datei kann auch von Hand bearbeitet werden.
+Sie enthält nur, was von den Standardwerten abweicht; fehlende Schlüssel nehmen die Standardwerte.
+
+## Verteilung (Windows)
+
+### Installation per GPO, ESET PROTECT, baramundi, Intune …
+
+Das MSI installiert für alle Benutzer (pro Maschine, ohne Benutzereingabe, ohne Neustart):
+
+```
+msiexec /i clipcloak-vX.Y.Z-windows-x86_64.msi /qn
+msiexec /i clipcloak-vX.Y.Z-windows-x86_64.msi /qn AUTOSTART=0 DESKTOPSHORTCUT=1
+msiexec /i clipcloak-vX.Y.Z-windows-x86_64.msi /qn ADDLOCAL=Main        (ohne NER-Plugin)
+msiexec /x clipcloak-vX.Y.Z-windows-x86_64.msi /qn                      (deinstallieren)
+```
+
+| Eigenschaft / Feature | Bedeutung | Standard |
+|---|---|---|
+| `AUTOSTART` | `1`: bei jeder Anmeldung für alle Benutzer starten (HKLM `…\Run`) | `1` |
+| `DESKTOPSHORTCUT` | `1`: Verknüpfung auf dem gemeinsamen Desktop | `0` |
+| Feature `Main` | Programm, Startmenü-Eintrag | immer |
+| Feature `NER` | NER-Plugin | installiert |
+
+- **Gruppenrichtlinie:** *Computerkonfiguration › Richtlinien › Softwareeinstellungen › Softwareinstallation*, Paket von einer Netzwerkfreigabe (zugewiesen).
+- **ESET PROTECT:** Client-Task *Software Install* › *Install by direct package URL* (Bezeichnungen der englischen Oberfläche) (`http://…/…msi` oder `file://\\server\freigabe\…msi`). Der Task installiert MSI-Pakete immer still; msiexec-Schalter lassen sich dort nicht setzen, nur die Eigenschaften des Pakets, z. B. `AUTOSTART=0`.
+- **baramundi Management Suite:** Anwendung aus dem MSI (oder mit der Kommandozeile oben) anlegen und per Job zuweisen; zur Erkennung der installierten Version das MSI-Produkt (Upgrade-Code unten) oder den Registry-Wert `HKLM\SOFTWARE\it-an-der-bar\ClipCloak\Version` verwenden.
+- **Updates:** das neuere MSI genauso installieren; es ersetzt die alte Version (Major Upgrade, Upgrade-Code `{F6A0337E-BD8E-448C-AEFF-A1E4D06678B7}`). Eigenschaften wie `AUTOSTART=0` bei jedem Update erneut angeben.
+- Benutzereinstellungen, Projekte und Logs bleiben in den Benutzerprofilen; die Deinstallation löscht sie nicht.
+- Der Windows-Build ist ein Ordner-Build: beim Start wird nichts nach `%TEMP%` entpackt, das passt zu AppLocker und Endpoint-Schutz. Hat die CI ein Code-Signing-Zertifikat (Variablen `SIGN_PFX_BASE64`, `SIGN_PFX_PASSWORD`), werden Programme und MSI signiert.
+
+### Zentrale Einstellungen
+
+Zwei Ebenen, jeweils aus Dateien und/oder der Registry:
+
+- **Standards** – der Benutzer kann sie ändern: `%ProgramData%\clipcloak\defaults.yaml` (Linux `/etc/clipcloak/defaults.yaml`) oder Registry-Werte unter `HKLM\SOFTWARE\Policies\it-an-der-bar\ClipCloak\Recommended`.
+- **Richtlinie** – vorgegeben, in der Oberfläche ausgegraut mit dem Hinweis "Vom Administrator verwaltet": `%ProgramData%\clipcloak\policy.yaml` (Linux `/etc/clipcloak/policy.yaml`), Registry `HKCU\…` oder `HKLM\SOFTWARE\Policies\it-an-der-bar\ClipCloak` (HKLM gewinnt).
+
+Die YAML-Dateien haben den Aufbau von `config.yaml`; Beispiele liegen im ZIP unter `policies\examples\`
+(im tar.gz unter `examples/`). Registry-Werte heißen wie die Einstellung, z. B. `watcher.mode` (REG_SZ `critical`),
+`ner.enabled` (DWORD `1`), `llm.base_url`. Listen sind ein Unterschlüssel dieses Namens mit den Werten `1`, `2`, …
+oder REG_MULTI_SZ; eigene Begriffe als `Begriff` oder `Begriff|TYP|Ersatz` – siehe `policy-example.reg`.
+
+Richtlinien-Einträge unter `lists` (eigene Begriffe, bekannte Domains, Erlaubt-Listen) **ergänzen** die eigenen
+Einträge der Benutzer und sind immer aktiv – z. B. um allen die Firmen- und Domainnamen mitzugeben.
+
+**Gruppenrichtlinien-Vorlagen:** `policies\clipcloak.admx` und die Ordner `en-US`/`de-DE` aus dem ZIP in den
+Central Store (`\\<Domäne>\SYSVOL\<Domäne>\Policies\PolicyDefinitions`) oder nach `C:\Windows\PolicyDefinitions`
+kopieren. Die Einstellungen stehen dann unter *Computer-/Benutzerkonfiguration › Richtlinien › Administrative
+Vorlagen › ClipCloak*. Mit ESET oder baramundi ohne GPO stattdessen `policy.yaml` nach `%ProgramData%\clipcloak\`
+oder die Registry-Werte verteilen.
+
+Beim Start zeigt der Protokoll-Reiter, welche zentralen Einstellungen geladen wurden, und nennt unbekannte
+Schlüssel oder ungültige Werte.
 
 ## Sicherheitshinweise
 
 - Die Erkennung ist heuristisch. Prüfe das Ergebnis (Werkbank/Diff), bevor du Sensibles teilst. Für Namen ohne festes Format helfen eigene Begriffe, bekannte Domains, das NER-Plugin oder die LLM-Prüfung.
-- Sitzungs-Zuordnungen und Verlauf liegen nur im RAM. Projekte speichern die Zuordnungen samt Originalwerten und Secrets auf der Platte. Ohne Passphrase ist die Datei lesbares JSON (unter Linux Rechte 0600). Mit Passphrase ist sie verschlüsselt, der Projekt*name* bleibt aber lesbar.
+- Sitzungs-Zuordnungen und Verlauf liegen nur im RAM. Projekte speichern die Zuordnungen samt Originalwerten und Secrets auf der Platte:
+  - Windows: immer verschlüsselt (AES-256-GCM). Den Schlüssel schützt DPAPI, gebunden an das Windows-Konto des Benutzers; andere Benutzer, Plattenkopien oder Backups können die Datei nicht lesen. Ältere unverschlüsselte Projektdateien werden beim Öffnen umgestellt. (Abschaltbar unter Einstellungen › Allgemein; nicht empfohlen.)
+  - Mit Projekt-Passphrase (alle Systeme) kommt der Schlüssel stattdessen aus der Passphrase (scrypt); das schützt auch vor anderen Programmen unter demselben Konto.
+  - Linux ohne Passphrase: lesbares JSON mit Rechten 0600 – die Projektleiste zeigt "NICHT verschlüsselt".
+  - Der Projekt*name* bleibt in der Datei lesbar.
+- Per Richtlinie gesetzte LLM-Token liegen in der Registry bzw. Richtliniendatei und sind für die Benutzer lesbar.
 - Anonymisierte Werte werden nie in eine Zuordnungsdatei geschrieben. Für Platzhalter werden nur schlüsselabhängige Hashes im RAM gehalten.
 - Inhalte der Zwischenablage landen nie im Log.
 - *Originaltext im Verlauf behalten* lässt sich abschalten. Der Verlauf zeigt die Originale dann nur maskiert.

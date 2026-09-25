@@ -15,11 +15,10 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, 
                                QScrollArea, QSpinBox, QTableWidget, QTableWidgetItem, QTabWidget,
                                QVBoxLayout, QWidget)
 
-from ..config import ACTIONS, DEFAULTS
+from ..config import ACTIONS
 from ..core.detectors import BUILTIN_DETECTORS
 from ..core.entities import ALL_TYPES
 from ..i18n import LANGUAGES, t
-from .. import __version__
 from ..meta import APP_NAME, NER_HELPER_NAME, RELEASES_URL
 
 MODE_CHOICES = ["pseudonymize", "anonymize", "redact"]
@@ -137,11 +136,51 @@ class SettingsDialog(QDialog):
         bb.rejected.connect(self.reject)
         bb.button(QDialogButtonBox.RestoreDefaults).clicked.connect(self._defaults)
         lay = QVBoxLayout(self)
+        if controller.cfg.managed:
+            banner = QLabel("🔒 " + t("settings.managed"))
+            banner.setWordWrap(True)
+            banner.setStyleSheet("background:palette(alternate-base); padding:6px; border-radius:4px;")
+            lay.addWidget(banner)
         lay.addWidget(tabs)
         lay.addWidget(bb)
         self._test_done.connect(self._show_test)
         self._load()
+        self._apply_locks()
         self._baseline = self._collect()
+
+    # ------------------------------------------------------------- policy
+    def _lock(self, widget, dotted: str):
+        if self.c.cfg.is_locked(dotted):
+            widget.setEnabled(False)
+            widget.setToolTip(t("settings.locked"))
+
+    def _apply_locks(self):
+        """Settings enforced by the administrator (policy) cannot be changed here."""
+        for key, wdg in self.w.items():
+            self._lock(wdg, key)
+        for action, ed in self.hk_edits.items():
+            self._lock(ed, "hotkeys." + action)
+            self._lock(self.hk_clear[action], "hotkeys." + action)
+        for cb in self.crit.values():
+            self._lock(cb, "watcher.critical_types")
+        for did, cb in self.det.items():
+            self._lock(cb, "detectors.enabled." + did)
+        for ty, cb in self.type_modes.items():
+            self._lock(cb, "processing.type_modes." + ty)
+        for cb in self.ner_types.values():
+            self._lock(cb, "ner.types")
+        self._lock(self.llm_model, "llm.model")
+        self._lock(self.llm_vision, "llm.vision_model")
+        from ..platform import autostart
+        try:
+            machine = autostart.machine_enabled()
+        except OSError:
+            machine = False
+        if machine:
+            cb = self.w["general.autostart"]
+            cb.setChecked(True)
+            cb.setEnabled(False)
+            cb.setToolTip(t("settings.autostart_machine"))
 
     # ------------------------------------------------------------- builders
     def _combo(self, key, choices, label_prefix=None):
@@ -183,6 +222,10 @@ class SettingsDialog(QDialog):
         f.addRow("", self._check("general.workbench_auto_copy", t("wb.auto_copy")))
         f.addRow("", self._check("general.start_minimized", t("settings.start_minimized")))
         f.addRow("", self._check("general.autostart", t("settings.autostart")))
+        if sys.platform == "win32":
+            enc = self._check("project.os_encryption", t("settings.os_encryption"))
+            enc.setToolTip(t("settings.os_encryption_tip"))
+            f.addRow("", enc)
         f.addRow(t("settings.history_size"), self._spin("general.history_size", 1, 10000))
         f.addRow("", self._check("general.history_store_originals", t("settings.history_originals")))
         f.addRow(QLabel("<b>" + t("settings.processing") + "</b>"))
@@ -203,11 +246,13 @@ class SettingsDialog(QDialog):
         v = QVBoxLayout(w)
         grid = QGridLayout()
         self.hk_edits = {}
+        self.hk_clear = {}
         for row, action in enumerate(ACTIONS):
             ed = QKeySequenceEdit()
             clear = QPushButton("✕")
             clear.setFixedWidth(28)
             clear.clicked.connect(ed.clear)
+            self.hk_clear[action] = clear
             err = QLabel(self.c.hotkey_errors.get(action, ""))
             err.setStyleSheet("color:#c0392b")
             grid.addWidget(QLabel(t("action." + action)), row, 0)
@@ -302,20 +347,23 @@ class SettingsDialog(QDialog):
     def _lists(self):
         tabs = QTabWidget()
         self.terms = TermsTable()
-        tabs.addTab(self._with_help(self.terms, "lists.terms_help"), t("lists.terms"))
+        tabs.addTab(self._with_help(self.terms, "lists.terms_help", "lists.custom_terms"), t("lists.terms"))
         self.lists = {}
         for key in ("known_domains", "allow_terms", "allow_domains", "allow_ip_ranges",
                     "generic_labels_extra", "extra_tlds"):
             ed = ListEdit()
             self.lists[key] = ed
-            tabs.addTab(self._with_help(ed, "lists." + key + "_help"), t("lists." + key))
+            tabs.addTab(self._with_help(ed, "lists." + key + "_help", "lists." + key), t("lists." + key))
         return tabs
 
-    @staticmethod
-    def _with_help(widget, help_key):
+    def _with_help(self, widget, help_key, setting=None):
         w = QWidget()
         v = QVBoxLayout(w)
-        lab = QLabel(t(help_key))
+        text = t(help_key)
+        n = len(self.c.cfg.policy_entries(setting)) if setting else 0
+        if n:
+            text += "\n\n🔒 " + t("settings.list_policy", n=n)
+        lab = QLabel(text)
         lab.setWordWrap(True)
         v.addWidget(lab)
         v.addWidget(widget, 1)
@@ -340,6 +388,7 @@ class SettingsDialog(QDialog):
         f1.addRow("", self._check("llm.verify_tls", t("llm.verify_tls")))
         f1.addRow(t("llm.ca_bundle"), self._file_row(self._line("llm.ca_bundle")))
         f1.addRow(t("llm.timeout"), self._spin("llm.timeout", 5, 600))
+        f1.addRow(t("llm.vision_timeout"), self._spin("llm.vision_timeout", 10, 3600))
         self.llm_test_btn = QPushButton(t("llm.test"))
         self.llm_test_btn.clicked.connect(self._test_llm)
         self.llm_result = QLabel(t("llm.test_hint"))
@@ -411,9 +460,7 @@ class SettingsDialog(QDialog):
         v.addWidget(self.ner_status)
         folder = str(self._program_dir())
         if getattr(sys, "frozen", False):
-            steps = t("ner.setup_steps",
-                      win=f"{NER_HELPER_NAME}-v{__version__}-windows-x86_64.exe",
-                      linux=f"{NER_HELPER_NAME}-v{__version__}-linux-x86_64",
+            steps = t("ner.setup_steps", win=f"ner\\{NER_HELPER_NAME}.exe", linux=NER_HELPER_NAME,
                       folder=folder)
         else:
             steps = t("ner.setup_source", folder=folder)
@@ -448,8 +495,8 @@ class SettingsDialog(QDialog):
         w = QWidget()
         v = QVBoxLayout(w)
         prj = self.c.project
-        v.addWidget(QLabel(t("settings.project_info", name=prj.name,
-                             enc=t("yes") if prj.encrypted else t("no"))))
+        from .project_bar import protection_label
+        v.addWidget(QLabel(t("settings.project_info", name=prj.name, enc=protection_label(prj.protection))))
         self.prj_store_history = QCheckBox(t("settings.project_store_history"))
         self.prj_store_history.setChecked(prj.store_history)
         v.addWidget(self.prj_store_history)
@@ -574,7 +621,8 @@ class SettingsDialog(QDialog):
         super().reject()
 
     def _defaults(self):
-        self._load(copy.deepcopy(DEFAULTS))
+        self._load(self.c.cfg.base())
+        self._apply_locks()
 
     def _accept(self):
         data = self._collect()
@@ -621,7 +669,8 @@ class SettingsDialog(QDialog):
         self._fill_models(models)
         if not self.llm_model.currentText() and models:
             self.llm_model.setCurrentIndex(1)
-        self.w["llm.enabled"].setChecked(True)
+        if self.w["llm.enabled"].isEnabled():
+            self.w["llm.enabled"].setChecked(True)
 
     def _fill_models(self, models):
         for combo in (self.llm_model, self.llm_vision):

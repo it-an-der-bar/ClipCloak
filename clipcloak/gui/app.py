@@ -72,7 +72,7 @@ class Controller(QObject):
             app.installTranslator(self._qt_translator)
         self.session = session.info(QGuiApplication.platformName())
         self.display = self.session["display"]
-        self.store = ProjectStore(paths.projects_dir())
+        self.store = ProjectStore(paths.projects_dir(), protector=self._protector())
         self.project: Project | None = None
         self.session_vault = Vault("session")
         self._session_history: list = []
@@ -262,8 +262,16 @@ class Controller(QObject):
     def apply_settings(self, data: dict, project_update: dict | None = None):
         old_lang = self.cfg.get("general.language")
         old_autostart = self.cfg.get("general.autostart")
-        self.cfg.data = data
+        old_os_enc = self.cfg.get("project.os_encryption", True)
+        self.cfg.replace(data)
+        data = self.cfg.data            # policy applied
         self.cfg.save()
+        if bool(data["project"].get("os_encryption", True)) != bool(old_os_enc):
+            self.store.protector = self._protector()
+            if self.project is not None:
+                self._save_project_now()
+                if self.main is not None:
+                    self.main.project_bar.refresh()
         if bool(data["general"].get("autostart")) != bool(old_autostart):
             try:
                 autostart.set_enabled(bool(data["general"].get("autostart")))
@@ -440,7 +448,8 @@ class Controller(QObject):
             self.clip.stop_watch()
 
     def set_watch_mode(self, mode: str):
-        self.cfg.set("watcher.mode", mode)
+        if not self.cfg.set("watcher.mode", mode):
+            self.notify(t("msg.locked"), force=True)
         self.cfg.save()
         self._apply_watcher()
         self.tray.update_state()
@@ -448,7 +457,8 @@ class Controller(QObject):
             self.main.update_status()
 
     def set_default_mode(self, mode: str):
-        self.cfg.set("general.mode", mode)
+        if not self.cfg.set("general.mode", mode):
+            self.notify(t("msg.locked"), force=True)
         self.cfg.save()
 
     def is_paused(self) -> bool:
@@ -713,6 +723,13 @@ class Controller(QObject):
         if not self.open_project(name):
             self._switch(None)
 
+    def _protector(self):
+        """Account-bound encryption for projects without passphrase (Windows DPAPI)."""
+        if not self.cfg.get("project.os_encryption", True):
+            return None
+        from ..core.osprotect import protector
+        return protector()
+
     def open_project(self, name: str | None, parent=None) -> bool:
         if name is None:
             self._switch(None)
@@ -722,12 +739,12 @@ class Controller(QObject):
         from .project_dialog import ask_passphrase
         try:
             pw = None
-            if self.store.is_encrypted(name):
+            if self.store.needs_passphrase(name):
                 pw = ask_passphrase(parent, name)
                 if pw is None:
                     self.tray.rebuild()
                     return False
-            prj = self.store.load(name, pw)
+            prj = self.store.load(name, pw, upgrade=True)
         except WrongPassphrase:
             QMessageBox.warning(parent, APP_DISPLAY_NAME, t("project.wrong_passphrase"))
             return False
@@ -817,6 +834,7 @@ class Controller(QObject):
     def start(self, show_window: bool = False):
         if self.cfg.load_error:
             QMessageBox.warning(None, APP_DISPLAY_NAME, t("msg.config_broken", err=self.cfg.load_error))
+        self._apply_system_config()
         if self.tray_available():
             self.tray.show()
         else:
@@ -830,6 +848,21 @@ class Controller(QObject):
             self.notify(t("msg.no_global_hotkeys"), force=True)
         elif self.hotkey_errors:
             self.notify(t("msg.hotkey_errors", n=len(self.hotkey_errors)), error=True)
+
+    def _apply_system_config(self):
+        """Log central settings and enforce a managed autostart."""
+        sc = self.cfg.system
+        if sc.sources:
+            event("log.policy", sources=", ".join(sc.sources), n=len(sc.policy), d=len(sc.defaults))
+        for err in sc.errors:
+            event("log.policy_error", logging.WARNING, err=err)
+        if self.cfg.is_locked("general.autostart") or autostart.machine_enabled():
+            want = bool(self.cfg.get("general.autostart")) and not autostart.machine_enabled()
+            try:
+                if autostart.is_enabled() != want:
+                    autostart.set_enabled(want)   # the installer's machine-wide entry replaces the user's
+            except OSError as exc:
+                log.warning("autostart: %s", exc)
 
     def handle_command(self, cmd: dict):
         action = cmd.get("action")
@@ -854,7 +887,9 @@ class Controller(QObject):
     def set_language(self, lang: str):
         if lang == self.cfg.get("general.language", "auto"):
             return
-        self.cfg.set("general.language", lang)
+        if not self.cfg.set("general.language", lang):
+            self.notify(t("msg.locked"), force=True)
+            return
         self.cfg.save()
         self._ask_restart_for_language(lang)
 

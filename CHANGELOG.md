@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.9
+
+- Managed deployment on Windows:
+  - **MSI installer** (WiX 5), per machine to `C:\Program Files\ClipCloak`, silent with `msiexec /i … /qn`. Properties `AUTOSTART` (default 1, HKLM Run for all users) and `DESKTOPSHORTCUT`, features `Main` and `NER`, major upgrade on newer versions. Suited for GPO software installation, ESET PROTECT *Software Install* and baramundi.
+  - Windows builds are now folder builds (`--onedir`): nothing is unpacked to `%TEMP%` at start (AppLocker, endpoint protection). The ZIP contains `clipcloak.exe` + `_internal\`, the NER plugin in `ner\`, and the ADMX templates. The single Windows `.exe` files are no longer published.
+  - Optional code signing in CI (`SIGN_PFX_BASE64`, `SIGN_PFX_PASSWORD`, `tools/sign_windows.ps1`).
+- **Central settings:**
+  - Defaults (changeable): `%ProgramData%\clipcloak\defaults.yaml` or `/etc/clipcloak/defaults.yaml`, registry `HKLM\SOFTWARE\Policies\it-an-der-bar\ClipCloak\Recommended`.
+  - Policy (enforced): `policy.yaml` in the same folder, registry `HKCU`/`HKLM\SOFTWARE\Policies\it-an-der-bar\ClipCloak`.
+  - **ADMX/ADML** templates (English, German) with 60 settings for Group Policy.
+  - Enforced settings are greyed out in the settings, tray and workbench ("Managed by your administrator"). Policy entries in lists (custom terms, known domains, allowlists) are added to the user's entries.
+  - `config.yaml` now only stores the user's own choices, so later changes to the machine defaults reach every user.
+  - The Log tab shows the loaded central settings and invalid entries.
+  - Examples: `policy.yaml`, `defaults.yaml`, `policy-example.reg`.
+- **Projects are encrypted without a passphrase on Windows:** AES-256-GCM with a random key protected by DPAPI (bound to the Windows account). Plain project files are converted when they are opened. The project bar shows "encrypted (Windows account)", "encrypted (passphrase)" or, in red, "NOT encrypted", with an explanation in the tooltip.
+- LLM: screenshot → text has its own timeout (`llm.vision_timeout`, default 180 s); the Log tab shows the timeout of each request.
+- Autostart: if the installer set up autostart for all users, the user's own autostart entry is removed (no second start) and the option shows this.
+
 ## 0.1.8
 
 - Fixed: the Linux NER plugin failed its self test (numpy: "libscipy_openblas… ELF load command address/offset not page-aligned"). `pyinstaller --strip` also stripped numpy's vendored OpenBLAS. Now only the debug symbols of the spaCy/thinc/blis extensions are removed before the build (`tools/strip_debug.py`); numpy's libraries stay untouched. Size about 82 MB.

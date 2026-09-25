@@ -108,16 +108,18 @@ def headless(args) -> int:
     from .core.vault import Vault
 
     cfg = Config.load(args.config or paths.config_file())
-    store = ProjectStore(paths.projects_dir())
+    from .core.osprotect import protector
+    store = ProjectStore(paths.projects_dir(),
+                         protector=protector() if cfg.get("project.os_encryption", True) else None)
     if args.command == "projects":
         for info in store.list():
-            print(f"{info.name}\t{'encrypted' if info.encrypted else 'plain'}\t{info.path}")
+            print(f"{info.name}\t{info.protection}\t{info.path}")
         return 0
     prj = None
     if args.project:
         try:
             pw = os.environ.get(args.passphrase_env) if args.passphrase_env else None
-            if store.exists(args.project) and store.is_encrypted(args.project) and not pw:
+            if store.exists(args.project) and store.needs_passphrase(args.project) and not pw:
                 if sys.stdin is not None and sys.stdin.isatty():
                     pw = getpass.getpass(f"Passphrase for {args.project}: ")
                 else:

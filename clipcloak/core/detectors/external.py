@@ -50,6 +50,8 @@ def find_ner_helper(configured: str = "") -> list[str] | None:
     if getattr(sys, "frozen", False):
         candidates.append(Path(sys.executable).resolve().parent / exe)
     candidates.append(Path(sys.argv[0]).resolve().parent / exe)
+    # Windows installer / ZIP: the NER helper is a folder build of its own in "ner\"
+    candidates += [c.parent / "ner" / exe for c in list(candidates)]
     for c in candidates:
         if c.is_file():
             return [str(c)]

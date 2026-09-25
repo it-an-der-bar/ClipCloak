@@ -89,6 +89,7 @@ DEFAULTS: dict = {
         "model": "",
         "vision_model": "",
         "timeout": 60,
+        "vision_timeout": 180,        # screenshot -> text (vision models are slow)
         "verify_tls": True,
         "ca_bundle": "",
         "verify_output": "off",       # off | warn
@@ -105,6 +106,7 @@ DEFAULTS: dict = {
     },
     "project": {
         "last": "",                   # last project; "" = "Standard", "@ram" = RAM only
+        "os_encryption": True,        # encrypt projects without passphrase with the account (Windows DPAPI)
     },
 }
 
@@ -119,14 +121,99 @@ def deep_merge(base: dict, override: dict) -> dict:
     return out
 
 
-class Config:
-    def __init__(self, path: Path | None = None, data: dict | None = None):
-        self.path = Path(path) if path else None
-        self.data = deep_merge(DEFAULTS, data or {})
-        self.load_error = ""
+def _diff(data: dict, base: dict) -> dict:
+    """Only what differs from ``base`` (the file then follows later changes of the defaults)."""
+    out = {}
+    for k, v in data.items():
+        b = base.get(k) if isinstance(base, dict) else None
+        if isinstance(v, dict) and isinstance(b, dict):
+            sub = _diff(v, b)
+            if sub:
+                out[k] = sub
+        elif k not in (base or {}) or v != b:
+            out[k] = copy.deepcopy(v)
+    return out
 
+
+class Config:
+    """Settings in layers: DEFAULTS < machine defaults < user config.yaml < policy.
+
+    ``data`` is the effective result. Policy keys are locked: ``set`` ignores them and
+    ``save`` never writes them into the user's file. Policy entries of ``lists.*``
+    are added to the user's lists instead.
+    """
+
+    def __init__(self, path: Path | None = None, data: dict | None = None, system=None):
+        from .policy import SystemConfig
+        self.path = Path(path) if path else None
+        self.system = system or SystemConfig()
+        self.load_error = ""
+        self._user = copy.deepcopy(data or {})
+        self.data = self._effective(self._user)
+
+    # ------------------------------------------------------------ layers
+    def base(self) -> dict:
+        """DEFAULTS plus machine defaults, with the policy applied (for "Restore defaults")."""
+        from .policy import set_dotted
+        base = copy.deepcopy(DEFAULTS)
+        for k, v in self.system.defaults.items():
+            set_dotted(base, k, v)
+        return self._apply_policy(base)
+
+    def _effective(self, user: dict) -> dict:
+        from .policy import set_dotted
+        eff = copy.deepcopy(DEFAULTS)
+        for k, v in self.system.defaults.items():
+            set_dotted(eff, k, v)
+        eff = deep_merge(eff, user)
+        return self._apply_policy(eff)
+
+    def _apply_policy(self, data: dict) -> dict:
+        from .policy import get_dotted, set_dotted
+        for k in self.system.locked_keys():
+            set_dotted(data, k, self.system.policy[k])
+        for k, extra in self.system.additive().items():
+            cur = get_dotted(data, k) or []
+            set_dotted(data, k, list(extra) + [x for x in cur if x not in extra])
+        return data
+
+    def is_locked(self, dotted: str) -> bool:
+        for k in self.system.locked_keys():
+            if k == dotted or k.startswith(dotted + ".") or dotted.startswith(k + "."):
+                return True
+        return False
+
+    def policy_entries(self, dotted: str) -> list:
+        """Entries an administrator added to a ``lists.*`` setting."""
+        return list(self.system.additive().get(dotted, []))
+
+    @property
+    def managed(self) -> bool:
+        return bool(self.system.policy)
+
+    def replace(self, data: dict) -> None:
+        """Take a complete settings dict (settings dialog); the policy stays in force."""
+        from .policy import del_dotted, get_dotted, set_dotted
+        user = copy.deepcopy(data)
+        for k in self.system.locked_keys():      # enforced values are not the user's choice
+            prev = get_dotted(self._user, k, _MISSING)
+            if prev is _MISSING:
+                del_dotted(user, k)
+            else:
+                set_dotted(user, k, prev)
+        for k, extra in self.system.additive().items():
+            cur = get_dotted(user, k)
+            if isinstance(cur, list):
+                set_dotted(user, k, [x for x in cur if x not in extra])
+        self._user = user
+        self.data = self._effective(self._user)
+
+    # ------------------------------------------------------------ files
     @classmethod
-    def load(cls, path: Path) -> "Config":
+    def load(cls, path: Path, system=None) -> "Config":
+        from .policy import SystemConfig
+        if system is None:
+            system = SystemConfig.load(DEFAULTS)
         path = Path(path)
         data: dict = {}
         if path.exists():
@@ -142,17 +229,41 @@ class Config:
                     path.replace(backup)
                 except OSError:
                     backup = None
-                cfg = cls(path, {})
+                cfg = cls(path, {}, system)
                 cfg.load_error = f"{exc}" + (f"\n→ {backup}" if backup else "")
                 return cfg
-        return cls(path, data)
+        return cls(path, data, system)
+
+    def user_data(self) -> dict:
+        """What goes into config.yaml: the user's own choices only."""
+        from .policy import del_dotted, get_dotted, set_dotted
+        base = copy.deepcopy(DEFAULTS)
+        for k, v in self.system.defaults.items():
+            set_dotted(base, k, v)
+        own = copy.deepcopy(self.data)
+        for k in self.system.locked_keys():      # keep the user's value, not the enforced one
+            prev = get_dotted(self._user, k, _MISSING)
+            if prev is _MISSING:
+                set_dotted(own, k, get_dotted(base, k))
+            else:
+                set_dotted(own, k, prev)
+        for k, extra in self.system.additive().items():
+            cur = get_dotted(own, k) or []
+            set_dotted(own, k, [x for x in cur if x not in extra])
+        out = _diff(own, base)
+        for k in self.system.locked_keys():
+            if get_dotted(self._user, k, _MISSING) is _MISSING:
+                del_dotted(out, k)
+        out["version"] = CONFIG_VERSION
+        return out
 
     def save(self) -> None:
         if not self.path:
             return
+        self._user = self.user_data()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(yaml.safe_dump(self.data, allow_unicode=True, sort_keys=False), "utf-8")
+        tmp.write_text(yaml.safe_dump(self._user, allow_unicode=True, sort_keys=False), "utf-8")
         if self.path.exists():
             try:   # keep the previous version as config.yaml.bak
                 os.replace(self.path, self.path.with_name(self.path.name + ".bak"))
@@ -173,12 +284,21 @@ class Config:
             cur = cur[part]
         return cur
 
-    def set(self, dotted: str, value) -> None:
+    def set(self, dotted: str, value) -> bool:
+        """Change a setting. Returns False (and changes nothing) if it is locked by policy."""
+        if self.is_locked(dotted):
+            return False
         parts = dotted.split(".")
         cur = self.data
         for part in parts[:-1]:
             cur = cur.setdefault(part, {})
         cur[parts[-1]] = value
+        if dotted.startswith("lists."):
+            self._apply_policy(self.data)
+        return True
+
+
+_MISSING = object()
 
 
 def engine_settings(cfg: Config, project_terms: list | None = None,

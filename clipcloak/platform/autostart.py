@@ -21,11 +21,29 @@ def _desktop_file() -> Path:
     return base / "autostart" / f"{APP_NAME}.desktop"
 
 
+RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
+
+
+def machine_enabled() -> bool:
+    """Autostart for all users, set up by the installer (MSI property AUTOSTART=1)
+    or an administrator: HKLM Run value on Windows, /etc/xdg/autostart on Linux."""
+    if sys.platform == "win32":
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, RUN_KEY, 0,
+                                winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as k:
+                winreg.QueryValueEx(k, APP_NAME)
+                return True
+        except OSError:
+            return False
+    return (Path("/etc/xdg/autostart") / f"{APP_NAME}.desktop").exists()
+
+
 def is_enabled() -> bool:
     if sys.platform == "win32":
         try:
             import winreg
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run") as k:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as k:
                 winreg.QueryValueEx(k, APP_NAME)
                 return True
         except OSError:
@@ -38,8 +56,7 @@ def set_enabled(enabled: bool) -> None:
     if sys.platform == "win32":
         import subprocess
         import winreg
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run",
-                            0, winreg.KEY_SET_VALUE) as k:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as k:
             if enabled:
                 winreg.SetValueEx(k, APP_NAME, 0, winreg.REG_SZ, subprocess.list2cmdline(cmd))
             else:

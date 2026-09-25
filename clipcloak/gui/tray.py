@@ -46,7 +46,8 @@ class Tray(QSystemTrayIcon):
             a.triggered.connect(lambda: self.c.run_action("screenshot", "tray"))
         m.addSeparator()
 
-        mode_menu = m.addMenu(t("tray.default_mode"))
+        mode_menu = m.addMenu(t("tray.default_mode") + ("  🔒" if self.c.cfg.is_locked("general.mode") else ""))
+        mode_menu.setEnabled(not self.c.cfg.is_locked("general.mode"))
         grp = QActionGroup(mode_menu)
         cur = self.c.cfg.get("general.mode")
         for mode in ("pseudonymize", "anonymize", "redact"):
@@ -56,13 +57,13 @@ class Tray(QSystemTrayIcon):
             grp.addAction(a)
             mode_menu.addAction(a)
 
-        watch_menu = m.addMenu(t("tray.watcher"))
+        watch_menu = m.addMenu(t("tray.watcher") + ("  🔒" if self.c.cfg.is_locked("watcher.mode") else ""))
         grp2 = QActionGroup(watch_menu)
         wm = self.c.cfg.get("watcher.mode")
         for mode in WATCH_MODES:
             a = QAction(t("watch." + mode), watch_menu, checkable=True)
             a.setChecked(mode == wm)
-            a.setEnabled(mode == "off" or self.c.clip_can_watch())
+            a.setEnabled((mode == "off" or self.c.clip_can_watch()) and not self.c.cfg.is_locked("watcher.mode"))
             a.triggered.connect(lambda _=False, x=mode: self.c.set_watch_mode(x))
             grp2.addAction(a)
             watch_menu.addAction(a)
