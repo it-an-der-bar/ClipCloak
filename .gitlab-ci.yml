@@ -88,9 +88,11 @@ build:ner:linux:
     - python -m pip install --upgrade pip
     - pip install -r requirements-ner.txt pyinstaller
   script:
-    # --strip removes the debug symbols of the spaCy/numpy/blis libraries (~120 MB -> ~84 MB);
-    # GitLab's default "Maximum artifacts size" is 100 MB per job
-    - pyinstaller --noconfirm --clean --onefile --console --strip --name "$APP_NAME-ner"
+    # Remove debug symbols from the spaCy/thinc/blis extensions (~120 MB -> ~82 MB binary) so the
+    # artifact stays below GitLab's default 100 MB. Not "pyinstaller --strip": that also strips
+    # numpy's vendored OpenBLAS and breaks it ("ELF load command ... not page-aligned").
+    - python tools/strip_debug.py
+    - pyinstaller --noconfirm --clean --onefile --console --name "$APP_NAME-ner"
         --collect-all de_core_news_sm --collect-all en_core_web_sm
         --exclude-module spacy.tests --exclude-module pytest run_clipcloak_ner.py
     - '"dist/$APP_NAME-ner" --selftest'

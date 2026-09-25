@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.8
+
+- Fixed: the Linux NER plugin failed its self test (numpy: "libscipy_openblas… ELF load command address/offset not page-aligned"). `pyinstaller --strip` also stripped numpy's vendored OpenBLAS. Now only the debug symbols of the spaCy/thinc/blis extensions are removed before the build (`tools/strip_debug.py`); numpy's libraries stay untouched. Size about 82 MB.
+
 ## 0.1.7
 
 - Releases: one download per platform.
