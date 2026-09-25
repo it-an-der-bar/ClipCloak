@@ -33,6 +33,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.tabs)
         m = self.menuBar()
         f = m.addMenu(t("menu.file"))
+        f.addAction(t("file.menu")).triggered.connect(lambda: controller.process_file())
+        f.addSeparator()
         f.addAction(t("tray.settings")).triggered.connect(controller.show_settings)
         f.addSeparator()
         f.addAction(t("menu.close")).triggered.connect(self.close)

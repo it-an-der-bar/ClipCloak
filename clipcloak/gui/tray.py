@@ -97,6 +97,7 @@ class Tray(QSystemTrayIcon):
             prj_menu.addAction(t("project.clear_session")).triggered.connect(self.c.clear_mappings_confirm)
 
         m.addSeparator()
+        m.addAction(t("file.menu")).triggered.connect(lambda: self.c.process_file())
         m.addAction(t("tray.workbench") + self._hk("workbench")).triggered.connect(lambda: self.c.show_main("workbench"))
         m.addAction(t("tray.history")).triggered.connect(lambda: self.c.show_main("history"))
         m.addAction(t("tray.mappings")).triggered.connect(lambda: self.c.show_main("mappings"))

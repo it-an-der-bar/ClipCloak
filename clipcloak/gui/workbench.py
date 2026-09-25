@@ -4,15 +4,17 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QTextCharFormat, QTextCursor
-from PySide6.QtWidgets import (QCheckBox, QHBoxLayout, QLabel, QMenu, QPlainTextEdit, QPushButton,
+from PySide6.QtWidgets import (QCheckBox, QFileDialog, QHBoxLayout, QLabel, QMenu, QPlainTextEdit, QPushButton,
                                QSplitter, QTextEdit, QVBoxLayout, QWidget)
 
 from ..core.entities import Result
+from ..core.files import read_text_file, suggest_output_path, write_text_file
 from ..i18n import t
 from .widgets import (fill_replacements, highlighted_html, is_dark, item, make_table, mono_font,
                       type_color)
 
 MODES = ["pseudonymize", "anonymize", "redact", "revert"]
+LARGE_TEXT = 200_000   # above this, no colour highlighting (keeps the UI responsive)
 
 
 def u16(text: str, index: int) -> int:
@@ -47,6 +49,8 @@ class Workbench(QWidget):
         self.auto_copy.setChecked(bool(controller.cfg.get("general.workbench_auto_copy", True)))
         self.auto_copy.toggled.connect(self._auto_copy_toggled)
         self.btn_from = QPushButton(t("wb.from_clipboard"))
+        self.btn_open = QPushButton(t("wb.open_file"))
+        self.btn_save = QPushButton(t("wb.save_file"))
         self.btn_to = QPushButton(t("wb.to_clipboard"))
         self.btn_shot = QPushButton(t("wb.screenshot"))
         self.btn_check = QPushButton(t("wb.llm_check"))
@@ -63,7 +67,7 @@ class Workbench(QWidget):
         top.addSpacing(12)
         top.addWidget(self.auto_copy)
         top.addStretch(1)
-        for b in (self.btn_from, self.btn_to, self.btn_shot, self.btn_check):
+        for b in (self.btn_open, self.btn_save, self.btn_from, self.btn_to, self.btn_shot, self.btn_check):
             top.addWidget(b)
 
         left = QWidget()
@@ -93,6 +97,8 @@ class Workbench(QWidget):
         self._timer.timeout.connect(self.analyze)
         self.input.textChanged.connect(self._timer.start)
         self.btn_from.clicked.connect(self.from_clipboard)
+        self.btn_open.clicked.connect(self.open_file)
+        self.btn_save.clicked.connect(self.save_file)
         self.btn_to.clicked.connect(self.to_clipboard)
         self.btn_shot.clicked.connect(lambda: self.c.screenshot_to_text(target=self))
         self.btn_check.clicked.connect(self.llm_check)
@@ -112,6 +118,38 @@ class Workbench(QWidget):
     def set_text(self, text: str):
         self.input.setPlainText(text)
         self.analyze()
+
+    def open_file(self):
+        path, _ = QFileDialog.getOpenFileName(self, t("wb.open_file"))
+        if not path:
+            return
+        try:
+            text, enc = read_text_file(path)
+        except OSError as exc:
+            self.status.setText(t("msg.error", err=str(exc)))
+            return
+        self._file = (path, enc, "\r\n" in text)
+        self.set_text(text)
+        self.status.setText(t("wb.file_loaded", path=path, n=len(text)))
+
+    def save_file(self):
+        text = self._last.output if self._last is not None else ""
+        if not text:
+            self.status.setText(t("wb.nothing_to_save"))
+            return
+        src, enc, crlf = getattr(self, "_file", (None, "utf-8", False))
+        if crlf:
+            text = text.replace("\r\n", "\n").replace("\n", "\r\n")
+        suggestion = suggest_output_path(src, self._last.mode) if src else ""
+        path, _ = QFileDialog.getSaveFileName(self, t("wb.save_file"), suggestion)
+        if not path:
+            return
+        try:
+            write_text_file(path, text, enc)
+        except OSError as exc:
+            self.status.setText(t("msg.error", err=str(exc)))
+            return
+        self.status.setText(t("wb.file_saved", path=path))
 
     def from_clipboard(self):
         content = self.c.clip.read()
@@ -141,6 +179,8 @@ class Workbench(QWidget):
         self.findings.resizeColumnsToContents()
         sels = []
         text = self.input.toPlainText()
+        if len(text) > LARGE_TEXT:
+            findings = []            # plain view for big files (table is still filled)
         for f in findings:
             sel = QTextEdit.ExtraSelection()
             fmt = QTextCharFormat()
@@ -179,7 +219,11 @@ class Workbench(QWidget):
     def _show_result(self, res: Result):
         self._last = res
         dark = is_dark(self)
-        self.output.setHtml(highlighted_html(res.output, [(r.out_start, r.out_end, r.type) for r in res.replacements], dark))
+        if len(res.output) > LARGE_TEXT:
+            self.output.setPlainText(res.output)
+        else:
+            self.output.setHtml(highlighted_html(res.output, [(r.out_start, r.out_end, r.type)
+                                                              for r in res.replacements], dark))
         fill_replacements(self.reps, res.replacements, dark)
         self.c.record(res, "workbench")
         msg = t("wb.n_replaced", n=len(res.replacements))

@@ -11,7 +11,8 @@ from dataclasses import dataclass, field
 from .detectors import Detector, DetectorContext, builtin_detectors
 from .detectors.learned import LearnedNameDetector
 from .detectors.network import IPV4_RE, IPV6_RE
-from .entities import EntityType as T, Finding, Mode, Result, apply_spans, resolve_overlaps
+from .entities import (EntityType as T, Finding, Mode, Result, apply_spans, pick_non_overlapping,
+                       resolve_overlaps)
 from .surrogates import PlaceholderFactory, SurrogateFactory, SurrogateSettings
 from .vault import Vault
 
@@ -100,10 +101,11 @@ class Engine:
                  and s.type_modes.get(f.type) != "keep"]
         resolved = resolve_overlaps(found)
         if s.skip_known_surrogates:
-            resolved = [f for f in resolved if not self._looks_pseudonymised(f)]
+            ci = {k.lower() for k in self.vault.by_surrogate}
+            resolved = [f for f in resolved if not self._looks_pseudonymised(f, ci)]
         return resolved
 
-    def _looks_pseudonymised(self, f: Finding) -> bool:
+    def _looks_pseudonymised(self, f: Finding, ci_surrogates: set | None = None) -> bool:
         v = self.vault
         if v.is_surrogate(f.text):
             return True
@@ -114,8 +116,9 @@ class Engine:
                 return False
             return v.in_known_network(addr)
         if f.type in CI_TYPES:
-            low = f.text.lower()
-            return any(k.lower() == low for k in v.by_surrogate) if len(v.by_surrogate) < 5000 else False
+            if ci_surrogates is None:
+                ci_surrogates = {k.lower() for k in v.by_surrogate}
+            return f.text.lower() in ci_surrogates
         return False
 
     # ------------------------------------------------------------ processing
@@ -228,11 +231,7 @@ class Engine:
                         continue  # avoid touching ordinary lowercase words
                     cands.append(Finding(m.start(), m.end(), typ, word, "revert", 10,
                                          {"rep": transfer_case(word, orig)}))
-            chosen = sorted(cands, key=lambda f: (-f.length, -f.priority, f.start))
-            accepted: list[Finding] = []
-            for f in chosen:
-                if not any(f.overlaps(a) for a in accepted):
-                    accepted.append(f)
+            accepted = pick_non_overlapping(sorted(cands, key=lambda f: (-f.length, -f.priority, f.start)))
             spans = [(f.start, f.end, f.meta["rep"], f.type, f.text, "revert") for f in accepted]
             out, reps = apply_spans(text, spans)
             # replacements in revert: "original" = surrogate found, "replacement" = restored value

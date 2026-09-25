@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 
 CONFIG_VERSION = 1
 
-ACTIONS = ["pseudonymize", "anonymize", "redact", "revert", "process", "workbench",
+ACTIONS = ["pseudonymize", "anonymize", "redact", "revert", "process", "workbench", "process_file",
            "screenshot", "toggle_watcher"]
 
 DEFAULTS: dict = {
@@ -41,6 +41,7 @@ DEFAULTS: dict = {
         "revert": "Ctrl+Alt+U",
         "process": "",
         "workbench": "Ctrl+Alt+W",
+        "process_file": "",
         "screenshot": "",
         "toggle_watcher": "",
     },
@@ -103,7 +104,7 @@ DEFAULTS: dict = {
         "model_en": "en_core_web_sm",
     },
     "project": {
-        "last": "",                   # "" = session (RAM)
+        "last": "",                   # last project; "" = "Standard", "@ram" = RAM only
     },
 }
 

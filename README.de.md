@@ -57,7 +57,7 @@ Nachher  yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/2
 - **Werkbank** mit Live-Markierung, Fundtabelle und Rechtsklick-Aktionen (Ausnahme oder eigener Begriff).
 - **Verlauf** mit Vorher/Nachher-Diff jeder Aktion.
 - **Zuordnungsübersicht**: was wurde wodurch ersetzt, mit Filter und CSV-Export.
-- **Projekte.** Standardmäßig liegen die Zuordnungen nur für die Sitzung im RAM. In einem Projekt (z. B. pro Kunde) werden sie gespeichert, optional mit Passphrase verschlüsselt (AES-256-GCM, scrypt). Jedes Projekt kann eigene Begriffe und bekannte Domains haben.
+- **Pseudonyme werden gespeichert.** Standardmäßig landen sie im Projekt *Standard*, damit das Zurückübersetzen auch nach einem Neustart klappt. Weitere Projekte (z. B. pro Kunde) lassen sich anlegen, optional mit Passphrase verschlüsselt (AES-256-GCM, scrypt), und jedes Projekt kann eigene Begriffe und bekannte Domains haben. *Nur RAM* muss man ausdrücklich wählen; es ist als "geht beim Beenden verloren" gekennzeichnet.
 - **HTML-Inhalte der Zwischenablage** (Outlook, Teams, Browser) werden mitverarbeitet. RTF wird verworfen, damit keine unbearbeitete Kopie übrig bleibt.
 - **Oberfläche** auf Deutsch und Englisch.
 
@@ -137,6 +137,10 @@ clipcloak projects                     Projekte auflisten
 `process`/`revert` lesen stdin und schreiben stdout. Unter Windows `--in`/`--out` verwenden, weil
 das GUI-Build keine Standardeingabe hat. Bei verschlüsselten Projekten kommt die Passphrase aus der
 mit `--passphrase-env` angegebenen Umgebungsvariable oder wird interaktiv abgefragt.
+
+## Dateien
+
+*Datei verarbeiten …* (im Tray und im Hauptfenster unter Datei) verarbeitet eine ganze Textdatei im Hintergrund; 1 MB dauert etwa eine Sekunde. Du wählst die Aktion, das Ergebnis wird neben der Quelle gespeichert, z. B. `notizen.pseudo.md`, mit gleicher Kodierung und gleichen Zeilenenden. Zurückübersetzen funktioniert genauso. Die Werkbank kann Dateien ebenfalls laden und speichern.
 
 ## NER-Plugin
 

@@ -2,6 +2,9 @@
 
 ## 0.1.1
 
+- Pseudonyms are persisted by default in the project "Standard", so reverting works after a restart. "RAM only" has to be chosen explicitly and is labelled "lost on exit".
+- Whole files: *Process file …* in the tray and the File menu (background processing, keeps encoding and line endings, result saved next to the source as `*.pseudo.*`, `*.anon.*` …). The workbench can load and save files.
+- About 15× faster on large texts (overlap resolution in O(n log n)); 1 MB takes about a second.
 - Workbench: one button each for pseudonymise, anonymise, redact and revert (replaces the mode drop-down). The result is copied to the clipboard automatically; this can be switched off in the workbench or in the settings (`general.workbench_auto_copy`).
 - Language: a bilingual "Sprache / Language" menu in the tray and the main window. After a change the application offers to restart itself (also available as `--action restart`).
 - The `Authorization: Bearer` scheme word is no longer treated as a secret.

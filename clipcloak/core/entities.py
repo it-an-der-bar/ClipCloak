@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import bisect
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -108,18 +109,43 @@ class Result:
         return out
 
 
-def resolve_overlaps(findings: list[Finding]) -> list[Finding]:
-    """Keep non-overlapping findings, preferring priority, then length."""
-    ordered = sorted(findings, key=lambda f: (-f.priority, -f.length, f.start))
+class IntervalSet:
+    """Non-overlapping half-open intervals with O(log n) overlap checks."""
+
+    def __init__(self):
+        self.starts: list[int] = []
+        self.ends: list[int] = []
+
+    def free(self, start: int, end: int) -> bool:
+        i = bisect.bisect_right(self.starts, start)
+        if i > 0 and self.ends[i - 1] > start:
+            return False
+        if i < len(self.starts) and self.starts[i] < end:
+            return False
+        return True
+
+    def add(self, start: int, end: int) -> None:
+        i = bisect.bisect_right(self.starts, start)
+        self.starts.insert(i, start)
+        self.ends.insert(i, end)
+
+
+def pick_non_overlapping(ordered: list[Finding]) -> list[Finding]:
+    """Greedy selection in the given preference order."""
+    taken = IntervalSet()
     accepted: list[Finding] = []
     for f in ordered:
-        if f.length <= 0:
+        if f.length <= 0 or not taken.free(f.start, f.end):
             continue
-        if any(f.overlaps(a) for a in accepted):
-            continue
+        taken.add(f.start, f.end)
         accepted.append(f)
     accepted.sort(key=lambda f: f.start)
     return accepted
+
+
+def resolve_overlaps(findings: list[Finding]) -> list[Finding]:
+    """Keep non-overlapping findings, preferring priority, then length."""
+    return pick_non_overlapping(sorted(findings, key=lambda f: (-f.priority, -f.length, f.start)))
 
 
 def apply_spans(text: str, spans: list[tuple[int, int, str, str, str, str]]) -> tuple[str, list[Replacement]]:

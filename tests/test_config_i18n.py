@@ -61,7 +61,7 @@ class I18nTest(unittest.TestCase):
         dynamic = {
             "action.": ACTIONS, "mode.": ["pseudonymize", "anonymize", "redact", "revert"],
             "watch.": ["off", "notify", "critical", "always"],
-            "source.": ["hotkey", "tray", "watcher", "popup", "workbench", "cli", "screenshot"],
+            "source.": ["hotkey", "tray", "watcher", "popup", "workbench", "cli", "screenshot", "file"],
             "typemode.": ["default", "pseudonymize", "anonymize", "redact", "keep"],
             "det.": [c.id for c in BUILTIN_DETECTORS] + ["learned-names"],
             "anonstyle.": ["realistic", "placeholder"], "tld.": ["keep", "example"],

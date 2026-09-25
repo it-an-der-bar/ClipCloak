@@ -169,6 +169,48 @@ class GuiTest(unittest.TestCase):
                     self.assertTrue(it is None or it.layout() is None, f"layout in form row {row}")
         d.deleteLater()
 
+    def test_pseudonyms_persist_by_default(self):
+        from clipcloak.gui.app import DEFAULT_PROJECT, RAM_ONLY
+        c = self.c
+        c.open_default_project()
+        self.assertEqual(c.project.name, DEFAULT_PROJECT)
+        r = c.engine.process("Server 10.20.30.40", "pseudonymize")
+        c.record(r, "test")
+        c._save_project_now()
+        store = c.store
+        c.shutdown()
+        from clipcloak.gui.app import Controller
+        self.c = Controller(app, c.cfg)
+        self.c.store = store
+        self.c.open_default_project()
+        self.assertEqual(self.c.engine.revert(r.output).output, "Server 10.20.30.40")
+        self.c._switch(None)
+        self.assertEqual(self.c.cfg.get("project.last"), RAM_ONLY)
+        self.c.open_default_project()
+        self.assertIsNone(self.c.project)
+
+    def test_process_large_file_roundtrip(self):
+        import time
+        from tests.helpers import SAMPLE
+        c = self.c
+        filler = "# Kapitel\r\n\r\nNormaler Text ohne sensible Daten.\r\n- Punkt\r\n\r\n"
+        block = filler * 6 + SAMPLE.replace("\n", "\r\n")
+        text = block * (1_000_000 // len(block))
+        src = os.path.join(self.tmp, "notes.md")
+        with open(src, "w", encoding="utf-8", newline="") as fh:
+            fh.write(text)
+        out, back = os.path.join(self.tmp, "notes.pseudo.md"), os.path.join(self.tmp, "notes.restored.md")
+        t0 = time.time()
+        c.process_file(src, "pseudonymize", out)
+        self.assertTrue(wait_for(lambda: len(c.history.entries) == 1, 60000))
+        self.assertLess(time.time() - t0, 30)
+        pseudo = open(out, encoding="utf-8", newline="").read()
+        self.assertNotIn("hartmann", pseudo)
+        self.assertIn("\r\n", pseudo)
+        c.process_file(out, "revert", back)
+        self.assertTrue(wait_for(lambda: len(c.history.entries) == 2, 60000))
+        self.assertEqual(open(back, encoding="utf-8", newline="").read(), text)
+
     def test_projects_switch(self):
         c = self.c
         prj = c.store.create("Kunde")

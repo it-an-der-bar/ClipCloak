@@ -57,7 +57,7 @@ After   yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/24
 - **Workbench** with live highlighting, a findings table and right-click actions (allowlist or custom term).
 - **History** with a side-by-side diff of every action.
 - **Mapping overview**: what was replaced by what, with filter and CSV export.
-- **Projects.** By default mappings live in RAM for the session only. For a project (e.g. per customer) they are persisted, optionally encrypted with a passphrase (AES-256-GCM, scrypt). Each project can have its own terms and known domains.
+- **Pseudonyms are persisted.** They are stored in the project *Standard* by default, so reverting still works after a restart. Further projects (e.g. per customer) can be created, optionally encrypted with a passphrase (AES-256-GCM, scrypt), and each project can have its own terms and known domains. *RAM only* has to be chosen explicitly and is marked as lost on exit.
 - **HTML clipboard content** (Outlook, Teams, browser) is processed together with the text. RTF is dropped, so no unprocessed copy remains.
 - **UI** in English and German.
 
@@ -136,6 +136,10 @@ clipcloak projects                     list projects
 `process`/`revert` read stdin and write stdout. On Windows use `--in`/`--out`, because the
 GUI build has no standard input. Encrypted projects take the passphrase from the environment
 variable given with `--passphrase-env`, or ask for it interactively.
+
+## Files
+
+*Process file …* (in the tray and in the main window's File menu) processes a whole text file in the background; 1 MB takes about a second. You choose the action, and the result is saved next to the source, e.g. `notes.pseudo.md`, keeping the encoding and line endings. Revert works the same way. The workbench can also load and save files.
 
 ## NER plugin
 

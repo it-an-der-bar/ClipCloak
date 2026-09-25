@@ -34,6 +34,8 @@ from . import icons
 
 log = logging.getLogger(__name__)
 PROCESS_ACTIONS = ("pseudonymize", "anonymize", "redact", "revert")
+DEFAULT_PROJECT = "Standard"
+RAM_ONLY = "@ram"          # config value for "keep mappings in memory only"
 TOKEN_ROWS = {"WORD": "words", "FIRST_NAME": "first", "LAST_NAME": "last", "USER_TOKEN": "users"}
 
 
@@ -226,6 +228,8 @@ class Controller(QObject):
         elif action == "workbench":
             content = self.clip.read()
             self.show_workbench(content.text if content.text else None)
+        elif action == "process_file":
+            self.process_file()
         elif action == "screenshot":
             self.screenshot_to_text()
         elif action == "toggle_watcher":
@@ -281,6 +285,50 @@ class Controller(QObject):
             if res.changed and mode != "revert" and self.cfg.get("llm.enabled") \
                     and self.cfg.get("llm.verify_output") == "warn":
                 self.llm_verify(res.output, show=False, result=res)
+
+        self.tray.update_state(busy=True)
+        self.submit(job, done)
+
+    def process_file(self, path: str | None = None, mode: str | None = None, out_path: str | None = None):
+        """Process a whole text file (any size up to the engine limit) into a new file."""
+        from PySide6.QtWidgets import QFileDialog
+        from ..core.files import read_text_file, suggest_output_path, write_text_file
+        parent = self.main
+        if path is None:
+            path, _ = QFileDialog.getOpenFileName(parent, t("file.choose"))
+            if not path:
+                return
+        if mode is None:
+            box = QMessageBox(parent)
+            box.setWindowTitle(APP_DISPLAY_NAME)
+            box.setText(t("file.choose_action", name=path))
+            buttons = {box.addButton(t("mode." + m), QMessageBox.AcceptRole): m for m in PROCESS_ACTIONS}
+            box.addButton(QMessageBox.Cancel)
+            box.exec()
+            mode = buttons.get(box.clickedButton())
+            if mode is None:
+                return
+        if out_path is None:
+            out_path, _ = QFileDialog.getSaveFileName(parent, t("file.save_as"), suggest_output_path(path, mode))
+            if not out_path:
+                return
+        engine = self.engine
+
+        def job():
+            text, enc = read_text_file(path)
+            res = engine.revert(text) if mode == "revert" else engine.process(text, mode)
+            write_text_file(out_path, res.output, enc)
+            return res
+
+        def done(res):
+            self.tray.update_state()
+            res.warnings.append(t("file.history_note", src=path, dst=out_path))
+            self.history.add(res, "file", self.project.name if self.project else "")
+            self.history_changed.emit()
+            self.mappings_changed.emit()
+            if self.project is not None:
+                self._save_timer.start()
+            self.notify(t("file.done", n=len(res.replacements), dst=out_path), force=True)
 
         self.tray.update_state(busy=True)
         self.submit(job, done)
@@ -552,7 +600,7 @@ class Controller(QObject):
         else:
             self.engine.set_vault(prj.vault)
             self.history.load_list(prj.history if prj.store_history else [])
-        self.cfg.set("project.last", prj.name if prj else "")
+        self.cfg.set("project.last", prj.name if prj else RAM_ONLY)
         self.cfg.save()
         self._apply_engine_settings()
         self.history_changed.emit()
@@ -560,6 +608,24 @@ class Controller(QObject):
         self.tray.update_state()
         if self.main is not None:
             self.main.update_status()
+
+    def open_default_project(self):
+        """Pseudonyms are persisted by default: open the last project or "Standard".
+
+        Only an explicit choice of "RAM only" keeps the mappings in memory.
+        """
+        last = self.cfg.get("project.last") or ""
+        if last == RAM_ONLY:
+            return
+        name = last if last and self.store.exists(last) else DEFAULT_PROJECT
+        if not self.store.exists(name):
+            try:
+                self.store.create(name)
+            except (ProjectError, OSError) as exc:
+                self.notify(t("msg.error", err=str(exc)), error=True)
+                return
+        if not self.open_project(name):
+            self._switch(None)
 
     def open_project(self, name: str | None, parent=None) -> bool:
         if name is None:
@@ -649,9 +715,7 @@ class Controller(QObject):
             self.tray.show()
         else:
             show_window = True
-        last = self.cfg.get("project.last") or ""
-        if last and self.store.exists(last):
-            self.open_project(last)
+        self.open_default_project()
         if show_window or not self.cfg.get("general.start_minimized", True):
             self.show_main()
         if self.display == "wayland" and not WlClipboard.available():
