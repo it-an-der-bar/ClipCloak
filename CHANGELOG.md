@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.4
+
+- NER: far fewer false positives. Every entity from the NER plugin is now checked before it is used; this also applies to older NER helper versions, where the checks run without part-of-speech tags:
+  - Spans containing code characters (`= " $ _ { } | / …`) or shell/programming keywords (`if`, `docker`, `kubectl`, `echo`, `esac` …) are rejected.
+  - A person needs a first and last name made of capitalised proper nouns; the span is trimmed to that name.
+  - Organisations and places must start with a capital letter. ALL-CAPS constants are rejected, and so are spans that start with an article or pronoun (for example "Deine Auswahl").
+  - The NER helper now also returns part-of-speech tags. Entities without any proper noun are rejected.
+  - Measured on a bash script: before, many false entities (e.g. `RUSTDESK_DETECTED="nein"`, `if has_cmd docker`, `Durchsuche`, `ACCEPT`, `Deine Auswahl`); now only `Jonas Hartmann` and `Contoso Solutions GmbH`.
+
 ## 0.1.3
 
 - CI: The Linux NER plugin is built with `--strip` and without the spaCy tests (~120 MB → ~84 MB), so it stays below GitLab's default artifact limit of 100 MB per job.

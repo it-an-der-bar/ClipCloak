@@ -110,6 +110,63 @@ FAKE_HELPER = textwrap.dedent('''
 ''')
 
 
+SCRIPT = textwrap.dedent('''
+    #!/usr/bin/env bash
+    # RustDesk-Server erkennen und Konfiguration sichern
+    RUSTDESK_DETECTED="nein"
+    if has_cmd docker; then
+      # Durchsuche alle Container nach rustdesk/rustdesk-server
+      if docker ps --format '{{.Image}}' | grep -q 'rustdesk/rustdesk-server'; then
+        RUSTDESK_DETECTED="ja"
+      fi
+    fi
+    if has_cmd kubectl; then
+      # Durchsuche alle Pods/Container-Images nach rustdesk/rustdesk-server
+      RUSTDESK_SOURCE="k8s"
+    fi
+    echo "Deine Auswahl bitte:"
+    read -r -p "Du willst fortfahren? (ACCEPT/abbrechen) " ANSWER
+    case "$ANSWER" in
+      ACCEPT) echo "Weiter" ;;
+    esac
+    # Ansprechpartner: Jonas Hartmann von der Contoso Solutions GmbH, Kassel
+''')
+
+
+class NerFilterTest(unittest.TestCase):
+    def check(self, text, sub, typ, tokens=None):
+        from clipcloak.core.detectors.external import plausible_entity
+        s = text.index(sub)
+        return plausible_entity(text, s, s + len(sub), typ, tokens)
+
+    def test_rejects_code_and_words(self):
+        t = 'RUSTDESK_DETECTED="nein" if has_cmd docker; Durchsuche; ACCEPT; esac; Deine Auswahl; Du; read'
+        for sub, typ in (('RUSTDESK_DETECTED="nein', "PERSON"), ("if has_cmd docker", "ORG"), ("Durchsuche", "PERSON"),
+                         ("ACCEPT", "ORG"), ("esac", "LOCATION"), ("Deine Auswahl", "ORG"), ("Du", "PERSON"),
+                         ("read", "PERSON")):
+            self.assertIsNone(self.check(t, sub, typ), sub)
+
+    def test_keeps_real_names(self):
+        t = "Jonas Hartmann, Anna-Lena Schmidt, Contoso Solutions GmbH, Siemens AG, Kassel"
+        for sub, typ in (("Jonas Hartmann", "PERSON"), ("Anna-Lena Schmidt", "PERSON"),
+                         ("Contoso Solutions GmbH", "ORG"), ("Siemens AG", "ORG"), ("Kassel", "LOCATION")):
+            self.assertIsNotNone(self.check(t, sub, typ), sub)
+
+    def test_person_trimmed_with_pos(self):
+        t = "Contact John Smith at Globex Corporation"
+        sub = "John Smith at Globex Corporation"
+        s = t.index(sub)
+        words = [("John", "PROPN"), ("Smith", "PROPN"), ("at", "ADP"), ("Globex", "PROPN"), ("Corporation", "PROPN")]
+        toks, pos = [], s
+        for w, p in words:
+            i = t.index(w, pos)
+            toks.append({"s": i, "e": i + len(w), "pos": p, "stop": w == "at"})
+            pos = i + len(w)
+        from clipcloak.core.detectors.external import plausible_entity
+        r = plausible_entity(t, s, s + len(sub), "PERSON", toks)
+        self.assertEqual(t[r[0]:r[1]], "John Smith")
+
+
 class NerTest(unittest.TestCase):
     def test_fake_helper_protocol(self):
         d = Path(tempfile.mkdtemp())
@@ -131,6 +188,16 @@ class NerTest(unittest.TestCase):
     def test_helper_lookup_configured(self):
         self.assertIsNone(find_ner_helper("/does/not/exist"))
         self.assertEqual(find_ner_helper(sys.executable), [sys.executable])
+
+    @unittest.skipUnless(importlib.util.find_spec("spacy") and importlib.util.find_spec("de_core_news_sm"),
+                         "spaCy/models not installed")
+    def test_real_spacy_on_shell_script(self):
+        det = NerDetector([sys.executable, "-m", "clipcloak.ner_helper"], types=("PERSON", "ORG"))
+        try:
+            found = {(f.type, f.text) for f in det.find(SCRIPT, None)}
+        finally:
+            det.client.close()
+        self.assertEqual(found, {("PERSON", "Jonas Hartmann"), ("ORG", "Contoso Solutions GmbH")})
 
     @unittest.skipUnless(importlib.util.find_spec("spacy") and importlib.util.find_spec("de_core_news_sm"),
                          "spaCy/models not installed")

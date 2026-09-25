@@ -35,7 +35,9 @@ def load(name: str):
     nlp = _models.get(name)
     if nlp is None:
         import spacy
-        nlp = spacy.load(name, disable=["parser", "lemmatizer", "tagger", "attribute_ruler", "morphologizer"])
+        # tagger/morphologizer stay on: their part-of-speech tags are used to reject
+        # non-names (verbs, nouns, code) that the small models label as entities
+        nlp = spacy.load(name, disable=["parser", "lemmatizer"])
         _models[name] = nlp
     return nlp
 
@@ -43,12 +45,15 @@ def load(name: str):
 def analyze(text: str, lang: str, models: dict) -> list[dict]:
     names = {"de": models.get("de") or "de_core_news_sm", "en": models.get("en") or "en_core_web_sm"}
     langs = ["de", "en"] if lang == "both" else [detect_language(text) if lang == "auto" else lang]
-    ents: dict[tuple[int, int], str] = {}
+    ents: dict[tuple[int, int], dict] = {}
     for lg in langs:
         doc = load(names[lg])(text)
         for e in doc.ents:
-            ents.setdefault((e.start_char, e.end_char), e.label_)
-    return [{"start": s, "end": e, "label": lab} for (s, e), lab in sorted(ents.items())]
+            tokens = [{"s": tk.idx, "e": tk.idx + len(tk.text), "pos": tk.pos_, "stop": bool(tk.is_stop)}
+                      for tk in e]
+            ents.setdefault((e.start_char, e.end_char),
+                            {"start": e.start_char, "end": e.end_char, "label": e.label_, "tokens": tokens})
+    return [ents[k] for k in sorted(ents)]
 
 
 INFO = """NER-Plugin / NER plugin

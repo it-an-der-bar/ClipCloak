@@ -147,6 +147,90 @@ class NerClient:
                 pass
 
 
+# --------------------------------------------------------------------------- NER filter
+# The small spaCy models label a lot of non-names as entities, especially in code,
+# shell scripts and short German/English phrases. Every entity has to pass these checks.
+CODE_CHARS = set('=(){}[]$;|<>`*#_\\/":+%~^@')
+CODE_WORDS = set("""
+if then else elif fi for do done while until case esac in function return echo printf read
+local export set unset shift source exit grep sed awk cut tr sort uniq xargs find cat tee
+sudo apt yum dnf apk pip npm kubectl docker podman helm git curl wget ssh scp systemctl
+journalctl chmod chown mkdir rm cp mv ln def class import from as with try except finally
+raise lambda yield pass break continue var let const new public private static void null
+none true false nil select where insert update delete create table and or not
+""".split())
+STOP_WORDS = set("""
+der die das den dem des ein eine einen einem einer eines du dein deine deiner deinem deinen
+ich mein meine er sie es wir ihr ihre unser unsere euer eure sein seine man und oder aber
+nicht kein keine bitte danke hallo alle alles jeder jede mit von zu bei auf aus für im in am
+the a an your my his her its our their this that these those you we they he she it and or
+but not no please thanks hello all any each with from to at by on in of for
+""".split())
+LEGAL_FORMS = {"gmbh", "ag", "kg", "ohg", "gbr", "ug", "se", "e.v.", "ev", "eg", "kgaa", "ltd",
+               "inc", "llc", "llp", "plc", "corp", "corporation", "co", "sa", "sarl", "sas", "bv",
+               "nv", "oy", "ab", "spa", "srl", "gmbh & co. kg"}
+_WORD = re.compile(r"[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ'’.\-]*")
+
+
+def _title(word: str) -> bool:
+    return word[:1].isupper() and any(c.islower() for c in word[1:])
+
+
+def plausible_entity(text: str, s: int, e: int, typ: str, tokens: list | None):
+    """Return the (possibly trimmed) span of a believable PERSON/ORG/LOCATION or None."""
+    span = text[s:e]
+    if len(span.strip()) < 2 or len(span) > 80 or not re.search(r"[A-Za-zÀ-ɏ]", span):
+        return None
+    if any(c in CODE_CHARS for c in span) or "\n" in span:
+        return None
+    words = _WORD.findall(span)
+    if not words:
+        return None
+    lower = [w.lower().strip(".") for w in words]
+    if any(w in CODE_WORDS for w in lower):
+        return None
+    if span.lower() in GENERIC_LABELS:
+        return None
+    toks = tokens or []
+    pos = [t.get("pos", "") for t in toks]
+    stop = [bool(t.get("stop")) for t in toks]
+
+    if typ == T.PERSON.value:
+        # a person needs first and last name: leading run of capitalised proper nouns
+        if toks:
+            run = []
+            for t, p, st in zip(toks, pos, stop):
+                w = text[int(t["s"]):int(t["e"])]
+                if p == "PROPN" and not st and _title(w) and w.lower() not in STOP_WORDS:
+                    run.append(t)
+                elif w in ("-",) and run:
+                    continue
+                else:
+                    break
+            if not run:
+                return None
+            ps, pe = int(run[0]["s"]), int(run[-1]["e"])
+            if not 2 <= len(text[ps:pe].split()) <= 4:   # "RustDesk-Server" is one word
+                return None
+            return ps, pe
+        if not 2 <= len(words) <= 4 or not all(_title(w) for w in words):
+            return None
+        if any(w in STOP_WORDS for w in lower):
+            return None
+        return s, e
+
+    # ORG / LOCATION
+    if not _title(words[0]) and not (words[0].isupper() and any(w in LEGAL_FORMS for w in lower)):
+        return None                         # lowercase start or ALL-CAPS constant
+    if lower[0] in STOP_WORDS or (stop and stop[0]):
+        return None                         # "Deine Auswahl", "The …"
+    if all(w.isupper() for w in words) and not any(w in LEGAL_FORMS for w in lower):
+        return None                         # ACCEPT, ANSWER, VPN …
+    if toks and "PROPN" not in pos and not any(w in LEGAL_FORMS for w in lower):
+        return None                         # nouns/verbs the model mislabelled
+    return s, e
+
+
 class NerDetector(Detector):
     id = "ner"
     types = (T.PERSON.value, T.ORG.value, T.LOCATION.value)
@@ -176,13 +260,11 @@ class NerDetector(Detector):
             if not typ or typ not in self.wanted:
                 continue
             s, e = int(ent["start"]), int(ent["end"])
-            if 0 <= s < e <= len(text):
-                span = text[s:e]
-                if len(span.strip()) < 2 or not re.search(r"[A-Za-zÀ-ɏ]", span):
-                    continue
-                if span.lower() in GENERIC_LABELS or (span.isupper() and len(span) <= 4):
-                    continue   # acronyms / IT vocabulary (VPN, DNS, API …) are not names
-                out.append(self.mk(s, e, typ, text))
+            if not 0 <= s < e <= len(text):
+                continue
+            span = plausible_entity(text, s, e, typ, ent.get("tokens"))
+            if span is not None:
+                out.append(self.mk(span[0], span[1], typ, text))
         return out
 
 
