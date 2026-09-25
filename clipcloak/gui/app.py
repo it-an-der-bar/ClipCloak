@@ -711,6 +711,8 @@ class Controller(QObject):
 
     # ================================================================= lifecycle
     def start(self, show_window: bool = False):
+        if self.cfg.load_error:
+            QMessageBox.warning(None, APP_DISPLAY_NAME, t("msg.config_broken", err=self.cfg.load_error))
         if self.tray_available():
             self.tray.show()
         else:

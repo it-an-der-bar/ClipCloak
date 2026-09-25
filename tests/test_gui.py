@@ -156,6 +156,22 @@ class GuiTest(unittest.TestCase):
             srv.shutdown()
             srv.server_close()
 
+    def test_settings_cancel_asks_when_changed(self):
+        from unittest import mock
+        from PySide6.QtWidgets import QMessageBox
+        from clipcloak.gui.settings_dialog import SettingsDialog
+        d = SettingsDialog(self.c)
+        with mock.patch.object(QMessageBox, "question") as q:
+            d.reject()                       # unchanged: no question
+            q.assert_not_called()
+        d = SettingsDialog(self.c)
+        d.w["llm.base_url"].setText("http://llm.lab:8000/v1")
+        d.w["llm.api_key"].setText("tok")
+        with mock.patch.object(QMessageBox, "question", return_value=QMessageBox.Save):
+            d.reject()
+        self.assertEqual(self.c.cfg.get("llm.api_key"), "tok")
+        self.assertEqual(self.c.cfg.get("llm.base_url"), "http://llm.lab:8000/v1")
+
     def test_no_layouts_in_form_rows(self):
         # PySide6 double-frees layouts passed to QFormLayout.addRow(label, layout)
         # at interpreter exit; rows must use container widgets instead.

@@ -83,7 +83,9 @@ class NerClient:
 
     def _start(self):
         flags = 0x08000000 if sys.platform == "win32" else 0   # CREATE_NO_WINDOW
-        env = dict(os.environ, PYTHONIOENCODING="utf-8")
+        # PYINSTALLER_RESET_ENVIRONMENT: the helper is its own frozen program and must
+        # not pick up the extraction directory of the (frozen) main application
+        env = dict(os.environ, PYTHONIOENCODING="utf-8", PYINSTALLER_RESET_ENVIRONMENT="1")
         self.proc = subprocess.Popen(self.cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                      stderr=subprocess.DEVNULL, text=True, encoding="utf-8",
                                      bufsize=1, creationflags=flags, env=env)

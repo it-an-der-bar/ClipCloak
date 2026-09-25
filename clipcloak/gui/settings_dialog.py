@@ -11,7 +11,7 @@ from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QGuiApplication, QKeySequence
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox,
                                QFileDialog, QFormLayout, QGridLayout, QGroupBox, QHBoxLayout,
-                               QKeySequenceEdit, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
+                               QKeySequenceEdit, QLabel, QLineEdit, QMessageBox, QPlainTextEdit, QPushButton,
                                QScrollArea, QSpinBox, QTableWidget, QTableWidgetItem, QTabWidget,
                                QVBoxLayout, QWidget)
 
@@ -139,6 +139,7 @@ class SettingsDialog(QDialog):
         lay.addWidget(bb)
         self._test_done.connect(self._show_test)
         self._load()
+        self._baseline = self._collect()
 
     # ------------------------------------------------------------- builders
     def _combo(self, key, choices, label_prefix=None):
@@ -556,6 +557,19 @@ class SettingsDialog(QDialog):
         d["llm"]["model"] = self.llm_model.currentText().strip()
         d["llm"]["vision_model"] = self.llm_vision.currentText().strip()
         return d
+
+    def reject(self):
+        """Closing without OK: ask before dropping changes (URL, token, …)."""
+        if not getattr(self.c, "_quitting", False) and self._collect() != self._baseline:
+            ans = QMessageBox.question(self, t("settings.title"), t("settings.unsaved"),
+                                       QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
+                                       QMessageBox.Save)
+            if ans == QMessageBox.Cancel:
+                return
+            if ans == QMessageBox.Save:
+                self._accept()
+                return
+        super().reject()
 
     def _defaults(self):
         self._load(copy.deepcopy(DEFAULTS))

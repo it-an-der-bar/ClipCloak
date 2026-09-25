@@ -51,6 +51,38 @@ def analyze(text: str, lang: str, models: dict) -> list[dict]:
     return [{"start": s, "end": e, "label": lab} for (s, e), lab in sorted(ents.items())]
 
 
+INFO = """NER-Plugin / NER plugin
+
+DE: Dieses Programm wird vom Hauptprogramm automatisch im Hintergrund gestartet.
+    Es muss nicht von Hand ausgefuehrt werden. Lege es in denselben Ordner wie das
+    Hauptprogramm und aktiviere es dort unter Einstellungen > NER-Plugin.
+
+EN: This program is started automatically in the background by the main program.
+    There is no need to run it by hand. Put it into the same folder as the main
+    program and enable it there under Settings > NER plugin.
+
+Selbsttest / self test ..."""
+
+
+def interactive() -> int:
+    print(INFO, flush=True)
+    try:
+        for text, lang in (("Jonas Hartmann arbeitet bei der Siemens AG in München.", "de"),
+                           ("John Smith works for Microsoft in Seattle.", "en")):
+            ents = analyze(text, lang, {})
+            print(f"  [{lang}] " + ", ".join(f"{text[e['start']:e['end']]} ({e['label']})" for e in ents), flush=True)
+        print("\nOK", flush=True)
+        rc = 0
+    except Exception as exc:  # show the problem instead of a silent console
+        print(f"\nFEHLER / ERROR: {exc}", flush=True)
+        rc = 1
+    try:
+        input("\nEnter zum Beenden / press Enter to close ...")
+    except EOFError:
+        pass
+    return rc
+
+
 def main() -> int:
     if "--version" in sys.argv:
         import spacy
@@ -60,6 +92,8 @@ def main() -> int:
         print(json.dumps(analyze("Jonas Hartmann arbeitet bei der Siemens AG in München.", "de", {})))
         print(json.dumps(analyze("John Smith works for Microsoft in Seattle.", "en", {})))
         return 0
+    if sys.stdin is not None and sys.stdin.isatty() and len(sys.argv) == 1:
+        return interactive()
     try:
         sys.stdin.reconfigure(encoding="utf-8")
         sys.stdout.reconfigure(encoding="utf-8")

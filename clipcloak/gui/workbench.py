@@ -38,7 +38,7 @@ class Workbench(QWidget):
         self.action_buttons: dict[str, QPushButton] = {}
         default_mode = controller.cfg.get("general.mode", "pseudonymize")
         for m in MODES:
-            b = QPushButton(t("mode." + m))
+            b = QPushButton(t("mode." + m) + "  →")
             seq = controller.cfg.get("hotkeys." + m) or ""
             b.setToolTip(t("wb.btn_tip." + m) + (f"  ({seq})" if seq else ""))
             b.clicked.connect(lambda _=False, x=m: self.run(x))
@@ -61,35 +61,54 @@ class Workbench(QWidget):
         self.findings.itemSelectionChanged.connect(self._select_finding)
         self.reps = make_table([t("col.type"), t("col.original"), t("col.replacement"), t("col.detector")])
 
-        top = QHBoxLayout()
-        for b in self.action_buttons.values():
-            top.addWidget(b)
-        top.addSpacing(12)
-        top.addWidget(self.auto_copy)
-        top.addStretch(1)
-        for b in (self.btn_open, self.btn_save, self.btn_from, self.btn_to, self.btn_shot, self.btn_check):
-            top.addWidget(b)
-
+        # workflow left -> right: 1. input  |  2. action  |  3. result
+        in_bar = QHBoxLayout()
+        in_bar.addWidget(QLabel("<b>1. " + t("wb.input") + "</b>"))
+        in_bar.addStretch(1)
+        for b in (self.btn_open, self.btn_from, self.btn_shot):
+            in_bar.addWidget(b)
         left = QWidget()
         ll = QVBoxLayout(left)
         ll.setContentsMargins(0, 0, 0, 0)
-        ll.addWidget(QLabel(t("wb.input")))
+        ll.addLayout(in_bar)
         ll.addWidget(self.input, 3)
         ll.addWidget(QLabel(t("wb.findings")))
         ll.addWidget(self.findings, 2)
+
+        middle = QWidget()
+        ml = QVBoxLayout(middle)
+        ml.setContentsMargins(6, 0, 6, 0)
+        ml.addWidget(QLabel("<b>2. " + t("wb.action") + "</b>"))
+        for b in self.action_buttons.values():
+            b.setMinimumHeight(34)
+            ml.addWidget(b)
+        ml.addStretch(1)
+        middle.setMaximumWidth(max(b.sizeHint().width() for b in self.action_buttons.values()) + 24)
+
+        out_bar = QHBoxLayout()
+        out_bar.addWidget(QLabel("<b>3. " + t("wb.output") + "</b>"))
+        out_bar.addStretch(1)
+        for b in (self.btn_to, self.btn_save, self.btn_check):
+            out_bar.addWidget(b)
         right = QWidget()
         rl = QVBoxLayout(right)
         rl.setContentsMargins(0, 0, 0, 0)
-        rl.addWidget(QLabel(t("wb.output")))
+        rl.addLayout(out_bar)
+        rl.addWidget(self.auto_copy)
         rl.addWidget(self.output, 3)
         rl.addWidget(QLabel(t("wb.replacements")))
         rl.addWidget(self.reps, 2)
+
         split = QSplitter(Qt.Horizontal)
         split.addWidget(left)
+        split.addWidget(middle)
         split.addWidget(right)
+        split.setStretchFactor(0, 1)
+        split.setStretchFactor(1, 0)
+        split.setStretchFactor(2, 1)
+        split.setCollapsible(1, False)
 
         lay = QVBoxLayout(self)
-        lay.addLayout(top)
         lay.addWidget(split, 1)
         lay.addWidget(self.status)
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2
+
+- Fixed: after a restart (e.g. a language change) the Windows/Linux binary used the deleted temporary directory of the old process. This caused errors like "base_library.zip: No such file or directory", for example in the LLM test. The NER helper is now also started with a clean PyInstaller environment.
+- Workbench laid out from left to right: 1. input (open file, from clipboard, screenshot) → 2. action buttons → 3. result (to clipboard, save, LLM check, auto-copy).
+- The NER helper, when started by hand, shows what it is for and runs a self test instead of an empty console.
+- Settings: closing without OK asks whether to save the changes (URL, token …). `config.yaml` keeps the previous version as `config.yaml.bak`. An unreadable configuration is set aside with a time stamp and reported at start instead of being silently replaced.
+
 ## 0.1.1
 
 - Pseudonyms are persisted by default in the project "Standard", so reverting works after a restart. "RAM only" has to be chosen explicitly and is labelled "lost on exit".
@@ -10,7 +17,6 @@
 - The `Authorization: Bearer` scheme word is no longer treated as a secret.
 - Settings › NER plugin: setup steps with the exact file names, the target folder, status (found / not found) and buttons to open the release page and the program folder.
 - Settings › LLM reworked into three steps: connection (URL, optional token) → *Test connection & load models* (adds `/v1` if missing) → model drop-downs → features.
-- Settings › NER plugin: setup steps with the exact file names, the target folder, status (found / not found) and buttons to open the release page and the program folder.
 - The NER helper is found next to the program even with its release file name, is started in the background at launch, and acronyms such as VPN or DNS are no longer reported as organisations.
 
 ## 0.1.0

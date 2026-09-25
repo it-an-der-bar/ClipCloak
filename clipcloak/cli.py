@@ -214,10 +214,19 @@ def gui(args) -> int:
     rc = app.exec()
     server.close()
     if ctrl.restart_requested:
-        from PySide6.QtCore import QProcess
+        from PySide6.QtCore import QProcess, QProcessEnvironment
         from .platform.autostart import launch_command
         cmd = launch_command()
-        QProcess.startDetached(cmd[0], cmd[1:] + (["--show"] if args.show else []), os.getcwd())
+        proc = QProcess()
+        proc.setProgram(cmd[0])
+        proc.setArguments(cmd[1:] + (["--show"] if args.show else []))
+        proc.setWorkingDirectory(os.getcwd())
+        env = QProcessEnvironment.systemEnvironment()
+        # a PyInstaller onefile build must not reuse our temporary extraction
+        # directory – it is deleted as soon as this process exits
+        env.insert("PYINSTALLER_RESET_ENVIRONMENT", "1")
+        proc.setProcessEnvironment(env)
+        proc.startDetached()
     return rc
 
 

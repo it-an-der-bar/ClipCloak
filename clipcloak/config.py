@@ -123,6 +123,7 @@ class Config:
     def __init__(self, path: Path | None = None, data: dict | None = None):
         self.path = Path(path) if path else None
         self.data = deep_merge(DEFAULTS, data or {})
+        self.load_error = ""
 
     @classmethod
     def load(cls, path: Path) -> "Config":
@@ -135,12 +136,15 @@ class Config:
                     data = {}
             except (OSError, yaml.YAMLError) as exc:
                 log.error("cannot read config %s: %s", path, exc)
-                backup = path.with_suffix(".broken.yaml")
+                import time
+                backup = path.with_name(f"{path.stem}.broken-{time.strftime('%Y%m%d-%H%M%S')}.yaml")
                 try:
                     path.replace(backup)
                 except OSError:
-                    pass
-                data = {}
+                    backup = None
+                cfg = cls(path, {})
+                cfg.load_error = f"{exc}" + (f"\n→ {backup}" if backup else "")
+                return cfg
         return cls(path, data)
 
     def save(self) -> None:
@@ -149,6 +153,11 @@ class Config:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_suffix(".tmp")
         tmp.write_text(yaml.safe_dump(self.data, allow_unicode=True, sort_keys=False), "utf-8")
+        if self.path.exists():
+            try:   # keep the previous version as config.yaml.bak
+                os.replace(self.path, self.path.with_name(self.path.name + ".bak"))
+            except OSError:
+                pass
         try:
             os.chmod(tmp, 0o600)   # holds the LLM API key
         except OSError:
