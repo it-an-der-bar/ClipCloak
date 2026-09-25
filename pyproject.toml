@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clipcloak"
+dynamic = ["version"]
+description = "Redact, anonymise or reversibly pseudonymise clipboard contents (Windows/Linux, tray app)"
+readme = "README.md"
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+dependencies = [
+    "PySide6-Essentials>=6.9,<7",
+    "PyYAML>=6.0",
+    "cryptography>=42",
+]
+
+[project.optional-dependencies]
+ner = ["spacy>=3.8,<3.9"]
+
+[project.scripts]
+clipcloak = "clipcloak.cli:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "clipcloak.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["clipcloak*"]
+
+[tool.setuptools.package-data]
+clipcloak = ["resources/*", "resources/i18n/*"]

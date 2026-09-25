@@ -1,0 +1,4 @@
+# Runtime dependencies of the main application
+PySide6-Essentials>=6.9,<7
+PyYAML>=6.0
+cryptography>=42

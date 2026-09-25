@@ -1,0 +1,152 @@
+# Builds on a version tag (e.g. v0.1.0) one Linux and one Windows binary of the
+# application plus the optional NER helper and publishes them as GitLab release.
+# Intermediate pushes only run the test job.
+
+stages: [test, build, release]
+
+variables:
+  APP_NAME: clipcloak
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  # system libraries PySide6 needs inside the Debian slim image
+  QT_DEBS: >-
+    binutils libglib2.0-0 libegl1 libgl1 libfontconfig1 libx11-6 libx11-xcb1 libxkbcommon0
+    libxkbcommon-x11-0 libdbus-1-3 libgssapi-krb5-2 libbrotli1 libxcb-cursor0 libxcb-icccm4
+    libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0
+    libxcb-xkb1
+
+cache:
+  key: pip
+  paths: [.cache/pip]
+
+# ---------------------------------------------------------------- Tests
+test:
+  stage: test
+  image: python:3.12-slim-bookworm
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends $QT_DEBS
+    - python -m pip install --upgrade pip
+    - pip install -r requirements.txt
+  script:
+    # GUI tests run headless; the X11 hotkey test skips itself without a display.
+    - QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -p "test_*.py" -v
+  rules:
+    - if: '$CI_COMMIT_TAG == null'      # every push
+    - if: '$CI_COMMIT_TAG'              # and on tags
+
+# ---------------------------------------------------------------- Build Linux
+# Built on Debian 12: the binary needs glibc >= 2.36 (Debian 12, Ubuntu 24.04, Fedora 37+ …).
+build:linux:
+  stage: build
+  image: python:3.12-slim-bookworm
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends $QT_DEBS
+    - python -m pip install --upgrade pip
+    - pip install -r requirements.txt pyinstaller
+  script:
+    - python tools/check_version.py "$CI_COMMIT_TAG"
+    - pyinstaller --noconfirm --clean --onefile --windowed --name "$APP_NAME"
+        --add-data "$APP_NAME/resources:$APP_NAME/resources" --exclude-module tkinter run_clipcloak.py
+    - mv "dist/$APP_NAME" "dist/$APP_NAME-$CI_COMMIT_TAG-linux-x86_64"
+    - '"dist/$APP_NAME-$CI_COMMIT_TAG-linux-x86_64" --version'
+  artifacts:
+    paths: ["dist/$APP_NAME-$CI_COMMIT_TAG-linux-x86_64"]
+    expire_in: 30 days
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+/'
+
+# ---------------------------------------------------------------- Build Windows
+# Needs a Windows runner with the tag "windows" (Python 3.12 + pip on PATH, PowerShell).
+# Without such a runner only this job fails (allow_failure) – Linux is still released.
+build:windows:
+  stage: build
+  tags: [windows]
+  allow_failure: true
+  before_script:
+    - py -3 -m pip install --upgrade pip
+    - py -3 -m pip install -r requirements.txt pyinstaller
+  script:
+    - py -3 tools/check_version.py "${env:CI_COMMIT_TAG}"
+    - py -3 -m PyInstaller --noconfirm --clean --onefile --windowed --name "${env:APP_NAME}"
+        --icon "${env:APP_NAME}/resources/icon.ico"
+        --add-data "${env:APP_NAME}/resources;${env:APP_NAME}/resources" --exclude-module tkinter run_clipcloak.py
+    - Move-Item "dist\${env:APP_NAME}.exe" "dist\${env:APP_NAME}-${env:CI_COMMIT_TAG}-windows-x86_64.exe"
+  artifacts:
+    paths: ["dist/$APP_NAME-$CI_COMMIT_TAG-windows-x86_64.exe"]
+    expire_in: 30 days
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+/'
+
+# ---------------------------------------------------------------- NER helper (optional plugin)
+# spaCy + German/English models as separate console program "<app>-ner".
+# Put it next to the main binary to enable name/company detection.
+build:ner:linux:
+  stage: build
+  image: python:3.12-slim-bookworm
+  allow_failure: true
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends binutils
+    - python -m pip install --upgrade pip
+    - pip install -r requirements-ner.txt pyinstaller
+  script:
+    - pyinstaller --noconfirm --clean --onefile --console --name "$APP_NAME-ner"
+        --collect-all de_core_news_sm --collect-all en_core_web_sm run_clipcloak_ner.py
+    - '"dist/$APP_NAME-ner" --selftest'
+    - mv "dist/$APP_NAME-ner" "dist/$APP_NAME-ner-$CI_COMMIT_TAG-linux-x86_64"
+  artifacts:
+    paths: ["dist/$APP_NAME-ner-$CI_COMMIT_TAG-linux-x86_64"]
+    expire_in: 30 days
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+/'
+
+build:ner:windows:
+  stage: build
+  tags: [windows]
+  allow_failure: true
+  before_script:
+    - py -3 -m pip install --upgrade pip
+    - py -3 -m pip install -r requirements-ner.txt pyinstaller
+  script:
+    - py -3 -m PyInstaller --noconfirm --clean --onefile --console --name "${env:APP_NAME}-ner"
+        --collect-all de_core_news_sm --collect-all en_core_web_sm run_clipcloak_ner.py
+    - '& "dist\${env:APP_NAME}-ner.exe" --selftest'
+    - Move-Item "dist\${env:APP_NAME}-ner.exe" "dist\${env:APP_NAME}-ner-${env:CI_COMMIT_TAG}-windows-x86_64.exe"
+  artifacts:
+    paths: ["dist/$APP_NAME-ner-$CI_COMMIT_TAG-windows-x86_64.exe"]
+    expire_in: 30 days
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+/'
+
+# ---------------------------------------------------------------- Release
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: build:linux
+      artifacts: true
+    - job: build:windows
+      artifacts: true
+      optional: true
+    - job: build:ner:linux
+      artifacts: true
+      optional: true
+    - job: build:ner:windows
+      artifacts: true
+      optional: true
+  script:
+    - echo "Release ${CI_COMMIT_TAG}"
+  release:
+    tag_name: '$CI_COMMIT_TAG'
+    name: '${APP_NAME} ${CI_COMMIT_TAG}'
+    description: 'Automatic build of ${CI_COMMIT_TAG}. The -ner files are the optional NER plugin: place them next to the main program.'
+    assets:
+      links:
+        - name: '${APP_NAME} ${CI_COMMIT_TAG} (Linux, x86_64)'
+          url: '${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/dist/${APP_NAME}-${CI_COMMIT_TAG}-linux-x86_64?job=build:linux'
+        - name: '${APP_NAME} ${CI_COMMIT_TAG} (Windows, x86_64)'
+          url: '${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/dist/${APP_NAME}-${CI_COMMIT_TAG}-windows-x86_64.exe?job=build:windows'
+        - name: '${APP_NAME}-ner ${CI_COMMIT_TAG} (Linux, x86_64, optional NER plugin)'
+          url: '${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/dist/${APP_NAME}-ner-${CI_COMMIT_TAG}-linux-x86_64?job=build:ner:linux'
+        - name: '${APP_NAME}-ner ${CI_COMMIT_TAG} (Windows, x86_64, optional NER plugin)'
+          url: '${CI_PROJECT_URL}/-/jobs/artifacts/${CI_COMMIT_TAG}/raw/dist/${APP_NAME}-ner-${CI_COMMIT_TAG}-windows-x86_64.exe?job=build:ner:windows'
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+/'

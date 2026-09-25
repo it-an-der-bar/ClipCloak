@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=ClipCloak
+Comment=Redact, anonymise or pseudonymise clipboard contents
+Exec=clipcloak
+Icon=clipcloak
+Terminal=false
+Categories=Utility;Security;
+StartupNotify=false

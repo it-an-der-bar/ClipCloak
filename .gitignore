@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.spec
+.cache/
+.venv/
+venv/
+*.egg-info/
+.idea/
+.vscode/
