@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- CI: The Linux NER plugin is built with `--strip` and without the spaCy tests (~120 MB → ~84 MB), so it stays below GitLab's default artifact limit of 100 MB per job.
+
 ## 0.1.2
 
 - Fixed: after a restart (e.g. a language change) the Windows/Linux binary used the deleted temporary directory of the old process. This caused errors like "base_library.zip: No such file or directory", for example in the LLM test. The NER helper is now also started with a clean PyInstaller environment.
