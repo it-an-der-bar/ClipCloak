@@ -455,6 +455,8 @@ class SettingsDialog(QDialog):
         f.addRow(intro)
         f.addRow("", self._check("image.faces", t("img.set_faces")))
         f.addRow(t("img.set_face_effect"), self._combo("image.face_effect", list(EFFECTS), "effect."))
+        f.addRow("", self._check("image.nudity", t("img.set_nudity")))
+        f.addRow(t("img.set_nudity_effect"), self._combo("image.nudity_effect", list(EFFECTS), "effect."))
         f.addRow("", self._check("image.text", t("img.set_text")))
         f.addRow(t("img.set_text_effect"), self._combo("image.text_effect", list(EFFECTS), "effect."))
         f.addRow("", self._check("image.codes", t("img.set_codes")))

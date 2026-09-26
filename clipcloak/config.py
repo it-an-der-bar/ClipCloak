@@ -57,9 +57,11 @@ DEFAULTS: dict = {
     },
     "image": {                        # image redaction (detection needs the plugin)
         "faces": True,
+        "nudity": True,               # exposed intimate body parts (NudeNet)
         "text": True,                 # OCR + the text detectors
         "codes": True,                # QR codes / barcodes
         "face_effect": "mosaic",      # black | mosaic | blur
+        "nudity_effect": "black",
         "text_effect": "black",       # black is the only safe choice for text
         "code_effect": "black",
         "padding": 3,
@@ -327,7 +329,8 @@ def engine_settings(cfg: Config, project_terms: list | None = None,
         keep_special_hosts=bool(d["detectors"].get("keep_special_hosts", True)),
         mac_keep_oui=bool(d["detectors"].get("mac_keep_oui", True)),
         tld_strategy=d["detectors"].get("tld_strategy", "keep"),
-        allow_domains={x.lower().strip(".") for x in lists.get("allow_domains") or [] if x},
+        allow_domains={x.lower().strip(".") for x in lists.get("allow_domains") or [] if x}
+        | wordlists.PUBLIC_TECH_DOMAINS,
         allow_ip_ranges=list(lists.get("allow_ip_ranges") or []),
         generic_labels=set(wordlists.GENERIC_LABELS) | {x.lower() for x in lists.get("generic_labels_extra") or []},
         custom_replacements=replacements,
@@ -336,7 +339,9 @@ def engine_settings(cfg: Config, project_terms: list | None = None,
     )
     ctx = DetectorContext(known_domains=known, custom_terms=terms,
                           extra_tlds=set(lists.get("extra_tlds") or []),
-                          options={"entropy_threshold": d["detectors"].get("entropy_threshold", 4.0)})
+                          options={"entropy_threshold": d["detectors"].get("entropy_threshold", 4.0),
+                                   "generic_labels": set(lists.get("generic_labels_extra") or []),
+                                   "allow_terms": set(lists.get("allow_terms") or [])})
     enabled = {k for k, v in (d["detectors"].get("enabled") or {}).items() if v}
     if cfg.get("ner.enabled"):
         enabled.add("ner")

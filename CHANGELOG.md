@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.12
+
+- Fixed: Kubernetes label/annotation keys and API groups (`argocd.argoproj.io/tracking-id:`, `cert-manager.io/cluster-issuer:`, `app.kubernetes.io/name=web`) were replaced as domains, which broke the YAML. A DNS prefix followed by `/name:` or `/name=` is no longer a host. Well-known tool domains (argoproj.io, cert-manager.io, x-k8s.io, prometheus.io, coreos.com, istio.io, traefik.io, …) are always kept.
+- New detector **Infrastructure names** (on by default): values of `name`, `namespace`, `instance`, `release`, `app` and similar keys, `-n/--namespace`, `deploy/<name>`-style references and ArgoCD tracking ids. Only customer-specific parts are pseudonymised; generic words and product names stay; one word gets one pseudonym everywhere (names, namespaces, tracking ids, domains, prose). New finding type `IDENTIFIER`. Extra generic words: Settings › Lists › Generic words.
+- Workbench: mark any text in the input and right-click *Always replace "…"* (custom term, in the active project) or *Never replace "…"*.
+- Images: **nudity** detection (exposed breasts, genitals, buttocks; NudeNet 320n, local), black by default; large images are also searched in tiles. Settings › Images and ADMX.
+
 ## 0.1.11
 
 - **Images:** new *Image* tab to hide faces, sensitive text and codes in images.

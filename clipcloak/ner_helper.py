@@ -3,7 +3,7 @@
 Reads JSON lines on stdin and answers one JSON line per request:
 
   {"id": 1, "text": "...", "lang": "auto|de|en|both"}      -> {"id": 1, "entities": [...]}
-  {"id": 2, "op": "faces"|"ocr"|"codes", "image": "<base64 PNG/JPEG>"}
+  {"id": 2, "op": "faces"|"nudity"|"ocr"|"codes", "image": "<base64 PNG/JPEG>"}
                                                             -> {"id": 2, "boxes": [...]}
   {"id": 3, "op": "info"}                                   -> {"id": 3, "features": {...}}
 
@@ -99,7 +99,7 @@ def handle(req: dict) -> dict:
     from . import vision_helper as vh
     if op == "info":
         return {"features": dict(vh.available(), ner=True)}
-    if op in ("faces", "ocr", "codes"):
+    if op in ("faces", "ocr", "codes", "nudity"):
         import base64
         data = base64.b64decode(req.get("image") or "")
         return {"boxes": getattr(vh, op)(data)}
@@ -122,7 +122,9 @@ def selftest() -> int:
     lines = vh.ocr(data)
     codes = vh.codes(data)
     faces = vh.faces(data)
-    print(json.dumps({"ocr": [ln["text"] for ln in lines], "codes": [c["text"] for c in codes], "faces": len(faces)}))
+    nude = vh.nudity(data)
+    print(json.dumps({"ocr": [ln["text"] for ln in lines], "codes": [c["text"] for c in codes],
+                      "faces": len(faces), "nudity": len(nude)}))
     ok = all(feats.values()) and any("10.88.10.10" in ln["text"] for ln in lines) and \
         any(c["text"] == "selftest" for c in codes)
     print("OK" if ok else "FAILED")

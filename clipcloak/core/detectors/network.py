@@ -111,6 +111,9 @@ class EmailDetector(Detector):
         return out
 
 
+LABEL_KEY_AFTER = re.compile(r"/[A-Za-z0-9](?:[A-Za-z0-9_.-]*[A-Za-z0-9])?[\"']?[ \t]*[:=]")
+
+
 def _in_url_context(text: str, start: int) -> bool:
     before = text[max(0, start - 12):start]
     return before.endswith("://") or before.endswith("@") or before.endswith("//")
@@ -129,6 +132,10 @@ class DomainDetector(Detector):
         out = []
         for m in DOMAIN_RE.finditer(text):
             host = m.group(1)
+            # Kubernetes label/annotation keys and API groups: "argocd.argoproj.io/tracking-id:",
+            # "app.kubernetes.io/name=web" – a DNS prefix, not a host
+            if LABEL_KEY_AFTER.match(text, m.end()) and not _in_url_context(text, m.start()):
+                continue
             labels = host.split(".")
             tld = labels[-1]
             low = host.lower()

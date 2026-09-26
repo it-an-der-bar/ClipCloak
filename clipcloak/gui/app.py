@@ -695,7 +695,7 @@ class Controller(QObject):
 
         from PySide6.QtCore import QBuffer, QByteArray, QIODevice
 
-        from ..core.imageredact import ImageSettings, code_regions, face_regions, text_regions
+        from ..core.imageredact import ImageSettings, code_regions, face_regions, nudity_regions, text_regions
         ba = QByteArray()
         buf = QBuffer(ba)
         buf.open(QIODevice.WriteOnly)
@@ -717,6 +717,16 @@ class Controller(QObject):
                     boxes = client.request({"op": "faces", "image": b64}, timeout=180).get("boxes", [])
                     regions += face_regions(boxes, settings, w, h)
                     counts["faces"] = len(boxes)
+                if settings.nudity:
+                    try:
+                        boxes = client.request({"op": "nudity", "image": b64}, timeout=180).get("boxes", [])
+                    except RuntimeError as exc:           # plugin of 0.1.11 has no nudity model
+                        if "unknown op" not in str(exc):
+                            raise
+                        boxes = []
+                        counts["nudity_missing"] = True
+                    regions += nudity_regions(boxes, settings, w, h)
+                    counts["nudity"] = len(boxes)
                 if settings.codes:
                     boxes = client.request({"op": "codes", "image": b64}, timeout=180).get("boxes", [])
                     regions += code_regions(boxes, settings, w, h)
@@ -733,9 +743,12 @@ class Controller(QObject):
                     return None, t("img.plugin_old")
                 return None, t("img.detect_failed", err=msg)
             event("log.image_detect", faces=counts.get("faces", "-"), codes=counts.get("codes", "-"),
-                  text=counts.get("text", "-"), lines=counts.get("lines", "-"))
-            return regions, t("img.detected", n=len(regions), faces=counts.get("faces", 0),
-                              text=counts.get("text", 0), codes=counts.get("codes", 0))
+                  text=counts.get("text", "-"), lines=counts.get("lines", "-"), nudity=counts.get("nudity", "-"))
+            msg = t("img.detected", n=len(regions), faces=counts.get("faces", 0), nudity=counts.get("nudity", 0),
+                    text=counts.get("text", 0), codes=counts.get("codes", 0))
+            if counts.get("nudity_missing"):
+                msg += "\n" + t("img.plugin_old")
+            return regions, msg
 
         self.submit(job, callback, executor=self.llm_executor, label=t("job.image_detect"))
 

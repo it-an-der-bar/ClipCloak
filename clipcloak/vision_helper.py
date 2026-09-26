@@ -1,4 +1,4 @@
-"""Image analysis for the plugin: faces, text with positions (OCR), QR codes and barcodes.
+"""Image analysis for the plugin: faces, nudity, text with positions (OCR), QR codes and barcodes.
 
 Runs inside the plugin process (``<app>-ner``), which also contains OpenCV, the
 YuNet face model and RapidOCR (ONNX), so the main application stays small.
@@ -141,6 +141,48 @@ def ocr(data: bytes) -> list[dict]:
     return lines
 
 
+# ------------------------------------------------------------------ nudity
+NUDITY_CLASSES = {
+    "FEMALE_BREAST_EXPOSED", "FEMALE_GENITALIA_EXPOSED", "MALE_GENITALIA_EXPOSED",
+    "BUTTOCKS_EXPOSED", "ANUS_EXPOSED",
+}
+_nude = None
+
+
+def nudity(data: bytes, score: float = 0.35) -> list[dict]:
+    """Exposed intimate body parts (NudeNet 320n, YOLOv8, ONNX). The model looks at a
+    320 px version of the image, so larger images are also searched in overlapping tiles."""
+    global _nude
+    if _nude is None:
+        from nudenet import NudeDetector
+        _nude = NudeDetector()
+    img = _decode(data)
+    h, w = img.shape[:2]
+    tiles = [(0, 0, w, h)]
+    if max(w, h) > 900:
+        tw, th = int(w * 0.6), int(h * 0.6)
+        for x0 in (0, w - tw):
+            for y0 in (0, h - th):
+                tiles.append((x0, y0, tw, th))
+    found: list[dict] = []
+    for x0, y0, tw, th in tiles:
+        crop = img[y0:y0 + th, x0:x0 + tw]
+        for d in _nude.detect(crop):
+            if d.get("class") not in NUDITY_CLASSES or float(d.get("score", 0)) < score:
+                continue
+            bx, by, bw, bh = (int(v) for v in d["box"])
+            box = {"x": x0 + bx, "y": y0 + by, "w": bw, "h": bh, "score": round(float(d["score"]), 3),
+                   "kind": "NUDITY", "part": d["class"]}
+            if box["w"] < 3 or box["h"] < 3:
+                continue
+            dup = next((f for f in found if _iou(f, box) > 0.3), None)
+            if dup is None:
+                found.append(box)
+            elif box["score"] > dup["score"]:
+                found[found.index(dup)] = box
+    return found
+
+
 # ------------------------------------------------------------------ codes
 def codes(data: bytes) -> list[dict]:
     """QR codes and barcodes (they often contain URLs, tokens, serial numbers)."""
@@ -190,4 +232,9 @@ def available() -> dict:
         ok["ocr"] = True
     except ImportError:
         ok["ocr"] = False
+    try:
+        import nudenet  # noqa: F401
+        ok["nudity"] = True
+    except ImportError:
+        ok["nudity"] = False
     return ok

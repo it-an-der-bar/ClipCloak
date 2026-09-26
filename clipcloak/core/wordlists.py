@@ -70,6 +70,78 @@ intern extern m mobile beta alpha preview dashboard console panel metrics trace
 tracing jaeger sentry sonar sonarqube nextcloud cloudflare paperless plex
 """.split())
 
+# Parts of infrastructure names (Kubernetes, Helm, Compose …) that say what a thing IS,
+# not whose it is. They stay when "bunkerweb-front" or "kunde-mueller-prod" is pseudonymised.
+INFRA_GENERIC = set("""
+front frontend back backend api apis app apps web ui gui site www server srv service svc
+services worker workers scheduler sched controller controllers manager mgr operator operators
+agent agents daemon exporter exporters collector sidecar proxy gateway gw ingress egress lb
+balancer router cache queue broker bus stream streams cron cronjob job jobs batch task tasks
+runner runners build builder deploy deployment deployments release releases instance instances
+main master primary secondary replica replicas slave leader follower node nodes pool pools
+cluster clusters core common shared base lib libs config configs conf settings secret secrets
+env data db database databases store storage volume volumes pvc pv disk disks backup backups
+snapshot snapshots archive archives log logs logging metrics metric monitor monitoring alert
+alerts alerting trace tracing health healthcheck status probe init migrate migration migrations
+seed setup install installer upgrade hook hooks webhook webhooks admin admins dashboard
+portal console panel auth authn authz sso oauth oidc login user users account accounts
+mail smtp dns ntp vpn http https grpc tcp udp tls ssl cert certs ca crd crds rbac role roles
+binding bindings sa ns namespace namespaces system kube default public private internal
+external intern extern local global prod production prd staging stage stg dev develop
+development test tests testing qa uat int integration demo sandbox preview canary blue green
+stable latest edge nightly alpha beta rc v1 v2 v3 old new legacy primary blue green
+east west north south eu us de at ch emea apac region zone zones rack
+kunde kunden customer customers client clients tenant tenants team teams project projects
+app1 app2 web1 web2 api1 api2 db1 db2 one two three first second
+headless internal external default chart charts values template templates
+redis-master redis-replicas
+package packages file files folder folders dir group groups update updates upgrade install
+remove create delete copy restart start stop check checks validate verify run exec script
+scripts tool tools util utils helper helpers plugin plugins module modules extension
+extensions theme themes content upload uploads media image images video audio font fonts
+static assets public src source dist bin lib include vendor home root tmp temp cache report
+reports export import sync mirror docs doc readme example examples sample samples dummy foo
+bar baz produktiv entwicklung abnahme schulung mandant mandanten standort zentrale filiale
+lager buero verwaltung
+""".split())
+
+# Public product/project names that often appear in infrastructure names; they carry
+# useful context and are not secret, so they are not pseudonymised.
+INFRA_PRODUCTS = set("""
+bunkerweb nginx apache httpd caddy haproxy envoy traefik squid varnish tomcat jetty
+redis valkey memcached postgres postgresql pg pgbouncer patroni mysql mariadb galera mongo
+mongodb cassandra couchdb clickhouse influxdb timescaledb elasticsearch elastic opensearch
+kibana logstash beats filebeat metricbeat fluentd fluent fluentbit vector loki promtail tempo
+mimir thanos cortex grafana prometheus alertmanager pushgateway jaeger zipkin otel
+opentelemetry kafka zookeeper rabbitmq nats mosquitto emqx activemq pulsar minio ceph rook
+longhorn openebs velero kopia restic etcd coredns kubedns calico cilium flannel weave
+metallb kube-vip istio linkerd consul vault nomad terraform ansible awx argocd argo flux
+fluxcd helm kustomize rancher rke rke2 k3s k8s kubernetes kubelet kubectl containerd docker
+podman buildkit kaniko harbor nexus artifactory registry gitlab gitea github jenkins drone
+woodpecker tekton sonarqube sonar trivy falco kyverno gatekeeper opa certmanager cert-manager
+externaldns external-dns sealed sealed-secrets keycloak authentik authelia dex oauth2-proxy
+freeipa openldap ldap samba nextcloud collabora onlyoffice wordpress drupal joomla mediawiki
+mattermost rocketchat synapse matrix element jitsi bigbluebutton zabbix icinga nagios checkmk
+wazuh graylog splunk netbird wireguard openvpn tailscale headscale pihole adguard unbound bind
+powerdns postfix dovecot rspamd clamav mailcow homeassistant mosquitto nodered plex jellyfin
+emby paperless ollama openwebui vllm litellm comfyui stable-diffusion n8n airflow superset
+metabase jupyter jupyterhub mlflow spark hadoop hive trino presto flink dask ray kubeflow
+proxmox pve esxi vcenter vmware hyperv opnsense pfsense securepoint fortigate fortinet sophos
+python node nodejs java golang php ruby dotnet
+""".split())
+
+# Public domains of tools whose names appear in Kubernetes label/annotation keys,
+# CRD groups and API versions; they are never pseudonymised.
+PUBLIC_TECH_DOMAINS = set("""
+k8s.io x-k8s.io kubernetes.io helm.sh argoproj.io cert-manager.io acme.cert-manager.io
+prometheus.io coreos.com monitoring.coreos.com istio.io traefik.io containo.us linkerd.io
+knative.dev fluxcd.io toolkit.fluxcd.io cilium.io projectcalico.org tigera.io longhorn.io
+cattle.io velero.io external-secrets.io bitnami.com opentelemetry.io keda.sh kyverno.io
+gatekeeper.sh jetstack.io metallb.io nginx.org min.io rook.io ceph.io grafana.com
+elastic.co hashicorp.com rancher.com k3s.io rke2.io vmware.com openshift.io redhat.com
+docker.com docker.io quay.io ghcr.io gcr.io registry.k8s.io mcr.microsoft.com
+""".split())
+
 # Mailbox local parts that are functional rather than personal.
 FUNCTIONAL_MAILBOXES = set("""
 info admin administrator support noreply no-reply donotreply do-not-reply

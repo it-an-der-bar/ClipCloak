@@ -19,7 +19,7 @@ from . import image_effects
 from .widgets import item, make_table, track_table
 
 HANDLE = 12      # size of the resize corner in screen pixels
-COLORS = {"face": "#e67e22", "text": "#c0392b", "code": "#8e44ad", "manual": "#2980b9"}
+COLORS = {"face": "#e67e22", "nudity": "#d81b60", "text": "#c0392b", "code": "#8e44ad", "manual": "#2980b9"}
 
 
 class RegionItem(QGraphicsRectItem):
@@ -363,7 +363,7 @@ class ImageView(QWidget):
         self.btn_detect.setEnabled(self.canvas.image is not None)
         regions, message = result
         if regions is not None:
-            for src in ("face", "text", "code"):
+            for src in ("face", "nudity", "text", "code"):
                 self.canvas.clear_regions(src)
             for r in regions:
                 self.canvas.add_region(r)
@@ -431,7 +431,7 @@ class ImageView(QWidget):
         self.table.setRowCount(len(items))
         for row, it in enumerate(items):
             r = it.region
-            kind = t("img.kind." + r.kind) if r.kind in ("FACE", "QR_CODE", "BARCODE", "MANUAL") else r.kind
+            kind = t("img.kind." + r.kind) if r.kind in ("FACE", "NUDITY", "QR_CODE", "BARCODE", "MANUAL") else r.kind
             self.table.setItem(row, 0, item(kind, data=row))
             self.table.setItem(row, 1, item(r.label))
             self.table.setItem(row, 2, item(t("effect." + r.effect)))

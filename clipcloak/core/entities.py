@@ -25,6 +25,7 @@ class EntityType(str, Enum):
     SECRET = "SECRET"
     PRIVATE_KEY = "PRIVATE_KEY"
     CERTIFICATE = "CERTIFICATE"
+    IDENTIFIER = "IDENTIFIER"       # parts of infrastructure names (namespace, release …)
     CUSTOM = "CUSTOM"
 
     def __str__(self) -> str:  # pragma: no cover - convenience

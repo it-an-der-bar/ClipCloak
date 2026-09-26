@@ -121,6 +121,9 @@ class FakePlugin:
             return {"boxes": [{"x": 250, "y": 60, "w": 60, "h": 70, "score": 0.9, "kind": "FACE"}]}
         if op == "codes":
             return {"boxes": []}
+        if op == "nudity":
+            return {"boxes": [{"x": 40, "y": 100, "w": 50, "h": 40, "score": 0.8, "kind": "NUDITY",
+                               "part": "BUTTOCKS_EXPOSED"}]}
         if op == "ocr":
             return {"boxes": [ocr_line("host 10.88.10.10", 10, 200)]}
         raise RuntimeError("unknown op")
@@ -149,14 +152,16 @@ class ImageTabTest(unittest.TestCase):
         c.redact_image()
         view = c.main.image
         self.assertIs(c.main.tabs.currentWidget(), view)
-        self.assertTrue(wait_for(lambda: len(view.canvas.regions()) == 2))
+        self.assertTrue(wait_for(lambda: len(view.canvas.regions()) == 3))
         kinds = sorted(r.kind for r in view.canvas.regions())
-        self.assertEqual(kinds, ["FACE", "IPV4"])
-        self.assertEqual(view.table.rowCount(), 2)
+        self.assertEqual(kinds, ["FACE", "IPV4", "NUDITY"])
+        nude = next(r for r in view.canvas.regions() if r.kind == "NUDITY")
+        self.assertEqual(nude.effect, "black")
+        self.assertEqual(view.table.rowCount(), 3)
         # a box drawn by hand is kept when detecting again
         view.canvas.add_region(Region(0, 0, 20, 20))
         view.detect()
-        self.assertTrue(wait_for(lambda: len(view.canvas.regions()) == 3))
+        self.assertTrue(wait_for(lambda: len(view.canvas.regions()) == 4))
         view.to_clipboard()
         img = c.clip.cb.image()
         self.assertFalse(img.isNull())

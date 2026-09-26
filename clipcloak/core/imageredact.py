@@ -18,10 +18,10 @@ class Region:
     y: int
     w: int
     h: int
-    kind: str = "MANUAL"          # FACE | QR_CODE | BARCODE | text finding type (IPV4, EMAIL …) | MANUAL
+    kind: str = "MANUAL"          # FACE | NUDITY | QR_CODE | BARCODE | text finding type (IPV4 …) | MANUAL
     effect: str = "black"
     label: str = ""               # recognised text (shown in the list only, never logged)
-    source: str = "manual"        # manual | face | code | text
+    source: str = "manual"        # manual | face | nudity | code | text
 
     def as_tuple(self) -> tuple[int, int, int, int]:
         return self.x, self.y, self.w, self.h
@@ -37,6 +37,8 @@ class ImageSettings:
     code_effect: str = "black"
     padding: int = 3
     skip_types: set = field(default_factory=set)
+    nudity: bool = True
+    nudity_effect: str = "black"
 
     @classmethod
     def from_config(cls, d: dict) -> "ImageSettings":
@@ -44,7 +46,8 @@ class ImageSettings:
         eff = lambda k, dflt: d.get(k) if d.get(k) in EFFECTS else dflt  # noqa: E731
         return cls(bool(d.get("faces", True)), bool(d.get("text", True)), bool(d.get("codes", True)),
                    eff("face_effect", "mosaic"), eff("text_effect", "black"), eff("code_effect", "black"),
-                   int(d.get("padding", 3) or 0))
+                   int(d.get("padding", 3) or 0), set(),
+                   bool(d.get("nudity", True)), eff("nudity_effect", "black"))
 
 
 def _pad(box: dict, pad: int, width: int, height: int) -> tuple[int, int, int, int]:
@@ -125,6 +128,15 @@ def face_regions(boxes: list[dict], settings: ImageSettings, width: int = 0, hei
         x, y, w, h = _pad(b, pad, width, height)
         out.append(Region(x, y, w, h, "FACE", settings.face_effect, "", "face"))
     return out
+
+
+def nudity_regions(boxes: list[dict], settings: ImageSettings, width: int = 0, height: int = 0) -> list[Region]:
+    out = []
+    for b in boxes:
+        pad = max(settings.padding, int(0.12 * max(b["w"], b["h"])))
+        x, y, w, h = _pad(b, pad, width, height)
+        out.append(Region(x, y, w, h, "NUDITY", settings.nudity_effect, "", "nudity"))
+    return merge_overlapping(out)
 
 
 def code_regions(boxes: list[dict], settings: ImageSettings, width: int = 0, height: int = 0) -> list[Region]:

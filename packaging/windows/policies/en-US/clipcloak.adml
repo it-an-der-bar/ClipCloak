@@ -153,6 +153,10 @@ If configured, the user cannot change this setting. Setting: detectors.enabled.p
       <string id="P_detectors_enabled_sid_Help">Enable or disable this detector.
 
 If configured, the user cannot change this setting. Setting: detectors.enabled.sid</string>
+      <string id="P_detectors_enabled_infra_names">Detector: Infrastructure names (Kubernetes, Helm, ArgoCD, Compose …)</string>
+      <string id="P_detectors_enabled_infra_names_Help">Enable or disable this detector.
+
+If configured, the user cannot change this setting. Setting: detectors.enabled.infra-names</string>
       <string id="P_detectors_enabled_custom">Detector: Custom terms</string>
       <string id="P_detectors_enabled_custom_Help">Enable or disable this detector.
 
@@ -254,6 +258,17 @@ If configured, the user cannot change this setting. Setting: image.face_effect</
       <string id="P_image_face_effect_black">black</string>
       <string id="P_image_face_effect_mosaic">mosaic</string>
       <string id="P_image_face_effect_blur">blur</string>
+      <string id="P_image_nudity">Detect nudity</string>
+      <string id="P_image_nudity_Help">Detect exposed breasts, genitals and buttocks in images (plugin, NudeNet model, local).
+
+If configured, the user cannot change this setting. Setting: image.nudity</string>
+      <string id="P_image_nudity_effect">Effect for nudity</string>
+      <string id="P_image_nudity_effect_Help">How detected nudity is hidden.
+
+If configured, the user cannot change this setting. Setting: image.nudity_effect</string>
+      <string id="P_image_nudity_effect_black">black</string>
+      <string id="P_image_nudity_effect_mosaic">mosaic</string>
+      <string id="P_image_nudity_effect_blur">blur</string>
       <string id="P_image_text">Detect sensitive text in images</string>
       <string id="P_image_text_Help">OCR (plugin, local) plus the text detectors: IP, e-mail, secrets, custom terms …
 
@@ -346,6 +361,7 @@ If configured, the user cannot change this setting. Setting: hotkeys.toggle_watc
       <presentation id="P_ner_helper_path"><textBox refId="P_ner_helper_path"><label>NER helper path</label></textBox></presentation>
       <presentation id="P_ner_language"><dropdownList refId="P_ner_language" noSort="true">NER language</dropdownList></presentation>
       <presentation id="P_image_face_effect"><dropdownList refId="P_image_face_effect" noSort="true">Effect for faces</dropdownList></presentation>
+      <presentation id="P_image_nudity_effect"><dropdownList refId="P_image_nudity_effect" noSort="true">Effect for nudity</dropdownList></presentation>
       <presentation id="P_image_text_effect"><dropdownList refId="P_image_text_effect" noSort="true">Effect for text</dropdownList></presentation>
       <presentation id="P_image_code_effect"><dropdownList refId="P_image_code_effect" noSort="true">Effect for codes</dropdownList></presentation>
       <presentation id="P_hotkeys_pseudonymize"><textBox refId="P_hotkeys_pseudonymize"><label>Shortcut: Pseudonymise clipboard</label></textBox></presentation>

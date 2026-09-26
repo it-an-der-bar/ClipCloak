@@ -88,7 +88,7 @@ build:windows:
         --add-data "${env:APP_NAME}/resources;${env:APP_NAME}/resources" --exclude-module tkinter run_clipcloak.py
     - .\.venv-ner\Scripts\python -m PyInstaller --noconfirm --clean --onedir --console --name "${env:APP_NAME}-ner"
         --icon "${env:APP_NAME}/resources/icon.ico"
-        --collect-all de_core_news_sm --collect-all en_core_web_sm --collect-all rapidocr_onnxruntime
+        --collect-all de_core_news_sm --collect-all en_core_web_sm --collect-all rapidocr_onnxruntime --collect-all nudenet
         --add-data "${env:APP_NAME}/plugin_data;${env:APP_NAME}/plugin_data"
         --exclude-module spacy.tests --exclude-module pytest --exclude-module tkinter run_clipcloak_ner.py
     - '& "dist\${env:APP_NAME}-ner\${env:APP_NAME}-ner.exe" --selftest'
@@ -126,7 +126,7 @@ package:linux:
     # that also strips numpy's vendored OpenBLAS and breaks it ("ELF load command ... not page-aligned").
     - python tools/strip_debug.py
     - pyinstaller --noconfirm --clean --onefile --console --name "$APP_NAME-ner"
-        --collect-all de_core_news_sm --collect-all en_core_web_sm --collect-all rapidocr_onnxruntime
+        --collect-all de_core_news_sm --collect-all en_core_web_sm --collect-all rapidocr_onnxruntime --collect-all nudenet
         --add-data "$APP_NAME/plugin_data:$APP_NAME/plugin_data"
         --exclude-module spacy.tests --exclude-module pytest --exclude-module tkinter run_clipcloak_ner.py
     - '"dist/$APP_NAME-ner" --selftest'

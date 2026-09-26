@@ -61,6 +61,8 @@ class Workbench(QWidget):
         self.findings = make_table([t("col.type"), t("col.text"), t("col.detector")])
         self.findings.setContextMenuPolicy(Qt.CustomContextMenu)
         self.findings.customContextMenuRequested.connect(self._findings_menu)
+        self.input.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.input.customContextMenuRequested.connect(self._input_menu)
         self.findings.itemSelectionChanged.connect(self._select_finding)
         self.reps = make_table([t("col.type"), t("col.original"), t("col.replacement"), t("col.detector")])
 
@@ -299,6 +301,25 @@ class Workbench(QWidget):
             elif chosen is a_term:
                 self.c.add_custom_term(f.text, f.type)
         if chosen:
+            self.analyze()
+
+    def _input_menu(self, pos):
+        """Standard edit menu plus: mark any text and have it always / never replaced."""
+        m = self.input.createStandardContextMenu()
+        sel = self.input.textCursor().selectedText().replace("\u2029", " ").strip()
+        a_term = a_allow = None
+        if sel and len(sel) <= 200:
+            short = sel if len(sel) <= 40 else sel[:37] + "…"
+            m.addSeparator()
+            a_term = m.addAction(t("wb.sel_term", text=short))
+            a_allow = m.addAction(t("wb.sel_allow", text=short))
+        chosen = m.exec(self.input.viewport().mapToGlobal(pos))
+        if chosen is not None and chosen is a_term:
+            self.c.add_custom_term(sel, "")
+            self.c.notify(t("wb.sel_term_done", text=sel, where=self.c.project_label()), force=True)
+            self.analyze()
+        elif chosen is not None and chosen is a_allow:
+            self.c.add_allow_term(sel)
             self.analyze()
 
     def add_text_as_term(self, text: str, typ: str = "CUSTOM"):

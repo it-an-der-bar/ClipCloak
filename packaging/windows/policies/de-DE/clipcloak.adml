@@ -153,6 +153,10 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_detectors_enabled_sid_Help">Diese Erkennung ein- oder ausschalten.
 
 Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: detectors.enabled.sid</string>
+      <string id="P_detectors_enabled_infra_names">Erkennung: Infrastruktur-Namen (Kubernetes, Helm, ArgoCD, Compose …)</string>
+      <string id="P_detectors_enabled_infra_names_Help">Diese Erkennung ein- oder ausschalten.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: detectors.enabled.infra-names</string>
       <string id="P_detectors_enabled_custom">Erkennung: Eigene Begriffe</string>
       <string id="P_detectors_enabled_custom_Help">Diese Erkennung ein- oder ausschalten.
 
@@ -254,6 +258,17 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_image_face_effect_black">schwarz</string>
       <string id="P_image_face_effect_mosaic">Mosaik</string>
       <string id="P_image_face_effect_blur">weichzeichnen</string>
+      <string id="P_image_nudity">Nacktheit erkennen</string>
+      <string id="P_image_nudity_Help">Unbedeckte Brüste, Genitalien und Gesäß in Bildern erkennen (Plugin, NudeNet-Modell, lokal).
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: image.nudity</string>
+      <string id="P_image_nudity_effect">Effekt für Nacktheit</string>
+      <string id="P_image_nudity_effect_Help">Wie erkannte Nacktheit verdeckt wird.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: image.nudity_effect</string>
+      <string id="P_image_nudity_effect_black">schwarz</string>
+      <string id="P_image_nudity_effect_mosaic">Mosaik</string>
+      <string id="P_image_nudity_effect_blur">weichzeichnen</string>
       <string id="P_image_text">Sensiblen Text in Bildern erkennen</string>
       <string id="P_image_text_Help">OCR (Plugin, lokal) plus die Texterkennungen: IP, E-Mail, Secrets, eigene Begriffe …
 
@@ -346,6 +361,7 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <presentation id="P_ner_helper_path"><textBox refId="P_ner_helper_path"><label>Pfad des NER-Helfers</label></textBox></presentation>
       <presentation id="P_ner_language"><dropdownList refId="P_ner_language" noSort="true">NER-Sprache</dropdownList></presentation>
       <presentation id="P_image_face_effect"><dropdownList refId="P_image_face_effect" noSort="true">Effekt für Gesichter</dropdownList></presentation>
+      <presentation id="P_image_nudity_effect"><dropdownList refId="P_image_nudity_effect" noSort="true">Effekt für Nacktheit</dropdownList></presentation>
       <presentation id="P_image_text_effect"><dropdownList refId="P_image_text_effect" noSort="true">Effekt für Text</dropdownList></presentation>
       <presentation id="P_image_code_effect"><dropdownList refId="P_image_code_effect" noSort="true">Effekt für Codes</dropdownList></presentation>
       <presentation id="P_hotkeys_pseudonymize"><textBox refId="P_hotkeys_pseudonymize"><label>Tastenkürzel: Zwischenablage pseudonymisieren</label></textBox></presentation>

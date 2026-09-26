@@ -43,6 +43,7 @@ After   yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/24
     - key/value credentials in JSON, YAML, `.env`, INI, XML and connection strings
     - URL credentials, `curl -u`, `mysql -p`, `--password`, `ConvertTo-SecureString`
     - high-entropy strings (optional)
+  - infrastructure names: values of `name`, `namespace`, `instance`, `release`, `app` …, `-n`/`--namespace`, `deploy/<name>`, ArgoCD tracking ids. Only the customer-specific parts are replaced (`kunde-mueller-prod` → `kunde-kabaukack-prod`); generic words (front, scheduler, prod …) and product names (bunkerweb, nginx, redis …) stay, and the same word gets the same pseudonym everywhere, also in domains. Kubernetes label/annotation keys such as `argocd.argoproj.io/tracking-id:` are never touched.
   - your own **custom terms** (literal or regex, with optional type or fixed replacement), known domains and allowlists
 - **Images.** The *Image* tab hides faces (mosaic), sensitive text such as IP addresses, e-mail addresses and tokens in screenshots (black), and QR codes/barcodes (black). Areas can be added, moved and resized by hand; the result is a new, flat image without metadata. See [Images](#images).
 - **Optional plugin.** A separate helper program finds free-form person and company names (spaCy, German/English models) and faces, text and codes in images (OpenCV with the YuNet face model, RapidOCR). It runs fully locally, and the main program stays small.
@@ -55,7 +56,7 @@ After   yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/24
   - *notify*: a popup offers Pseudonymise, Anonymise, Redact or Details.
   - *critical automatically*: secrets, keys, IBANs and cards are processed immediately, other findings ask.
   - *always*
-- **Workbench** with live highlighting, a findings table and right-click actions (allowlist or custom term).
+- **Workbench** with live highlighting, a findings table and right-click actions (allowlist or custom term). Any marked text can be set to *always replace* or *never replace* with a right click in the input.
 - **History** with a side-by-side diff of every action.
 - **Mapping overview**: what was replaced by what, with filter and CSV export.
 - **Pseudonyms are persisted, encrypted.** They are stored in the project *Standard* by default, so reverting still works after a restart. On Windows every project file is encrypted with the user's Windows account (DPAPI, no passphrase needed); a project passphrase (AES-256-GCM, scrypt) can be added. Further projects (e.g. per customer) can be created, each with its own terms and known domains. *RAM only* has to be chosen explicitly and is marked as lost on exit.
@@ -157,6 +158,7 @@ With the watcher on, copying an image shows a popup *Redact image*.
 1. **Image:** from the clipboard or from a file.
 2. **Detect:** the plugin searches locally for
    - faces → mosaic (YuNet model; finds faces from about 10 px, large images are also searched downscaled),
+   - nudity – exposed breasts, genitals, buttocks → black (NudeNet model; large images are also searched in tiles),
    - text: OCR, then the same detectors as for clipboard text (IP, e-mail, domains, secrets, custom terms, NER names …) → black bars over exactly those characters,
    - QR codes and barcodes → black.
    Drag with the mouse to add areas by hand; move them, resize at the lower right corner, *Del* deletes, right click changes the effect (black, mosaic, blur). `Ctrl` + mouse wheel zooms.
@@ -286,4 +288,4 @@ renames the package, entry scripts, CI variables and documentation in one go.
 ## License
 
 GPL-3.0-only, see [LICENSE](LICENSE). Qt for Python (PySide6) is used under the LGPL-3.0.
-Plugin: spaCy and its models, the YuNet face model and ONNX Runtime are MIT-licensed; OpenCV, RapidOCR and the PP-OCR models are Apache-2.0-licensed.
+Plugin: spaCy and its models, the YuNet face model and ONNX Runtime are MIT-licensed; OpenCV, RapidOCR and the PP-OCR models are Apache-2.0-licensed. NudeNet ships the AGPL-3.0 license text (its package metadata says MIT); GPL-3.0 section 13 allows combining it with this GPL-3.0 program.

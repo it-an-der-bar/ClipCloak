@@ -100,6 +100,7 @@ class SurrogateFactory:
             T.IBAN.value: self._iban, T.CREDIT_CARD.value: self._card,
             T.SID.value: self._sid, T.SECRET.value: self._secret,
             T.PRIVATE_KEY.value: self._secret, T.CERTIFICATE.value: self._secret,
+            T.IDENTIFIER.value: self._identifier,
             T.CUSTOM.value: self._custom,
         }.get(typ, self._custom)
         out = None
@@ -444,6 +445,10 @@ class SurrogateFactory:
     def _secret(self, f: Finding, attempt: int = 0):
         rng = self._rng("secret", f.text, attempt)
         return randomize_chars(f.text, rng, keep_prefix=int(f.meta.get("keep_prefix", 0)))
+
+    def _identifier(self, f: Finding, attempt: int = 0):
+        # same word map as domain labels: "acme" in acme-prod and acme.local match
+        return re.sub(r"[A-Za-zÀ-ɏ]{2,}", lambda m: self.word(m.group(0), force_new=attempt > 0), f.text)
 
     # ------------------------------------------------------------ custom
     def _custom(self, f: Finding, attempt: int = 0):

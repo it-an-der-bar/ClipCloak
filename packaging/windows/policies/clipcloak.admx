@@ -286,6 +286,12 @@
       <enabledValue><decimal value="1" /></enabledValue>
       <disabledValue><decimal value="0" /></disabledValue>
     </policy>
+    <policy name="P_detectors_enabled_infra_names" class="Both" displayName="$(string.P_detectors_enabled_infra_names)" explainText="$(string.P_detectors_enabled_infra_names_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="detectors.enabled.infra-names">
+      <parentCategory ref="C_detectors" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
     <policy name="P_detectors_enabled_custom" class="Both" displayName="$(string.P_detectors_enabled_custom)" explainText="$(string.P_detectors_enabled_custom_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="detectors.enabled.custom">
       <parentCategory ref="C_detectors" />
       <supportedOn ref="SUPPORTED_0_1_9" />
@@ -465,6 +471,29 @@
             <value><string>mosaic</string></value>
           </item>
           <item displayName="$(string.P_image_face_effect_blur)">
+            <value><string>blur</string></value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="P_image_nudity" class="Both" displayName="$(string.P_image_nudity)" explainText="$(string.P_image_nudity_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="image.nudity">
+      <parentCategory ref="C_image" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="P_image_nudity_effect" class="Both" displayName="$(string.P_image_nudity_effect)" explainText="$(string.P_image_nudity_effect_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_image_nudity_effect)">
+      <parentCategory ref="C_image" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <enum id="P_image_nudity_effect" valueName="image.nudity_effect" required="true">
+          <item displayName="$(string.P_image_nudity_effect_black)">
+            <value><string>black</string></value>
+          </item>
+          <item displayName="$(string.P_image_nudity_effect_mosaic)">
+            <value><string>mosaic</string></value>
+          </item>
+          <item displayName="$(string.P_image_nudity_effect_blur)">
             <value><string>blur</string></value>
           </item>
         </enum>

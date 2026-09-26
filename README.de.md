@@ -43,6 +43,7 @@ Nachher  yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/2
     - Zugangsdaten als Schlüssel/Wert in JSON, YAML, `.env`, INI, XML und Connection-Strings
     - URL-Credentials, `curl -u`, `mysql -p`, `--password`, `ConvertTo-SecureString`
     - zufällig wirkende Strings (optional)
+  - Infrastruktur-Namen: Werte von `name`, `namespace`, `instance`, `release`, `app` …, `-n`/`--namespace`, `deploy/<name>`, ArgoCD-Tracking-IDs. Ersetzt werden nur die kundenspezifischen Teile (`kunde-mueller-prod` → `kunde-kabaukack-prod`); allgemeine Wörter (front, scheduler, prod …) und Produktnamen (bunkerweb, nginx, redis …) bleiben, und dasselbe Wort bekommt überall dasselbe Pseudonym, auch in Domains. Kubernetes-Label-/Annotation-Keys wie `argocd.argoproj.io/tracking-id:` werden nie angefasst.
   - **eigene Begriffe** (wörtlich oder Regex, mit optionalem Typ oder fester Ersetzung), bekannte Domains und Ausnahmelisten
 - **Bilder.** Der Reiter *Bild* verdeckt Gesichter (Mosaik), sensiblen Text wie IP-Adressen, E-Mail-Adressen und Tokens in Screenshots (schwarz) sowie QR-Codes/Barcodes (schwarz). Bereiche lassen sich von Hand ergänzen, verschieben und in der Größe ändern; das Ergebnis ist ein neues, flaches Bild ohne Metadaten. Siehe [Bilder](#bilder).
 - **Optionales Plugin.** Ein separates Hilfsprogramm findet Personen- und Firmennamen ohne festes Format (spaCy, deutsches/englisches Modell) sowie Gesichter, Text und Codes in Bildern (OpenCV mit dem YuNet-Gesichtsmodell, RapidOCR). Es läuft komplett lokal, und das Hauptprogramm bleibt schlank.
@@ -55,7 +56,7 @@ Nachher  yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/2
   - *melden*: Ein Popup bietet Pseudonymisieren, Anonymisieren, Schwärzen oder Details an.
   - *kritisch automatisch*: Secrets, Schlüssel, IBAN und Karten werden sofort verarbeitet, der Rest fragt nach.
   - *immer*
-- **Werkbank** mit Live-Markierung, Fundtabelle und Rechtsklick-Aktionen (Ausnahme oder eigener Begriff).
+- **Werkbank** mit Live-Markierung, Fundtabelle und Rechtsklick-Aktionen (Ausnahme oder eigener Begriff). Beliebigen markierten Text in der Eingabe per Rechtsklick auf *immer ersetzen* oder *nie ersetzen* setzen.
 - **Verlauf** mit Vorher/Nachher-Diff jeder Aktion.
 - **Zuordnungsübersicht**: was wurde wodurch ersetzt, mit Filter und CSV-Export.
 - **Pseudonyme werden verschlüsselt gespeichert.** Standardmäßig landen sie im Projekt *Standard*, damit das Zurückübersetzen auch nach einem Neustart klappt. Unter Windows ist jede Projektdatei mit dem Windows-Konto des Benutzers verschlüsselt (DPAPI, ohne Passphrase); zusätzlich ist eine Projekt-Passphrase möglich (AES-256-GCM, scrypt). Weitere Projekte (z. B. pro Kunde) lassen sich anlegen, jedes mit eigenen Begriffen und bekannten Domains. *Nur RAM* muss man ausdrücklich wählen; es ist als "geht beim Beenden verloren" gekennzeichnet.
@@ -158,6 +159,7 @@ Zwischenablage dort. Mit eingeschalteter Überwachung erscheint beim Kopieren ei
 1. **Bild:** aus der Zwischenablage oder aus einer Datei.
 2. **Erkennen:** das Plugin sucht lokal nach
    - Gesichtern → Mosaik (YuNet-Modell; findet Gesichter ab etwa 10 px, große Bilder werden zusätzlich verkleinert durchsucht),
+   - Nacktheit – unbedeckte Brüste, Genitalien, Gesäß → schwarz (NudeNet-Modell; große Bilder werden zusätzlich in Kacheln durchsucht),
    - Text: OCR, danach dieselben Erkennungen wie für Text in der Zwischenablage (IP, E-Mail, Domains, Secrets, eigene Begriffe, NER-Namen …) → schwarze Balken genau über diesen Zeichen,
    - QR-Codes und Barcodes → schwarz.
    Mit der Maus aufziehen fügt Bereiche von Hand hinzu; verschieben, an der Ecke unten rechts in der Größe ändern, *Entf* löscht, Rechtsklick wechselt den Effekt (schwarz, Mosaik, weichzeichnen). `Strg` + Mausrad zoomt.
@@ -288,4 +290,4 @@ benennt Paket, Startskripte, CI-Variablen und Doku in einem Schritt um.
 ## Lizenz
 
 GPL-3.0-only, siehe [LICENSE](LICENSE). Qt for Python (PySide6) wird unter der LGPL-3.0 genutzt.
-Plugin: spaCy und seine Modelle, das YuNet-Gesichtsmodell und ONNX Runtime stehen unter der MIT-Lizenz; OpenCV, RapidOCR und die PP-OCR-Modelle unter Apache-2.0.
+Plugin: spaCy und seine Modelle, das YuNet-Gesichtsmodell und ONNX Runtime stehen unter der MIT-Lizenz; OpenCV, RapidOCR und die PP-OCR-Modelle unter Apache-2.0. NudeNet liefert den AGPL-3.0-Lizenztext mit (die Paket-Metadaten nennen MIT); Abschnitt 13 der GPL-3.0 erlaubt die Kombination mit diesem GPL-3.0-Programm.
