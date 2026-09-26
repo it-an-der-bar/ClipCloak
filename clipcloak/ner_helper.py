@@ -1,7 +1,11 @@
-"""NER helper process (optional plugin).
+"""Plugin process (optional): names (NER) and image analysis.
 
-Reads JSON lines ``{"id": 1, "text": "...", "lang": "auto|de|en|both"}`` on stdin and
-answers ``{"id": 1, "entities": [{"start": 0, "end": 5, "label": "PER"}]}``.
+Reads JSON lines on stdin and answers one JSON line per request:
+
+  {"id": 1, "text": "...", "lang": "auto|de|en|both"}      -> {"id": 1, "entities": [...]}
+  {"id": 2, "op": "faces"|"ocr"|"codes", "image": "<base64 PNG/JPEG>"}
+                                                            -> {"id": 2, "boxes": [...]}
+  {"id": 3, "op": "info"}                                   -> {"id": 3, "features": {...}}
 
 Built as a separate binary (``<app>-ner``) that contains spaCy and the German and
 English models, so the main application stays small. The main application finds
@@ -88,15 +92,50 @@ def interactive() -> int:
     return rc
 
 
+def handle(req: dict) -> dict:
+    op = req.get("op") or "ner"
+    if op == "ner":
+        return {"entities": analyze(req.get("text", ""), req.get("lang", "auto"), req.get("models") or {})}
+    from . import vision_helper as vh
+    if op == "info":
+        return {"features": dict(vh.available(), ner=True)}
+    if op in ("faces", "ocr", "codes"):
+        import base64
+        data = base64.b64decode(req.get("image") or "")
+        return {"boxes": getattr(vh, op)(data)}
+    raise ValueError(f"unknown op {op!r}")
+
+
+def selftest() -> int:
+    print(json.dumps(analyze("Jonas Hartmann arbeitet bei der Siemens AG in München.", "de", {})))
+    print(json.dumps(analyze("John Smith works for Microsoft in Seattle.", "en", {})))
+    from . import vision_helper as vh
+    feats = vh.available()
+    print(json.dumps({"features": feats}))
+    import cv2
+    import numpy as np
+    img = np.full((240, 640, 3), 255, np.uint8)
+    cv2.putText(img, "IP 10.88.10.10", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 1.4, (0, 0, 0), 3)
+    qr = cv2.resize(cv2.QRCodeEncoder.create().encode("selftest"), (120, 120), interpolation=cv2.INTER_NEAREST)
+    img[110:230, 500:620] = cv2.cvtColor(qr, cv2.COLOR_GRAY2BGR)
+    data = cv2.imencode(".png", img)[1].tobytes()
+    lines = vh.ocr(data)
+    codes = vh.codes(data)
+    faces = vh.faces(data)
+    print(json.dumps({"ocr": [ln["text"] for ln in lines], "codes": [c["text"] for c in codes], "faces": len(faces)}))
+    ok = all(feats.values()) and any("10.88.10.10" in ln["text"] for ln in lines) and \
+        any(c["text"] == "selftest" for c in codes)
+    print("OK" if ok else "FAILED")
+    return 0 if ok else 1
+
+
 def main() -> int:
     if "--version" in sys.argv:
         import spacy
         print("spacy", spacy.__version__)
         return 0
     if "--selftest" in sys.argv:
-        print(json.dumps(analyze("Jonas Hartmann arbeitet bei der Siemens AG in München.", "de", {})))
-        print(json.dumps(analyze("John Smith works for Microsoft in Seattle.", "en", {})))
-        return 0
+        return selftest()
     if sys.stdin is not None and sys.stdin.isatty() and len(sys.argv) == 1:
         return interactive()
     try:
@@ -111,8 +150,7 @@ def main() -> int:
         req = None
         try:
             req = json.loads(line)
-            ents = analyze(req.get("text", ""), req.get("lang", "auto"), req.get("models") or {})
-            resp = {"id": req.get("id"), "entities": ents}
+            resp = dict(handle(req), id=req.get("id"))
         except Exception as exc:  # report, keep serving
             resp = {"id": req.get("id") if isinstance(req, dict) else None, "error": str(exc)}
         sys.stdout.write(json.dumps(resp) + "\n")

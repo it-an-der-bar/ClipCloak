@@ -105,6 +105,9 @@ class Controller(QObject):
         self._last_watch_mode = "notify"
         self._ner_key = None
         self._ner_det = None
+        self._img_client = None
+        self._own_image_until = 0.0
+        self._last_image_fp = ""
         self._popup = None
         self.main = None
         self._watch_timer = QTimer(self, singleShot=True, interval=200)
@@ -142,6 +145,9 @@ class Controller(QObject):
 
         def done(f):
             ms = int((time.monotonic() - started) * 1000)
+            if f.cancelled():          # shutting down
+                finished()
+                return
             try:
                 res = f.result()
             except Exception as exc:  # noqa: BLE001
@@ -305,6 +311,8 @@ class Controller(QObject):
             self.process_file()
         elif action == "screenshot":
             self.screenshot_to_text()
+        elif action == "redact_image":
+            self.redact_image()
         elif action == "toggle_watcher":
             cur = self.cfg.get("watcher.mode")
             self.set_watch_mode("off" if cur != "off" else self._last_watch_mode)
@@ -325,8 +333,8 @@ class Controller(QObject):
         content = content if content is not None else self.clip.read()
         text = content.text
         if not text:
-            if content.image_png and self.cfg.get("llm.enabled"):
-                self.notify(t("msg.image_hint"), force=True)
+            if content.image_png and mode in ("pseudonymize", "anonymize", "redact"):
+                self.redact_image(content)
             elif self.display == "wayland" and not WlClipboard.available():
                 self.notify(t("msg.wayland_no_wlclip"), error=True)
             else:
@@ -489,6 +497,8 @@ class Controller(QObject):
         content = self.clip.read()
         text = content.text
         if not text:
+            if content.image_png:
+                self._watch_image(content)
             return
         h = text_hash(text)
         if h in self._own:
@@ -527,6 +537,20 @@ class Controller(QObject):
         if not seq or action in self.hotkey_errors or self.hotkeys.backend == "none":
             return ""
         return seq
+
+    def _watch_image(self, content: ClipContent):
+        if not self.cfg.get("image.watch", True) or time.monotonic() < self._own_image_until:
+            return
+        fp = content.fingerprint
+        if fp == self._last_image_fp:
+            return
+        self._last_image_fp = fp
+        from .popup import Popup
+        event("log.watch_image")
+        actions = [("image", t("popup.redact_image"), self.hotkey_text("redact_image"))]
+        self._show_popup(Popup(t("popup.image_title"), t("popup.image_text"), actions,
+                               int(self.cfg.get("watcher.popup_timeout", 12))),
+                         lambda key: self.redact_image(content) if key == "image" else None)
 
     def _findings_popup(self, findings, content, h):
         from .popup import Popup
@@ -623,6 +647,97 @@ class Controller(QObject):
 
         self.notify(t("msg.screenshot_running"), force=True)
         self.submit(job, done, executor=self.llm_executor, label=t("job.screenshot"))
+
+    # ================================================================= images
+    def plugin_client(self):
+        """The plugin process (names + images). Shared with the NER detector if it runs."""
+        if self._ner_det is not None and self._ner_det.client is not None:
+            return self._ner_det.client
+        if self._img_client is None:
+            from ..core.detectors.external import NerClient
+            cmd = find_ner_helper(self.cfg.get("ner.helper_path", "") or "")
+            if cmd is None:
+                return None
+            self._img_client = NerClient(cmd, timeout=180)
+        return self._img_client
+
+    def read_clipboard_image(self):
+        from PySide6.QtGui import QImage
+        content = self.clip.read()
+        if not content.image_png:
+            return None
+        img = QImage.fromData(content.image_png, "PNG")
+        return None if img.isNull() else img
+
+    def write_clipboard_image(self, img, n_regions: int = 0):
+        self._own_image_until = time.monotonic() + 2.0
+        self.clip.write_image(img)
+        event("log.image_copied", n=n_regions)
+        self.notify(t("img.copied", n=n_regions), force=True)
+
+    def redact_image(self, content: ClipContent | None = None):
+        """Open the image tab with the clipboard image and detect regions."""
+        from PySide6.QtGui import QImage
+        content = content if content is not None else self.clip.read()
+        if not content.image_png:
+            self.notify(t("msg.no_image"), force=True)
+            return
+        img = QImage.fromData(content.image_png, "PNG")
+        if img.isNull():
+            self.notify(t("msg.no_image"), force=True)
+            return
+        self.show_main("image")
+        self.main.image.set_image(img, detect=True)
+
+    def detect_image_regions(self, qimage, callback):
+        """Faces, codes and sensitive text in ``qimage`` via the plugin -> callback((regions, message))."""
+        import base64
+
+        from PySide6.QtCore import QBuffer, QByteArray, QIODevice
+
+        from ..core.imageredact import ImageSettings, code_regions, face_regions, text_regions
+        ba = QByteArray()
+        buf = QBuffer(ba)
+        buf.open(QIODevice.WriteOnly)
+        qimage.save(buf, "PNG")
+        buf.close()
+        b64 = base64.b64encode(bytes(ba.data())).decode()
+        w, h = qimage.width(), qimage.height()
+        settings = ImageSettings.from_config(self.cfg.get("image") or {})
+        client = self.plugin_client()
+        engine = self.engine
+        if client is None:
+            callback((None, t("img.no_plugin", helper=APP_NAME + "-ner")))
+            return
+
+        def job():
+            regions, counts = [], {}
+            try:
+                if settings.faces:
+                    boxes = client.request({"op": "faces", "image": b64}, timeout=180).get("boxes", [])
+                    regions += face_regions(boxes, settings, w, h)
+                    counts["faces"] = len(boxes)
+                if settings.codes:
+                    boxes = client.request({"op": "codes", "image": b64}, timeout=180).get("boxes", [])
+                    regions += code_regions(boxes, settings, w, h)
+                    counts["codes"] = len(boxes)
+                if settings.text:
+                    lines = client.request({"op": "ocr", "image": b64}, timeout=300).get("boxes", [])
+                    found = text_regions(lines, engine.analyze, settings, w, h)
+                    regions += found
+                    counts["lines"] = len(lines)
+                    counts["text"] = len(found)
+            except (RuntimeError, TimeoutError, OSError, ValueError) as exc:
+                msg = str(exc)
+                if "unknown op" in msg:
+                    return None, t("img.plugin_old")
+                return None, t("img.detect_failed", err=msg)
+            event("log.image_detect", faces=counts.get("faces", "-"), codes=counts.get("codes", "-"),
+                  text=counts.get("text", "-"), lines=counts.get("lines", "-"))
+            return regions, t("img.detected", n=len(regions), faces=counts.get("faces", 0),
+                              text=counts.get("text", 0), codes=counts.get("codes", 0))
+
+        self.submit(job, callback, executor=self.llm_executor, label=t("job.image_detect"))
 
     # ================================================================= lists
     def add_custom_term(self, text: str, typ: str = "", apply: bool = True):
@@ -884,6 +999,8 @@ class Controller(QObject):
             self.clip.release()
         if self._ner_det is not None and self._ner_det.client:
             self._ner_det.client.close()
+        if self._img_client is not None:
+            self._img_client.close()
         self.executor.shutdown(wait=False, cancel_futures=True)
         self.llm_executor.shutdown(wait=False, cancel_futures=True)
         self.tray.hide()

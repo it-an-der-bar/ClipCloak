@@ -44,7 +44,8 @@ Nachher  yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/2
     - URL-Credentials, `curl -u`, `mysql -p`, `--password`, `ConvertTo-SecureString`
     - zufällig wirkende Strings (optional)
   - **eigene Begriffe** (wörtlich oder Regex, mit optionalem Typ oder fester Ersetzung), bekannte Domains und Ausnahmelisten
-- **Optionales NER-Plugin.** Personen- und Firmennamen ohne festes Format findet ein separates Hilfsprogramm mit spaCy und dem deutschen/englischen Modell. Es läuft komplett lokal, und das Hauptprogramm bleibt schlank.
+- **Bilder.** Der Reiter *Bild* verdeckt Gesichter (Mosaik), sensiblen Text wie IP-Adressen, E-Mail-Adressen und Tokens in Screenshots (schwarz) sowie QR-Codes/Barcodes (schwarz). Bereiche lassen sich von Hand ergänzen, verschieben und in der Größe ändern; das Ergebnis ist ein neues, flaches Bild ohne Metadaten. Siehe [Bilder](#bilder).
+- **Optionales Plugin.** Ein separates Hilfsprogramm findet Personen- und Firmennamen ohne festes Format (spaCy, deutsches/englisches Modell) sowie Gesichter, Text und Codes in Bildern (OpenCV mit dem YuNet-Gesichtsmodell, RapidOCR). Es läuft komplett lokal, und das Hauptprogramm bleibt schlank.
 - **Optionale LLM-Funktionen** (OpenAI-kompatibler Endpunkt, z. B. vLLM, Ollama, LiteLLM):
   - *Screenshot → Text*: Ein Vision-Modell liest ein Bild aus der Zwischenablage aus, der Text wird anschließend verarbeitet.
   - *Prüfung*: Der bereits verarbeitete Text geht ans LLM, das mögliche Reste meldet. Diese lassen sich per Klick als eigene Begriffe übernehmen.
@@ -89,6 +90,7 @@ Unter Wayland zusätzlich `wl-clipboard` installieren. GNOME braucht für das Tr
 | `Strg+Alt+R` | schwärzen |
 | `Strg+Alt+U` | Pseudonyme zurückübersetzen |
 | `Strg+Alt+W` | Werkbank öffnen |
+| `Strg+Alt+I` | Bild in der Zwischenablage schwärzen (Reiter Bild) |
 
 Die Werkbank hat einen Button pro Aktion. Das Ergebnis landet automatisch in der Zwischenablage;
 die Checkbox neben den Buttons (bzw. `general.workbench_auto_copy`) schaltet das ab.
@@ -121,6 +123,7 @@ clipcloak --action anonymize
 clipcloak --action redact
 clipcloak --action revert
 clipcloak --action workbench
+clipcloak --action redact_image
 ```
 
 Der Befehl reicht die Aktion an die laufende Instanz weiter oder startet sie. Mit `wl-clipboard`
@@ -146,11 +149,27 @@ mit `--passphrase-env` angegebenen Umgebungsvariable oder wird interaktiv abgefr
 
 *Datei verarbeiten …* (im Tray und im Hauptfenster unter Datei) verarbeitet eine ganze Textdatei im Hintergrund; 1 MB dauert etwa eine Sekunde. Du wählst die Aktion, das Ergebnis wird neben der Quelle gespeichert, z. B. `notizen.pseudo.md`, mit gleicher Kodierung und gleichen Zeilenenden. Zurückübersetzen funktioniert genauso. Die Werkbank kann Dateien ebenfalls laden und speichern.
 
-## NER-Plugin
+## Bilder
 
-MSI (Feature *NER*), ZIP (Ordner `ner\`) und tar.gz enthalten das Plugin bereits. Es enthält spaCy und das deutsche/englische Modell und läuft komplett lokal.
+Ein Bild (Screenshot, Foto) kopieren und `Strg+Alt+I` drücken (*Bild in der Zwischenablage schwärzen*) oder den
+Reiter *Bild* verwenden. Auch die Kürzel für Pseudonymisieren/Anonymisieren/Schwärzen öffnen ein Bild aus der
+Zwischenablage dort. Mit eingeschalteter Überwachung erscheint beim Kopieren eines Bildes ein Popup *Bild schwärzen*.
 
-1. Unter Einstellungen › NER-Plugin *NER aktivieren* anhaken, *Testen* klicken und mit OK speichern. Der Reiter zeigt an, ob der Helfer gefunden wurde.
+1. **Bild:** aus der Zwischenablage oder aus einer Datei.
+2. **Erkennen:** das Plugin sucht lokal nach
+   - Gesichtern → Mosaik (YuNet-Modell; findet Gesichter ab etwa 10 px, große Bilder werden zusätzlich verkleinert durchsucht),
+   - Text: OCR, danach dieselben Erkennungen wie für Text in der Zwischenablage (IP, E-Mail, Domains, Secrets, eigene Begriffe, NER-Namen …) → schwarze Balken genau über diesen Zeichen,
+   - QR-Codes und Barcodes → schwarz.
+   Mit der Maus aufziehen fügt Bereiche von Hand hinzu; verschieben, an der Ecke unten rechts in der Größe ändern, *Entf* löscht, Rechtsklick wechselt den Effekt (schwarz, Mosaik, weichzeichnen). `Strg` + Mausrad zoomt.
+3. **Ergebnis:** in die Zwischenablage oder als PNG/JPEG-Datei. Es ist ein neues, flaches Bild: die verdeckten Pixel sind weg, Metadaten der Quelle werden nicht übernommen.
+
+Verpixelter oder weichgezeichneter *Text* lässt sich oft zurückrechnen (z. B. mit [Unredacter](https://bishopfox.com/tools/unredacter)), daher werden Text und Codes standardmäßig schwarz verdeckt; Mosaik ist für Gesichter gedacht. Die automatische Erkennung ist eine Hilfe, keine Garantie – das Bild immer prüfen. Ohne Plugin lassen sich Bereiche von Hand aufziehen. Einstellungen › Bilder schaltet Erkennungen und Effekte.
+
+## Plugin (Namen und Bilder)
+
+MSI (Feature *NER*), ZIP (Ordner `ner\`) und tar.gz enthalten das Plugin bereits. Es enthält spaCy mit dem deutschen/englischen Modell, OpenCV mit dem YuNet-Gesichtsmodell und RapidOCR und läuft komplett lokal. Für Bilder ist nichts einzurichten; für Namen:
+
+1. Unter Einstellungen › Plugin (Namen, Bilder) *NER aktivieren* anhaken, *Testen* klicken und mit OK speichern. Der Reiter zeigt an, ob der Helfer gefunden wurde.
 2. Beim Linux-Download ohne NER `clipcloak-ner` aus dem tar.gz neben das Programm legen. Der Helfer wird neben dem Programm oder in dessen Unterordner `ner` gefunden; jeder andere Ort lässt sich unter *Helfer-Programm* eintragen.
 
 ## LLM
@@ -255,7 +274,8 @@ python -m clipcloak                    # aus dem Quellcode starten
 QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -p "test_*.py" -v
 ```
 
-Für das NER-Plugin aus dem Quellcode `pip install -r requirements-ner.txt` ausführen; es wird dann
+Für das Plugin aus dem Quellcode `pip install -r requirements-ner.txt` und
+`pip install --no-deps -r requirements-ner-nodeps.txt` ausführen; es wird dann
 automatisch über `python -m clipcloak.ner_helper` genutzt. Zum Bauen der Binaries siehe
 `.gitlab-ci.yml`; `python tools/package_release.py vX.Y.Z --dist dist` packt sie in ZIP und tar.gz. Die CI testet bei jedem Push und baut und veröffentlicht bei Tags `vX.Y.Z`, die
 zur Version in `clipcloak/__init__.py` passen müssen.
@@ -268,4 +288,4 @@ benennt Paket, Startskripte, CI-Variablen und Doku in einem Schritt um.
 ## Lizenz
 
 GPL-3.0-only, siehe [LICENSE](LICENSE). Qt for Python (PySide6) wird unter der LGPL-3.0 genutzt.
-spaCy und seine Modelle (NER-Plugin) stehen unter der MIT-Lizenz.
+Plugin: spaCy und seine Modelle, das YuNet-Gesichtsmodell und ONNX Runtime stehen unter der MIT-Lizenz; OpenCV, RapidOCR und die PP-OCR-Modelle unter Apache-2.0.

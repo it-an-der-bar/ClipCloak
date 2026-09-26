@@ -1,4 +1,15 @@
-# Optional NER helper (built as separate binary "<app>-ner")
+# Optional plugin (built as separate binary "<app>-ner"): names (spaCy) and images
+# (OpenCV + YuNet faces, QR/barcodes, RapidOCR text with positions).
+# rapidocr_onnxruntime itself is installed with --no-deps from requirements-ner-nodeps.txt,
+# because it would pull the full opencv-python (GUI build) next to the headless one.
 spacy>=3.8,<3.9
 de_core_news_sm @ https://github.com/explosion/spacy-models/releases/download/de_core_news_sm-3.8.0/de_core_news_sm-3.8.0-py3-none-any.whl
 en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+opencv-python-headless>=4.8,<6
+onnxruntime>=1.17,<2
+pyclipper>=1.2
+shapely>=2.0,!=2.0.4
+six>=1.15
+PyYAML>=6.0
+Pillow>=10
+tqdm

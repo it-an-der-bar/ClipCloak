@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.11
+
+- **Images:** new *Image* tab to hide faces, sensitive text and codes in images.
+  - Image from the clipboard or a file; `Ctrl+Alt+I` (*Redact image in clipboard*), the tray entry and the pseudonymise/anonymise/redact shortcuts open a clipboard image there. With the watcher on, a copied image shows a popup *Redact image*.
+  - Automatic detection with the plugin, all local: faces (OpenCV + YuNet model, also in large images), text via OCR (RapidOCR) run through the same detectors as clipboard text (IP, e-mail, domains, secrets, custom terms, NER …) with boxes over exactly those characters, and QR codes/barcodes.
+  - Effects per area: black (default for text and codes), mosaic (default for faces), blur. Areas can be drawn, moved, resized, deleted and switched by hand; the preview shows the result.
+  - The result is a new, flat image without metadata, to the clipboard or as PNG/JPEG.
+  - Settings › Images; ADMX policies for the image settings; action `--action redact_image`.
+- The plugin now also contains OpenCV, the YuNet face model (MIT) and RapidOCR (Apache-2.0). Its self test checks OCR and QR codes too. The Linux plugin is built in the packaging job, because it is larger than GitLab's 100 MB artifact limit.
+- Background jobs cancelled at exit no longer log an error.
+
 ## 0.1.10
 
 - The main window remembers its layout: window size and position, last tab, all splitter positions and column widths (`ui.ini` next to `config.yaml`).

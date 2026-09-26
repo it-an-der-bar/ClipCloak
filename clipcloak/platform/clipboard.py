@@ -46,6 +46,9 @@ class ClipboardBackend(QObject):
     def write(self, text: str, html: str | None = None) -> None:  # pragma: no cover
         raise NotImplementedError
 
+    def write_image(self, img: QImage) -> None:  # pragma: no cover
+        raise NotImplementedError
+
     def can_watch(self) -> bool:
         return True
 
@@ -116,6 +119,10 @@ class QtClipboard(ClipboardBackend):
         self.cb.setMimeData(md)
         self._last_text = text
 
+    def write_image(self, img: QImage) -> None:
+        self.cb.setImage(img)              # QMimeData created on the C++ side
+        self._last_text = None
+
     def release(self) -> None:
         """Replace a Python-created QMimeData before the interpreter shuts down.
 
@@ -185,6 +192,14 @@ class WlClipboard(ClipboardBackend):
         # target accepts, so formatted HTML is not offered on this backend.
         try:
             subprocess.run(["wl-copy", "--type", "text/plain;charset=utf-8"], input=text.encode("utf-8"),
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            log.error("wl-copy failed: %s", exc)
+
+    def write_image(self, img: QImage) -> None:
+        data = _png_bytes(img) or b""
+        try:
+            subprocess.run(["wl-copy", "--type", "image/png"], input=data,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
         except (OSError, subprocess.TimeoutExpired) as exc:
             log.error("wl-copy failed: %s", exc)

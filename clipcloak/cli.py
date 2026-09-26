@@ -13,7 +13,7 @@ import sys
 from . import __version__, paths
 from .meta import APP_DISPLAY_NAME, APP_NAME, APP_ORG
 
-ACTION_CHOICES = ["pseudonymize", "anonymize", "redact", "revert", "process", "workbench", "process_file", "screenshot",
+ACTION_CHOICES = ["pseudonymize", "anonymize", "redact", "revert", "process", "workbench", "process_file", "redact_image", "screenshot",
                   "toggle_watcher", "show", "history", "mappings", "settings", "restart", "quit"]
 HEADLESS = ("process", "revert", "analyze", "projects")
 

@@ -13,6 +13,7 @@
       <string id="C_lists">Lists (added to the user's entries)</string>
       <string id="C_llm">LLM</string>
       <string id="C_ner">NER plugin</string>
+      <string id="C_image">Images</string>
       <string id="C_hotkeys">Shortcuts</string>
       <string id="P_general_language">Language</string>
       <string id="P_general_language_Help">Language of the user interface.
@@ -242,6 +243,43 @@ If configured, the user cannot change this setting. Setting: ner.language</strin
       <string id="P_ner_language_de">German</string>
       <string id="P_ner_language_en">English</string>
       <string id="P_ner_language_both">both</string>
+      <string id="P_image_faces">Detect faces</string>
+      <string id="P_image_faces_Help">Detect faces in images (plugin, YuNet model, local).
+
+If configured, the user cannot change this setting. Setting: image.faces</string>
+      <string id="P_image_face_effect">Effect for faces</string>
+      <string id="P_image_face_effect_Help">How detected faces are hidden.
+
+If configured, the user cannot change this setting. Setting: image.face_effect</string>
+      <string id="P_image_face_effect_black">black</string>
+      <string id="P_image_face_effect_mosaic">mosaic</string>
+      <string id="P_image_face_effect_blur">blur</string>
+      <string id="P_image_text">Detect sensitive text in images</string>
+      <string id="P_image_text_Help">OCR (plugin, local) plus the text detectors: IP, e-mail, secrets, custom terms …
+
+If configured, the user cannot change this setting. Setting: image.text</string>
+      <string id="P_image_text_effect">Effect for text</string>
+      <string id="P_image_text_effect_Help">Only "black" is safe for text; pixelated or blurred text can often be reconstructed.
+
+If configured, the user cannot change this setting. Setting: image.text_effect</string>
+      <string id="P_image_text_effect_black">black</string>
+      <string id="P_image_text_effect_mosaic">mosaic</string>
+      <string id="P_image_text_effect_blur">blur</string>
+      <string id="P_image_codes">Detect QR codes and barcodes</string>
+      <string id="P_image_codes_Help">Detect QR codes and barcodes in images.
+
+If configured, the user cannot change this setting. Setting: image.codes</string>
+      <string id="P_image_code_effect">Effect for codes</string>
+      <string id="P_image_code_effect_Help">How detected codes are hidden.
+
+If configured, the user cannot change this setting. Setting: image.code_effect</string>
+      <string id="P_image_code_effect_black">black</string>
+      <string id="P_image_code_effect_mosaic">mosaic</string>
+      <string id="P_image_code_effect_blur">blur</string>
+      <string id="P_image_watch">Offer image redaction for copied images</string>
+      <string id="P_image_watch_Help">The clipboard watcher shows a popup "Redact image" when an image is copied.
+
+If configured, the user cannot change this setting. Setting: image.watch</string>
       <string id="P_hotkeys_pseudonymize">Shortcut: Pseudonymise clipboard</string>
       <string id="P_hotkeys_pseudonymize_Help">Key combination such as Ctrl+Alt+P. Empty: no shortcut.
 
@@ -270,6 +308,10 @@ If configured, the user cannot change this setting. Setting: hotkeys.workbench</
       <string id="P_hotkeys_process_file_Help">Key combination such as Ctrl+Alt+P. Empty: no shortcut.
 
 If configured, the user cannot change this setting. Setting: hotkeys.process_file</string>
+      <string id="P_hotkeys_redact_image">Shortcut: Redact image in clipboard …</string>
+      <string id="P_hotkeys_redact_image_Help">Key combination such as Ctrl+Alt+P. Empty: no shortcut.
+
+If configured, the user cannot change this setting. Setting: hotkeys.redact_image</string>
       <string id="P_hotkeys_screenshot">Shortcut: Screenshot → text (LLM)</string>
       <string id="P_hotkeys_screenshot_Help">Key combination such as Ctrl+Alt+P. Empty: no shortcut.
 
@@ -303,6 +345,9 @@ If configured, the user cannot change this setting. Setting: hotkeys.toggle_watc
       <presentation id="P_llm_verify_output"><dropdownList refId="P_llm_verify_output" noSort="true">Result check</dropdownList></presentation>
       <presentation id="P_ner_helper_path"><textBox refId="P_ner_helper_path"><label>NER helper path</label></textBox></presentation>
       <presentation id="P_ner_language"><dropdownList refId="P_ner_language" noSort="true">NER language</dropdownList></presentation>
+      <presentation id="P_image_face_effect"><dropdownList refId="P_image_face_effect" noSort="true">Effect for faces</dropdownList></presentation>
+      <presentation id="P_image_text_effect"><dropdownList refId="P_image_text_effect" noSort="true">Effect for text</dropdownList></presentation>
+      <presentation id="P_image_code_effect"><dropdownList refId="P_image_code_effect" noSort="true">Effect for codes</dropdownList></presentation>
       <presentation id="P_hotkeys_pseudonymize"><textBox refId="P_hotkeys_pseudonymize"><label>Shortcut: Pseudonymise clipboard</label></textBox></presentation>
       <presentation id="P_hotkeys_anonymize"><textBox refId="P_hotkeys_anonymize"><label>Shortcut: Anonymise clipboard</label></textBox></presentation>
       <presentation id="P_hotkeys_redact"><textBox refId="P_hotkeys_redact"><label>Shortcut: Redact clipboard</label></textBox></presentation>
@@ -310,6 +355,7 @@ If configured, the user cannot change this setting. Setting: hotkeys.toggle_watc
       <presentation id="P_hotkeys_process"><textBox refId="P_hotkeys_process"><label>Shortcut: Process clipboard (default mode)</label></textBox></presentation>
       <presentation id="P_hotkeys_workbench"><textBox refId="P_hotkeys_workbench"><label>Shortcut: Open workbench</label></textBox></presentation>
       <presentation id="P_hotkeys_process_file"><textBox refId="P_hotkeys_process_file"><label>Shortcut: Process file</label></textBox></presentation>
+      <presentation id="P_hotkeys_redact_image"><textBox refId="P_hotkeys_redact_image"><label>Shortcut: Redact image in clipboard …</label></textBox></presentation>
       <presentation id="P_hotkeys_screenshot"><textBox refId="P_hotkeys_screenshot"><label>Shortcut: Screenshot → text (LLM)</label></textBox></presentation>
       <presentation id="P_hotkeys_toggle_watcher"><textBox refId="P_hotkeys_toggle_watcher"><label>Shortcut: Toggle clipboard watcher</label></textBox></presentation>
     </presentationTable>

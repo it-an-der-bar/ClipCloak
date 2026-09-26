@@ -10,11 +10,12 @@ from ..meta import APP_DISPLAY_NAME
 from . import icons
 from .project_bar import ProjectBar, fill_project_menu
 from .history_view import HistoryView
+from .image_view import ImageView
 from .log_view import LogView
 from .mapping_view import MappingView
 from .workbench import Workbench
 
-TABS = ["workbench", "history", "mappings", "log"]
+TABS = ["workbench", "image", "history", "mappings", "log"]
 
 
 class MainWindow(QMainWindow):
@@ -28,7 +29,9 @@ class MainWindow(QMainWindow):
         self.workbench = Workbench(controller)
         self.history = HistoryView(controller)
         self.mappings = MappingView(controller)
+        self.image = ImageView(controller)
         self.tabs.addTab(self.workbench, t("tab.workbench"))
+        self.tabs.addTab(self.image, t("tab.image"))
         self.tabs.addTab(self.history, t("tab.history"))
         self.tabs.addTab(self.mappings, t("tab.mappings"))
         self.log = LogView(controller.log_handler)

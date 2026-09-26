@@ -73,6 +73,7 @@ build:windows:
     - py -3 -m venv .venv-ner
     - .\.venv-ner\Scripts\python -m pip install --upgrade pip
     - .\.venv-ner\Scripts\python -m pip install -r requirements-ner.txt pyinstaller
+    - .\.venv-ner\Scripts\python -m pip install --no-deps -r requirements-ner-nodeps.txt
     # WiX as local .NET tool; installs the .NET SDK into the user profile if missing
     - if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) { Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1; powershell -NoProfile -ExecutionPolicy Bypass -File dotnet-install.ps1 -Channel 8.0 -InstallDir "$env:USERPROFILE\.dotnet"; $env:DOTNET_ROOT = "$env:USERPROFILE\.dotnet"; $env:PATH = "$env:USERPROFILE\.dotnet;$env:PATH" }
     - if (-not (Test-Path .wixtool\wix.exe)) { dotnet tool install wix --version $env:WIX_VERSION --tool-path .wixtool }
@@ -87,8 +88,9 @@ build:windows:
         --add-data "${env:APP_NAME}/resources;${env:APP_NAME}/resources" --exclude-module tkinter run_clipcloak.py
     - .\.venv-ner\Scripts\python -m PyInstaller --noconfirm --clean --onedir --console --name "${env:APP_NAME}-ner"
         --icon "${env:APP_NAME}/resources/icon.ico"
-        --collect-all de_core_news_sm --collect-all en_core_web_sm
-        --exclude-module spacy.tests --exclude-module pytest run_clipcloak_ner.py
+        --collect-all de_core_news_sm --collect-all en_core_web_sm --collect-all rapidocr_onnxruntime
+        --add-data "${env:APP_NAME}/plugin_data;${env:APP_NAME}/plugin_data"
+        --exclude-module spacy.tests --exclude-module pytest --exclude-module tkinter run_clipcloak_ner.py
     - '& "dist\${env:APP_NAME}-ner\${env:APP_NAME}-ner.exe" --selftest'
     - powershell -NoProfile -ExecutionPolicy Bypass -File tools\sign_windows.ps1 "dist\${env:APP_NAME}\${env:APP_NAME}.exe" "dist\${env:APP_NAME}-ner\${env:APP_NAME}-ner.exe"
     - $ver = (.\.venv-app\Scripts\python -c "import clipcloak; print(clipcloak.__version__)").Trim()
@@ -103,46 +105,32 @@ build:windows:
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+/'
 
-# ---------------------------------------------------------------- NER helper (optional plugin)
-# spaCy + German/English models as separate console program "<app>-ner".
-# Put it next to the main binary to enable name/company detection.
-build:ner:linux:
-  stage: build
-  image: python:3.12-slim-bookworm
-  allow_failure: true
-  before_script:
-    - apt-get update && apt-get install -y --no-install-recommends binutils
-    - python -m pip install --upgrade pip
-    - pip install -r requirements-ner.txt pyinstaller
-  script:
-    # Remove debug symbols from the spaCy/thinc/blis extensions (~120 MB -> ~82 MB binary) so the
-    # artifact stays below GitLab's default 100 MB. Not "pyinstaller --strip": that also strips
-    # numpy's vendored OpenBLAS and breaks it ("ELF load command ... not page-aligned").
-    - python tools/strip_debug.py
-    - pyinstaller --noconfirm --clean --onefile --console --name "$APP_NAME-ner"
-        --collect-all de_core_news_sm --collect-all en_core_web_sm
-        --exclude-module spacy.tests --exclude-module pytest run_clipcloak_ner.py
-    - '"dist/$APP_NAME-ner" --selftest'
-    - mv "dist/$APP_NAME-ner" "dist/$APP_NAME-ner-$CI_COMMIT_TAG-linux-x86_64"
-  artifacts:
-    paths: ["dist/$APP_NAME-ner-$CI_COMMIT_TAG-linux-x86_64"]
-    expire_in: 30 days
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+/'
-
-# ---------------------------------------------------------------- Package Linux
-# tar.gz with program + NER plugin + desktop file + docs. The archive (~150 MB) goes into
-# the generic package registry, not into job artifacts (GitLab's 100 MB limit).
+# ---------------------------------------------------------------- Plugin + package Linux
+# The plugin "<app>-ner" (spaCy names, OpenCV/YuNet faces, QR/barcodes, RapidOCR text) is
+# built here and packed with the program into the tar.gz. It is ~180 MB, so it never
+# becomes a job artifact (GitLab's 100 MB limit): the archive goes into the generic
+# package registry directly.
 package:linux:
   stage: package
   image: python:3.12-slim-bookworm
   needs:
     - job: build:linux
       artifacts: true
-    - job: build:ner:linux
-      artifacts: true
-      optional: true
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends binutils libglib2.0-0
+    - python -m pip install --upgrade pip
+    - pip install -r requirements-ner.txt pyinstaller
+    - pip install --no-deps -r requirements-ner-nodeps.txt
   script:
+    # Remove debug symbols from the spaCy/thinc/blis extensions. Not "pyinstaller --strip":
+    # that also strips numpy's vendored OpenBLAS and breaks it ("ELF load command ... not page-aligned").
+    - python tools/strip_debug.py
+    - pyinstaller --noconfirm --clean --onefile --console --name "$APP_NAME-ner"
+        --collect-all de_core_news_sm --collect-all en_core_web_sm --collect-all rapidocr_onnxruntime
+        --add-data "$APP_NAME/plugin_data:$APP_NAME/plugin_data"
+        --exclude-module spacy.tests --exclude-module pytest --exclude-module tkinter run_clipcloak_ner.py
+    - '"dist/$APP_NAME-ner" --selftest'
+    - mv "dist/$APP_NAME-ner" "dist/$APP_NAME-ner-$CI_COMMIT_TAG-linux-x86_64"
     - python tools/package_release.py linux "$CI_COMMIT_TAG" --dist dist --upload
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+/'

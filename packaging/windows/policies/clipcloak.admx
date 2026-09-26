@@ -30,6 +30,9 @@
     <category name="C_ner" displayName="$(string.C_ner)">
       <parentCategory ref="C_clipcloak" />
     </category>
+    <category name="C_image" displayName="$(string.C_image)">
+      <parentCategory ref="C_clipcloak" />
+    </category>
     <category name="C_hotkeys" displayName="$(string.C_hotkeys)">
       <parentCategory ref="C_clipcloak" />
     </category>
@@ -444,6 +447,81 @@
         </enum>
       </elements>
     </policy>
+    <policy name="P_image_faces" class="Both" displayName="$(string.P_image_faces)" explainText="$(string.P_image_faces_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="image.faces">
+      <parentCategory ref="C_image" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="P_image_face_effect" class="Both" displayName="$(string.P_image_face_effect)" explainText="$(string.P_image_face_effect_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_image_face_effect)">
+      <parentCategory ref="C_image" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <enum id="P_image_face_effect" valueName="image.face_effect" required="true">
+          <item displayName="$(string.P_image_face_effect_black)">
+            <value><string>black</string></value>
+          </item>
+          <item displayName="$(string.P_image_face_effect_mosaic)">
+            <value><string>mosaic</string></value>
+          </item>
+          <item displayName="$(string.P_image_face_effect_blur)">
+            <value><string>blur</string></value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="P_image_text" class="Both" displayName="$(string.P_image_text)" explainText="$(string.P_image_text_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="image.text">
+      <parentCategory ref="C_image" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="P_image_text_effect" class="Both" displayName="$(string.P_image_text_effect)" explainText="$(string.P_image_text_effect_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_image_text_effect)">
+      <parentCategory ref="C_image" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <enum id="P_image_text_effect" valueName="image.text_effect" required="true">
+          <item displayName="$(string.P_image_text_effect_black)">
+            <value><string>black</string></value>
+          </item>
+          <item displayName="$(string.P_image_text_effect_mosaic)">
+            <value><string>mosaic</string></value>
+          </item>
+          <item displayName="$(string.P_image_text_effect_blur)">
+            <value><string>blur</string></value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="P_image_codes" class="Both" displayName="$(string.P_image_codes)" explainText="$(string.P_image_codes_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="image.codes">
+      <parentCategory ref="C_image" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="P_image_code_effect" class="Both" displayName="$(string.P_image_code_effect)" explainText="$(string.P_image_code_effect_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_image_code_effect)">
+      <parentCategory ref="C_image" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <enum id="P_image_code_effect" valueName="image.code_effect" required="true">
+          <item displayName="$(string.P_image_code_effect_black)">
+            <value><string>black</string></value>
+          </item>
+          <item displayName="$(string.P_image_code_effect_mosaic)">
+            <value><string>mosaic</string></value>
+          </item>
+          <item displayName="$(string.P_image_code_effect_blur)">
+            <value><string>blur</string></value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="P_image_watch" class="Both" displayName="$(string.P_image_watch)" explainText="$(string.P_image_watch_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="image.watch">
+      <parentCategory ref="C_image" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
     <policy name="P_hotkeys_pseudonymize" class="Both" displayName="$(string.P_hotkeys_pseudonymize)" explainText="$(string.P_hotkeys_pseudonymize_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_hotkeys_pseudonymize)">
       <parentCategory ref="C_hotkeys" />
       <supportedOn ref="SUPPORTED_0_1_9" />
@@ -491,6 +569,13 @@
       <supportedOn ref="SUPPORTED_0_1_9" />
       <elements>
         <text id="P_hotkeys_process_file" valueName="hotkeys.process_file" maxLength="2048" />
+      </elements>
+    </policy>
+    <policy name="P_hotkeys_redact_image" class="Both" displayName="$(string.P_hotkeys_redact_image)" explainText="$(string.P_hotkeys_redact_image_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_hotkeys_redact_image)">
+      <parentCategory ref="C_hotkeys" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <text id="P_hotkeys_redact_image" valueName="hotkeys.redact_image" maxLength="2048" />
       </elements>
     </policy>
     <policy name="P_hotkeys_screenshot" class="Both" displayName="$(string.P_hotkeys_screenshot)" explainText="$(string.P_hotkeys_screenshot_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_hotkeys_screenshot)">

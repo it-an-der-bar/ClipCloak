@@ -104,7 +104,8 @@ class NerClient:
             q.put(line)
         q.put(None)
 
-    def request(self, payload: dict) -> dict:
+    def request(self, payload: dict, timeout: float | None = None) -> dict:
+        timeout = timeout or self.timeout
         with self._lock:
             if self.proc is None or self.proc.poll() is not None:
                 self._start()
@@ -114,7 +115,7 @@ class NerClient:
             self.proc.stdin.flush()
             while True:
                 try:
-                    line = self._q.get(timeout=self.timeout)
+                    line = self._q.get(timeout=timeout)
                 except queue.Empty:
                     self.close()
                     raise TimeoutError("NER helper timeout")

@@ -172,7 +172,7 @@ class GuiTest(unittest.TestCase):
         try:
             c2.show_main()
             spin(50)
-            self.assertEqual(c2.main.tabs.currentIndex(), 1)          # history tab again
+            self.assertEqual(c2.main.tabs.currentWidget(), c2.main.history)   # history tab again
             self.assertEqual(c2.main.history.table.columnWidth(0), 222)
             self.assertEqual(c2.main.history.split.sizes(), before)
         finally:

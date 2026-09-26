@@ -44,7 +44,8 @@ After   yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/24
     - URL credentials, `curl -u`, `mysql -p`, `--password`, `ConvertTo-SecureString`
     - high-entropy strings (optional)
   - your own **custom terms** (literal or regex, with optional type or fixed replacement), known domains and allowlists
-- **Optional NER plugin.** Free-form person and company names are found by a separate helper program with spaCy and the German/English models. It runs fully locally, and the main program stays small.
+- **Images.** The *Image* tab hides faces (mosaic), sensitive text such as IP addresses, e-mail addresses and tokens in screenshots (black), and QR codes/barcodes (black). Areas can be added, moved and resized by hand; the result is a new, flat image without metadata. See [Images](#images).
+- **Optional plugin.** A separate helper program finds free-form person and company names (spaCy, German/English models) and faces, text and codes in images (OpenCV with the YuNet face model, RapidOCR). It runs fully locally, and the main program stays small.
 - **Optional LLM features** (OpenAI-compatible endpoint, e.g. vLLM, Ollama, LiteLLM):
   - *Screenshot → text*: a vision model transcribes an image from the clipboard, and the text is then processed.
   - *Check*: the already processed text is sent to the LLM, which lists possible leftovers. You can add them as custom terms with one click.
@@ -88,6 +89,7 @@ On Wayland also install `wl-clipboard`. GNOME needs the *AppIndicator* extension
 | `Ctrl+Alt+R` | redact clipboard |
 | `Ctrl+Alt+U` | revert pseudonyms (restore originals) |
 | `Ctrl+Alt+W` | open workbench |
+| `Ctrl+Alt+I` | redact image in clipboard (Image tab) |
 
 The workbench has one button per action. The result is copied to the clipboard automatically;
 the checkbox next to the buttons (or `general.workbench_auto_copy`) switches this off.
@@ -120,6 +122,7 @@ clipcloak --action anonymize
 clipcloak --action redact
 clipcloak --action revert
 clipcloak --action workbench
+clipcloak --action redact_image
 ```
 
 The command forwards the action to the running instance, or starts it. With `wl-clipboard`
@@ -145,11 +148,27 @@ variable given with `--passphrase-env`, or ask for it interactively.
 
 *Process file …* (in the tray and in the main window's File menu) processes a whole text file in the background; 1 MB takes about a second. You choose the action, and the result is saved next to the source, e.g. `notes.pseudo.md`, keeping the encoding and line endings. Revert works the same way. The workbench can also load and save files.
 
-## NER plugin
+## Images
 
-The MSI (feature *NER*), the ZIP (folder `ner\`) and the tar.gz already contain the plugin. It contains spaCy and the German/English models and runs fully locally.
+Copy an image (screenshot, photo) and press `Ctrl+Alt+I` (*Redact image in clipboard*), or use the
+*Image* tab. The pseudonymise/anonymise/redact shortcuts also open an image in the clipboard there.
+With the watcher on, copying an image shows a popup *Redact image*.
 
-1. Go to Settings › NER plugin, tick *Enable NER*, click *Test* and save with OK. The tab shows whether the helper was found.
+1. **Image:** from the clipboard or from a file.
+2. **Detect:** the plugin searches locally for
+   - faces → mosaic (YuNet model; finds faces from about 10 px, large images are also searched downscaled),
+   - text: OCR, then the same detectors as for clipboard text (IP, e-mail, domains, secrets, custom terms, NER names …) → black bars over exactly those characters,
+   - QR codes and barcodes → black.
+   Drag with the mouse to add areas by hand; move them, resize at the lower right corner, *Del* deletes, right click changes the effect (black, mosaic, blur). `Ctrl` + mouse wheel zooms.
+3. **Result:** to the clipboard or into a PNG/JPEG file. It is a new, flat image: the covered pixels are gone and no metadata of the source is carried over.
+
+Pixelated or blurred *text* can often be reconstructed (e.g. with [Unredacter](https://bishopfox.com/tools/unredacter)), so text and codes are covered in black by default; mosaic is meant for faces. Automatic detection is a help, not a guarantee – always check the image. Without the plugin, areas can still be drawn by hand. Settings › Images switches the detectors and effects.
+
+## Plugin (names and images)
+
+The MSI (feature *NER*), the ZIP (folder `ner\`) and the tar.gz already contain the plugin. It contains spaCy with the German/English models, OpenCV with the YuNet face model and RapidOCR, and runs fully locally. Images need no setup; for names:
+
+1. Go to Settings › Plugin (names, images), tick *Enable NER*, click *Test* and save with OK. The tab shows whether the helper was found.
 2. With the Linux program-only download, put `clipcloak-ner` from the tar.gz next to the program. The helper is found next to the program or in its subfolder `ner`; any other location can be set under *Helper program*.
 
 ## LLM
@@ -252,7 +271,8 @@ python -m clipcloak                    # run from source
 QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -p "test_*.py" -v
 ```
 
-To use the NER plugin from source, run `pip install -r requirements-ner.txt`. It is then used
+To use the plugin from source, run `pip install -r requirements-ner.txt` and
+`pip install --no-deps -r requirements-ner-nodeps.txt`. It is then used
 automatically via `python -m clipcloak.ner_helper`. To build binaries, see `.gitlab-ci.yml`;
 `python tools/package_release.py vX.Y.Z --dist dist` bundles them into the ZIP and tar.gz.
 The CI runs tests on every push and builds and releases on version tags `vX.Y.Z`, which must
@@ -266,4 +286,4 @@ renames the package, entry scripts, CI variables and documentation in one go.
 ## License
 
 GPL-3.0-only, see [LICENSE](LICENSE). Qt for Python (PySide6) is used under the LGPL-3.0.
-spaCy and its models (NER plugin) are MIT-licensed.
+Plugin: spaCy and its models, the YuNet face model and ONNX Runtime are MIT-licensed; OpenCV, RapidOCR and the PP-OCR models are Apache-2.0-licensed.

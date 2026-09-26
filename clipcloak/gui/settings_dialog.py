@@ -127,6 +127,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._lists(), t("settings.tab.lists"))
         tabs.addTab(_scroll(self._llm()), t("settings.tab.llm"))
         tabs.addTab(_scroll(self._ner()), t("settings.tab.ner"))
+        tabs.addTab(_scroll(self._images()), t("settings.tab.images"))
         if controller.project is not None:
             tabs.addTab(self._project(), t("settings.tab.project"))
             if initial_tab == "project":
@@ -443,6 +444,27 @@ class SettingsDialog(QDialog):
         self.ner_result.setWordWrap(True)
         test.clicked.connect(self._test_ner)
         f.addRow(test, self.ner_result)
+        return w
+
+    def _images(self):
+        from ..core.imageredact import EFFECTS
+        w = QWidget()
+        f = QFormLayout(w)
+        intro = QLabel(t("img.settings_intro"))
+        intro.setWordWrap(True)
+        f.addRow(intro)
+        f.addRow("", self._check("image.faces", t("img.set_faces")))
+        f.addRow(t("img.set_face_effect"), self._combo("image.face_effect", list(EFFECTS), "effect."))
+        f.addRow("", self._check("image.text", t("img.set_text")))
+        f.addRow(t("img.set_text_effect"), self._combo("image.text_effect", list(EFFECTS), "effect."))
+        f.addRow("", self._check("image.codes", t("img.set_codes")))
+        f.addRow(t("img.set_code_effect"), self._combo("image.code_effect", list(EFFECTS), "effect."))
+        f.addRow(t("img.set_padding"), self._spin("image.padding", 0, 50))
+        f.addRow("", self._check("image.watch", t("img.set_watch")))
+        warn = QLabel(t("img.effect_warning"))
+        warn.setWordWrap(True)
+        warn.setStyleSheet("color:#c0392b")
+        f.addRow(warn)
         return w
 
     @staticmethod

@@ -1,0 +1,2 @@
+# installed with: pip install --no-deps -r requirements-ner-nodeps.txt (see requirements-ner.txt)
+rapidocr_onnxruntime==1.4.4

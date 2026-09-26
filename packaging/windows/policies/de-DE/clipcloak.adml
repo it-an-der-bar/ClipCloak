@@ -13,6 +13,7 @@
       <string id="C_lists">Listen (ergänzen die Einträge des Benutzers)</string>
       <string id="C_llm">LLM</string>
       <string id="C_ner">NER-Plugin</string>
+      <string id="C_image">Bilder</string>
       <string id="C_hotkeys">Tastenkürzel</string>
       <string id="P_general_language">Sprache</string>
       <string id="P_general_language_Help">Sprache der Oberfläche.
@@ -242,6 +243,43 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_ner_language_de">Deutsch</string>
       <string id="P_ner_language_en">Englisch</string>
       <string id="P_ner_language_both">beide</string>
+      <string id="P_image_faces">Gesichter erkennen</string>
+      <string id="P_image_faces_Help">Gesichter in Bildern erkennen (Plugin, YuNet-Modell, lokal).
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: image.faces</string>
+      <string id="P_image_face_effect">Effekt für Gesichter</string>
+      <string id="P_image_face_effect_Help">Wie erkannte Gesichter verdeckt werden.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: image.face_effect</string>
+      <string id="P_image_face_effect_black">schwarz</string>
+      <string id="P_image_face_effect_mosaic">Mosaik</string>
+      <string id="P_image_face_effect_blur">weichzeichnen</string>
+      <string id="P_image_text">Sensiblen Text in Bildern erkennen</string>
+      <string id="P_image_text_Help">OCR (Plugin, lokal) plus die Texterkennungen: IP, E-Mail, Secrets, eigene Begriffe …
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: image.text</string>
+      <string id="P_image_text_effect">Effekt für Text</string>
+      <string id="P_image_text_effect_Help">Für Text ist nur "schwarz" sicher; verpixelter oder weichgezeichneter Text lässt sich oft zurückrechnen.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: image.text_effect</string>
+      <string id="P_image_text_effect_black">schwarz</string>
+      <string id="P_image_text_effect_mosaic">Mosaik</string>
+      <string id="P_image_text_effect_blur">weichzeichnen</string>
+      <string id="P_image_codes">QR-Codes und Barcodes erkennen</string>
+      <string id="P_image_codes_Help">QR-Codes und Barcodes in Bildern erkennen.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: image.codes</string>
+      <string id="P_image_code_effect">Effekt für Codes</string>
+      <string id="P_image_code_effect_Help">Wie erkannte Codes verdeckt werden.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: image.code_effect</string>
+      <string id="P_image_code_effect_black">schwarz</string>
+      <string id="P_image_code_effect_mosaic">Mosaik</string>
+      <string id="P_image_code_effect_blur">weichzeichnen</string>
+      <string id="P_image_watch">Bei kopierten Bildern Schwärzen anbieten</string>
+      <string id="P_image_watch_Help">Die Überwachung zeigt beim Kopieren eines Bildes ein Popup "Bild schwärzen".
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: image.watch</string>
       <string id="P_hotkeys_pseudonymize">Tastenkürzel: Zwischenablage pseudonymisieren</string>
       <string id="P_hotkeys_pseudonymize_Help">Tastenkombination wie Strg+Alt+P (als Ctrl+Alt+P schreiben). Leer: kein Kürzel.
 
@@ -270,6 +308,10 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_hotkeys_process_file_Help">Tastenkombination wie Strg+Alt+P (als Ctrl+Alt+P schreiben). Leer: kein Kürzel.
 
 Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: hotkeys.process_file</string>
+      <string id="P_hotkeys_redact_image">Tastenkürzel: Bild in der Zwischenablage schwärzen …</string>
+      <string id="P_hotkeys_redact_image_Help">Tastenkombination wie Strg+Alt+P (als Ctrl+Alt+P schreiben). Leer: kein Kürzel.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: hotkeys.redact_image</string>
       <string id="P_hotkeys_screenshot">Tastenkürzel: Screenshot → Text (LLM)</string>
       <string id="P_hotkeys_screenshot_Help">Tastenkombination wie Strg+Alt+P (als Ctrl+Alt+P schreiben). Leer: kein Kürzel.
 
@@ -303,6 +345,9 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <presentation id="P_llm_verify_output"><dropdownList refId="P_llm_verify_output" noSort="true">Ergebnisprüfung</dropdownList></presentation>
       <presentation id="P_ner_helper_path"><textBox refId="P_ner_helper_path"><label>Pfad des NER-Helfers</label></textBox></presentation>
       <presentation id="P_ner_language"><dropdownList refId="P_ner_language" noSort="true">NER-Sprache</dropdownList></presentation>
+      <presentation id="P_image_face_effect"><dropdownList refId="P_image_face_effect" noSort="true">Effekt für Gesichter</dropdownList></presentation>
+      <presentation id="P_image_text_effect"><dropdownList refId="P_image_text_effect" noSort="true">Effekt für Text</dropdownList></presentation>
+      <presentation id="P_image_code_effect"><dropdownList refId="P_image_code_effect" noSort="true">Effekt für Codes</dropdownList></presentation>
       <presentation id="P_hotkeys_pseudonymize"><textBox refId="P_hotkeys_pseudonymize"><label>Tastenkürzel: Zwischenablage pseudonymisieren</label></textBox></presentation>
       <presentation id="P_hotkeys_anonymize"><textBox refId="P_hotkeys_anonymize"><label>Tastenkürzel: Zwischenablage anonymisieren</label></textBox></presentation>
       <presentation id="P_hotkeys_redact"><textBox refId="P_hotkeys_redact"><label>Tastenkürzel: Zwischenablage schwärzen</label></textBox></presentation>
@@ -310,6 +355,7 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <presentation id="P_hotkeys_process"><textBox refId="P_hotkeys_process"><label>Tastenkürzel: Zwischenablage verarbeiten (Standardmodus)</label></textBox></presentation>
       <presentation id="P_hotkeys_workbench"><textBox refId="P_hotkeys_workbench"><label>Tastenkürzel: Werkbank öffnen</label></textBox></presentation>
       <presentation id="P_hotkeys_process_file"><textBox refId="P_hotkeys_process_file"><label>Tastenkürzel: Datei verarbeiten</label></textBox></presentation>
+      <presentation id="P_hotkeys_redact_image"><textBox refId="P_hotkeys_redact_image"><label>Tastenkürzel: Bild in der Zwischenablage schwärzen …</label></textBox></presentation>
       <presentation id="P_hotkeys_screenshot"><textBox refId="P_hotkeys_screenshot"><label>Tastenkürzel: Screenshot → Text (LLM)</label></textBox></presentation>
       <presentation id="P_hotkeys_toggle_watcher"><textBox refId="P_hotkeys_toggle_watcher"><label>Tastenkürzel: Überwachung ein/aus</label></textBox></presentation>
     </presentationTable>

@@ -41,6 +41,8 @@ class Tray(QSystemTrayIcon):
         for action in ("pseudonymize", "anonymize", "redact", "revert"):
             a = m.addAction(t("action." + action) + self._hk(action))
             a.triggered.connect(lambda _=False, x=action: self.c.run_action(x, "tray"))
+        m.addAction(t("action.redact_image") + self._hk("redact_image")).triggered.connect(
+            lambda: self.c.run_action("redact_image", "tray"))
         if self.c.cfg.get("llm.enabled"):
             a = m.addAction(t("action.screenshot") + self._hk("screenshot"))
             a.triggered.connect(lambda: self.c.run_action("screenshot", "tray"))

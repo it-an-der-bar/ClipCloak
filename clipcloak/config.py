@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 CONFIG_VERSION = 1
 
 ACTIONS = ["pseudonymize", "anonymize", "redact", "revert", "process", "workbench", "process_file",
-           "screenshot", "toggle_watcher"]
+           "redact_image", "screenshot", "toggle_watcher"]
 
 DEFAULTS: dict = {
     "version": CONFIG_VERSION,
@@ -42,6 +42,7 @@ DEFAULTS: dict = {
         "process": "",
         "workbench": "Ctrl+Alt+W",
         "process_file": "",
+        "redact_image": "Ctrl+Alt+I",
         "screenshot": "",
         "toggle_watcher": "",
     },
@@ -53,6 +54,16 @@ DEFAULTS: dict = {
         "notify_noncritical": True,  # "critical": popup for non-critical findings
         "popup_timeout": 12,
         "max_chars": 500_000,
+    },
+    "image": {                        # image redaction (detection needs the plugin)
+        "faces": True,
+        "text": True,                 # OCR + the text detectors
+        "codes": True,                # QR codes / barcodes
+        "face_effect": "mosaic",      # black | mosaic | blur
+        "text_effect": "black",       # black is the only safe choice for text
+        "code_effect": "black",
+        "padding": 3,
+        "watch": True,                # watcher offers "Redact image" for images
     },
     "clipboard": {
         "backend": "auto",           # auto | qt | wl-clipboard

@@ -35,6 +35,7 @@ CATEGORIES = {
     "lists": ("Lists (added to the user's entries)", "Listen (ergänzen die Einträge des Benutzers)"),
     "llm": ("LLM", "LLM"),
     "ner": ("NER plugin", "NER-Plugin"),
+    "image": ("Images", "Bilder"),
     "hotkeys": ("Shortcuts", "Tastenkürzel"),
 }
 
@@ -182,6 +183,29 @@ P += [
     ("ner.language", "enum", "ner", "NER language", "NER-Sprache", "Language model(s) to use.",
      "Zu verwendende(s) Sprachmodell(e).",
      {"choices": ["auto", "de", "en", "both"], "labels": choice("nerlang.")}),
+]
+
+EFFECT_LABELS = {"black": ("black", "schwarz"), "mosaic": ("mosaic", "Mosaik"), "blur": ("blur", "weichzeichnen")}
+eff = {"choices": ["black", "mosaic", "blur"],
+       "labels": lambda v, lang: EFFECT_LABELS[v][0 if lang == "en" else 1]}
+P += [
+    ("image.faces", "bool", "image", "Detect faces", "Gesichter erkennen",
+     "Detect faces in images (plugin, YuNet model, local).", "Gesichter in Bildern erkennen (Plugin, YuNet-Modell, lokal).", {}),
+    ("image.face_effect", "enum", "image", "Effect for faces", "Effekt für Gesichter",
+     "How detected faces are hidden.", "Wie erkannte Gesichter verdeckt werden.", eff),
+    ("image.text", "bool", "image", "Detect sensitive text in images", "Sensiblen Text in Bildern erkennen",
+     "OCR (plugin, local) plus the text detectors: IP, e-mail, secrets, custom terms …",
+     "OCR (Plugin, lokal) plus die Texterkennungen: IP, E-Mail, Secrets, eigene Begriffe …", {}),
+    ("image.text_effect", "enum", "image", "Effect for text", "Effekt für Text",
+     "Only \"black\" is safe for text; pixelated or blurred text can often be reconstructed.",
+     "Für Text ist nur \"schwarz\" sicher; verpixelter oder weichgezeichneter Text lässt sich oft zurückrechnen.", eff),
+    ("image.codes", "bool", "image", "Detect QR codes and barcodes", "QR-Codes und Barcodes erkennen",
+     "Detect QR codes and barcodes in images.", "QR-Codes und Barcodes in Bildern erkennen.", {}),
+    ("image.code_effect", "enum", "image", "Effect for codes", "Effekt für Codes",
+     "How detected codes are hidden.", "Wie erkannte Codes verdeckt werden.", eff),
+    ("image.watch", "bool", "image", "Offer image redaction for copied images", "Bei kopierten Bildern Schwärzen anbieten",
+     "The clipboard watcher shows a popup \"Redact image\" when an image is copied.",
+     "Die Überwachung zeigt beim Kopieren eines Bildes ein Popup \"Bild schwärzen\".", {}),
 ]
 
 for action in ACTIONS:
