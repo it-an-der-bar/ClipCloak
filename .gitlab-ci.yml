@@ -58,7 +58,7 @@ build:linux:
 # One job on a Windows runner (tag "windows"; Python 3.12 via "py", PowerShell):
 # program and NER plugin as folder builds (--onedir: nothing is unpacked to %TEMP% at
 # start, which AppLocker/endpoint protection prefer), optional code signing,
-# MSI (WiX 5) and ZIP. Both go to the package registry (no 100 MB artifact limit).
+# MSI (WiX 5 with setup dialogs) and ZIP. Both go to the package registry (no 100 MB artifact limit).
 # Without such a runner only this job fails (allow_failure) – Linux is still released.
 build:windows:
   stage: build
@@ -75,8 +75,9 @@ build:windows:
     - .\.venv-ner\Scripts\python -m pip install -r requirements-ner.txt pyinstaller
     # WiX as local .NET tool; installs the .NET SDK into the user profile if missing
     - if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) { Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1; powershell -NoProfile -ExecutionPolicy Bypass -File dotnet-install.ps1 -Channel 8.0 -InstallDir "$env:USERPROFILE\.dotnet"; $env:DOTNET_ROOT = "$env:USERPROFILE\.dotnet"; $env:PATH = "$env:USERPROFILE\.dotnet;$env:PATH" }
-    - if (-not (Test-Path .wix\wix.exe)) { dotnet tool install wix --version $env:WIX_VERSION --tool-path .wix }
-    - .\.wix\wix.exe --version
+    - if (-not (Test-Path .wixtool\wix.exe)) { dotnet tool install wix --version $env:WIX_VERSION --tool-path .wixtool }
+    - .\.wixtool\wix.exe --version
+    - .\.wixtool\wix.exe extension add WixToolset.UI.wixext/$env:WIX_VERSION
   script:
     - .\.venv-app\Scripts\python tools/check_version.py "${env:CI_COMMIT_TAG}"
     # Windows-only tests: DPAPI project encryption, policies
@@ -92,9 +93,10 @@ build:windows:
     - powershell -NoProfile -ExecutionPolicy Bypass -File tools\sign_windows.ps1 "dist\${env:APP_NAME}\${env:APP_NAME}.exe" "dist\${env:APP_NAME}-ner\${env:APP_NAME}-ner.exe"
     - $ver = (.\.venv-app\Scripts\python -c "import clipcloak; print(clipcloak.__version__)").Trim()
     - $msi = "dist\${env:APP_NAME}-${env:CI_COMMIT_TAG}-windows-x86_64.msi"
-    - .\.wix\wix.exe build packaging\windows\clipcloak.wxs -arch x64 -d "Version=$ver"
+    - .\.venv-app\Scripts\python tools/make_license_rtf.py dist\license.rtf
+    - .\.wixtool\wix.exe build packaging\windows\clipcloak.wxs -arch x64 -ext WixToolset.UI.wixext -d "Version=$ver"
         -d "AppDir=$PWD\dist\${env:APP_NAME}" -d "NerDir=$PWD\dist\${env:APP_NAME}-ner"
-        -d "Icon=$PWD\${env:APP_NAME}\resources\icon.ico" -o $msi
+        -d "Icon=$PWD\${env:APP_NAME}\resources\icon.ico" -d "LicenseRtf=$PWD\dist\license.rtf" -o $msi
     - powershell -NoProfile -ExecutionPolicy Bypass -File tools\sign_windows.ps1 $msi
     - .\.venv-app\Scripts\python tools/package_release.py windows "${env:CI_COMMIT_TAG}"
         --app "dist\${env:APP_NAME}" --ner "dist\${env:APP_NAME}-ner" --also $msi --upload

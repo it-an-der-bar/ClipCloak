@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.10
+
+- The main window remembers its layout: window size and position, last tab, all splitter positions and column widths (`ui.ini` next to `config.yaml`).
+- History: the list gets a reasonable height by default (it was squeezed to two rows); the diff and the replacements are separated by a splitter.
+- Workbench: input/findings and result/replacements can be resized with splitters.
+- Column widths are only fitted to the content once; afterwards your own widths stay.
+- MSI: setup wizard with license and feature selection – NER plugin, *Start with Windows* (autostart), desktop shortcut, install folder. Autostart and desktop shortcut are now features; silently still `AUTOSTART=0` / `DESKTOPSHORTCUT=1` or `ADDLOCAL`. Updates keep the chosen features. The installation can be changed later under Settings › Apps.
+
 ## 0.1.9
 
 - Managed deployment on Windows:

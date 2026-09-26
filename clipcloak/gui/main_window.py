@@ -64,6 +64,16 @@ class MainWindow(QMainWindow):
         h.addAction(t("tray.about")).triggered.connect(controller.show_about)
         self.update_status()
         self.update_activity()
+        st = controller.ui_state
+        st.track("main/geometry", self)
+        tab = str(st.value("main/tab", "workbench"))
+        if tab in TABS:
+            self.select(tab)
+
+    def save_state(self):
+        st = self.c.ui_state
+        st.set_value("main/tab", TABS[self.tabs.currentIndex()])
+        st.save()
 
     def select(self, tab: str):
         if tab in TABS:
@@ -80,6 +90,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(t("tray.tooltip", project=self.c.project_label(), watch=wm))
 
     def closeEvent(self, ev):
+        self.save_state()
         if self.c.tray_available():
             ev.ignore()
             self.hide()

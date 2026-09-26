@@ -11,6 +11,7 @@ import shlex
 import subprocess
 import sys
 import time
+from pathlib import Path
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 
@@ -66,6 +67,8 @@ class Controller(QObject):
         super().__init__()
         self.app = app
         self.cfg = cfg
+        from .uistate import UiState
+        self.ui_state = UiState(Path(cfg.path).parent / "ui.ini" if cfg.path else None)
         lang = i18n.init(cfg.get("general.language", "auto"))
         self._qt_translator = QTranslator(self)
         if self._qt_translator.load(f"qtbase_{lang}", QLibraryInfo.path(QLibraryInfo.TranslationsPath)):
@@ -870,6 +873,8 @@ class Controller(QObject):
             self.run_action(action, "cli")
 
     def shutdown(self):
+        if self.main is not None:
+            self.main.save_state()
         logging.getLogger().removeHandler(self.log_handler)
         ui_only.removeHandler(self.log_handler)
         self._save_project_now()

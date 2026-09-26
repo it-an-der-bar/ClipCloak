@@ -165,6 +165,17 @@ class TemplatesTest(unittest.TestCase):
         self.assertEqual(cfg.get("general.language"), "de")          # from defaults.yaml
         self.assertTrue(cfg.is_locked("llm.base_url"))
 
+    def test_license_rtf(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("mlr", self.ROOT / "tools" / "make_license_rtf.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        rtf = mod.to_rtf("a {b} \\c\nÄ\n")
+        self.assertTrue(rtf.startswith("{\\rtf1"))
+        self.assertIn("a \\{b\\} \\\\c\\par", rtf)
+        self.assertIn("\\u196?", rtf)
+        self.assertEqual(rtf.count("{") - rtf.count("\\{"), rtf.count("}") - rtf.count("\\}"))
+
     def test_reg_example_keys_are_known(self):
         import re
         text = (self.ROOT / "packaging" / "examples" / "policy-example.reg").read_text("utf-8")

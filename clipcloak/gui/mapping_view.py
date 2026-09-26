@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, Q
 
 from ..i18n import t
 from .history_view import fmt_time
-from .widgets import is_dark, item, make_table, type_color
+from .widgets import autosize, is_dark, item, make_table, track_table, type_color
 
 
 class MappingView(QWidget):
@@ -25,6 +25,7 @@ class MappingView(QWidget):
         self.table = make_table([t("col.type"), t("col.original"), t("col.surrogate"), t("col.count"),
                                  t("col.first_seen"), t("col.last_seen")])
         self.table.setSortingEnabled(True)
+        track_table(getattr(controller, "ui_state", None), "mappings/columns", self.table)
         self.btn_remove = QPushButton(t("map.remove"))
         self.btn_export = QPushButton(t("map.export"))
         self.btn_clear = QPushButton(t("map.clear"))
@@ -84,7 +85,7 @@ class MappingView(QWidget):
             self.table.setItem(i, 4, item(fmt_time(r.first_seen)))
             self.table.setItem(i, 5, item(fmt_time(r.last_seen)))
         self.table.setSortingEnabled(True)
-        self.table.resizeColumnsToContents()
+        autosize(self.table)
         _ = v
 
     def _selected_keys(self):

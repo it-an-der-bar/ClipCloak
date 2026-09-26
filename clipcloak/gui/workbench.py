@@ -10,8 +10,8 @@ from PySide6.QtWidgets import (QCheckBox, QFileDialog, QHBoxLayout, QLabel, QMen
 from ..core.entities import Result
 from ..core.files import read_text_file, suggest_output_path, write_text_file
 from ..i18n import t
-from .widgets import (fill_replacements, highlighted_html, is_dark, item, make_table, mono_font,
-                      type_color)
+from .widgets import (autosize, fill_replacements, highlighted_html, is_dark, item, make_table, mono_font,
+                      track_table, type_color)
 
 MODES = ["pseudonymize", "anonymize", "redact", "revert"]
 LARGE_TEXT = 200_000   # above this, no colour highlighting (keeps the UI responsive)
@@ -70,13 +70,20 @@ class Workbench(QWidget):
         in_bar.addStretch(1)
         for b in (self.btn_open, self.btn_from, self.btn_shot):
             in_bar.addWidget(b)
-        left = QWidget()
-        ll = QVBoxLayout(left)
-        ll.setContentsMargins(0, 0, 0, 0)
-        ll.addLayout(in_bar)
-        ll.addWidget(self.input, 3)
-        ll.addWidget(QLabel(t("wb.findings")))
-        ll.addWidget(self.findings, 2)
+        in_box, find_box = QWidget(), QWidget()
+        ib = QVBoxLayout(in_box)
+        ib.setContentsMargins(0, 0, 0, 0)
+        ib.addLayout(in_bar)
+        ib.addWidget(self.input, 1)
+        fb = QVBoxLayout(find_box)
+        fb.setContentsMargins(0, 0, 0, 0)
+        fb.addWidget(QLabel(t("wb.findings")))
+        fb.addWidget(self.findings, 1)
+        self.left_split = QSplitter(Qt.Vertical)
+        self.left_split.addWidget(in_box)
+        self.left_split.addWidget(find_box)
+        self.left_split.setChildrenCollapsible(False)
+        left = self.left_split
 
         middle = QWidget()
         ml = QVBoxLayout(middle)
@@ -93,14 +100,21 @@ class Workbench(QWidget):
         out_bar.addStretch(1)
         for b in (self.btn_to, self.btn_save, self.btn_check):
             out_bar.addWidget(b)
-        right = QWidget()
-        rl = QVBoxLayout(right)
-        rl.setContentsMargins(0, 0, 0, 0)
-        rl.addLayout(out_bar)
-        rl.addWidget(self.auto_copy)
-        rl.addWidget(self.output, 3)
-        rl.addWidget(QLabel(t("wb.replacements")))
-        rl.addWidget(self.reps, 2)
+        out_box, rep_box = QWidget(), QWidget()
+        ob = QVBoxLayout(out_box)
+        ob.setContentsMargins(0, 0, 0, 0)
+        ob.addLayout(out_bar)
+        ob.addWidget(self.auto_copy)
+        ob.addWidget(self.output, 1)
+        rb = QVBoxLayout(rep_box)
+        rb.setContentsMargins(0, 0, 0, 0)
+        rb.addWidget(QLabel(t("wb.replacements")))
+        rb.addWidget(self.reps, 1)
+        self.right_split = QSplitter(Qt.Vertical)
+        self.right_split.addWidget(out_box)
+        self.right_split.addWidget(rep_box)
+        self.right_split.setChildrenCollapsible(False)
+        right = self.right_split
 
         split = QSplitter(Qt.Horizontal)
         split.addWidget(left)
@@ -110,6 +124,14 @@ class Workbench(QWidget):
         split.setStretchFactor(1, 0)
         split.setStretchFactor(2, 1)
         split.setCollapsible(1, False)
+        self.split = split
+        st = getattr(controller, "ui_state", None)
+        if st is not None:
+            st.track("workbench/split", split)
+            st.track("workbench/left", self.left_split, [360, 220])
+            st.track("workbench/right", self.right_split, [360, 220])
+        track_table(st, "workbench/findings", self.findings)
+        track_table(st, "workbench/replacements", self.reps)
 
         lay = QVBoxLayout(self)
         lay.addWidget(split, 1)
@@ -199,7 +221,7 @@ class Workbench(QWidget):
             self.findings.setItem(i, 0, item(f.type, data=i, color=type_color(f.type, dark)))
             self.findings.setItem(i, 1, item(f.text))
             self.findings.setItem(i, 2, item(f.detector))
-        self.findings.resizeColumnsToContents()
+        autosize(self.findings)
         sels = []
         text = self.input.toPlainText()
         if len(text) > LARGE_TEXT:

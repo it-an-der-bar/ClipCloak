@@ -180,26 +180,31 @@ Sie enthält nur, was von den Standardwerten abweicht; fehlende Schlüssel nehme
 
 ### Installation per GPO, ESET PROTECT, baramundi, Intune …
 
-Das MSI installiert für alle Benutzer (pro Maschine, ohne Benutzereingabe, ohne Neustart):
+Das MSI installiert für alle Benutzer (pro Maschine, ohne Neustart). Per Doppelklick zeigt es einen
+Setup-Assistenten: Willkommen, Lizenz und eine Feature-Auswahl, in der NER-Plugin, *Start with Windows*
+(Autostart), Desktop-Verknüpfung und Installationsordner gewählt werden. Still trifft man dieselbe Auswahl
+über Eigenschaften oder `ADDLOCAL`:
 
 ```
 msiexec /i clipcloak-vX.Y.Z-windows-x86_64.msi /qn
 msiexec /i clipcloak-vX.Y.Z-windows-x86_64.msi /qn AUTOSTART=0 DESKTOPSHORTCUT=1
-msiexec /i clipcloak-vX.Y.Z-windows-x86_64.msi /qn ADDLOCAL=Main        (ohne NER-Plugin)
-msiexec /x clipcloak-vX.Y.Z-windows-x86_64.msi /qn                      (deinstallieren)
+msiexec /i clipcloak-vX.Y.Z-windows-x86_64.msi /qn ADDLOCAL=Main,Autostart   (ohne NER-Plugin)
+msiexec /x clipcloak-vX.Y.Z-windows-x86_64.msi /qn                           (deinstallieren)
 ```
 
-| Eigenschaft / Feature | Bedeutung | Standard |
-|---|---|---|
-| `AUTOSTART` | `1`: bei jeder Anmeldung für alle Benutzer starten (HKLM `…\Run`) | `1` |
-| `DESKTOPSHORTCUT` | `1`: Verknüpfung auf dem gemeinsamen Desktop | `0` |
-| Feature `Main` | Programm, Startmenü-Eintrag | immer |
-| Feature `NER` | NER-Plugin | installiert |
+| Feature | Bedeutung | Standard | Still |
+|---|---|---|---|
+| `Main` | Programm, Startmenü-Eintrag | immer | – |
+| `NER` | NER-Plugin | an | in `ADDLOCAL` weglassen |
+| `Autostart` | bei jeder Anmeldung für alle Benutzer starten (HKLM `…\Run`) | an | `AUTOSTART=0` schaltet ab |
+| `DesktopShortcut` | Verknüpfung auf dem gemeinsamen Desktop | aus | `DESKTOPSHORTCUT=1` schaltet ein |
+
+Die Auswahl lässt sich später unter *Einstellungen › Apps* (Ändern) anpassen. Der Assistent ist englisch.
 
 - **Gruppenrichtlinie:** *Computerkonfiguration › Richtlinien › Softwareeinstellungen › Softwareinstallation*, Paket von einer Netzwerkfreigabe (zugewiesen).
 - **ESET PROTECT:** Client-Task *Software Install* › *Install by direct package URL* (Bezeichnungen der englischen Oberfläche) (`http://…/…msi` oder `file://\\server\freigabe\…msi`). Der Task installiert MSI-Pakete immer still; msiexec-Schalter lassen sich dort nicht setzen, nur die Eigenschaften des Pakets, z. B. `AUTOSTART=0`.
 - **baramundi Management Suite:** Anwendung aus dem MSI (oder mit der Kommandozeile oben) anlegen und per Job zuweisen; zur Erkennung der installierten Version das MSI-Produkt (Upgrade-Code unten) oder den Registry-Wert `HKLM\SOFTWARE\it-an-der-bar\ClipCloak\Version` verwenden.
-- **Updates:** das neuere MSI genauso installieren; es ersetzt die alte Version (Major Upgrade, Upgrade-Code `{F6A0337E-BD8E-448C-AEFF-A1E4D06678B7}`). Eigenschaften wie `AUTOSTART=0` bei jedem Update erneut angeben.
+- **Updates:** das neuere MSI genauso installieren; es ersetzt die alte Version (Major Upgrade, Upgrade-Code `{F6A0337E-BD8E-448C-AEFF-A1E4D06678B7}`) und übernimmt die Feature-Auswahl der installierten Version (ab 0.1.10; `ADDLOCAL`/`REMOVE` auf der Kommandozeile haben Vorrang).
 - Benutzereinstellungen, Projekte und Logs bleiben in den Benutzerprofilen; die Deinstallation löscht sie nicht.
 - Der Windows-Build ist ein Ordner-Build: beim Start wird nichts nach `%TEMP%` entpackt, das passt zu AppLocker und Endpoint-Schutz. Hat die CI ein Code-Signing-Zertifikat (Variablen `SIGN_PFX_BASE64`, `SIGN_PFX_PASSWORD`), werden Programme und MSI signiert.
 

@@ -101,6 +101,21 @@ def make_table(headers: list[str]) -> QTableWidget:
     return tbl
 
 
+def autosize(tbl: QTableWidget) -> None:
+    """Fit the columns to the content once (first data), unless the user's widths were
+    restored – afterwards the user's own column widths stay as they are."""
+    if tbl.property("sized") or tbl.rowCount() == 0:
+        return
+    tbl.resizeColumnsToContents()
+    tbl.setProperty("sized", True)
+
+
+def track_table(state, key: str, tbl: QTableWidget) -> None:
+    """Remember the column widths of a table (see uistate)."""
+    if state is not None and state.track(key, tbl.horizontalHeader()):
+        tbl.setProperty("sized", True)
+
+
 def item(text, data=None, color: str | None = None) -> QTableWidgetItem:
     it = QTableWidgetItem("" if text is None else str(text))
     if data is not None:
@@ -122,4 +137,4 @@ def fill_replacements(tbl: QTableWidget, reps: list[Replacement], dark: bool = F
         tbl.setItem(i, 1, item(r.original))
         tbl.setItem(i, 2, item(r.replacement))
         tbl.setItem(i, 3, item(r.detector))
-    tbl.resizeColumnsToContents()
+    autosize(tbl)

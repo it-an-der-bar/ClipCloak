@@ -179,26 +179,31 @@ It only contains what differs from the defaults; missing keys use the defaults.
 
 ### Installation with GPO, ESET PROTECT, baramundi, Intune …
 
-The MSI installs for all users (per machine, no user interaction, no reboot):
+The MSI installs for all users (per machine, no reboot). Double-clicked, it shows a setup
+wizard: welcome, license, and a feature selection where you choose the NER plugin,
+*Start with Windows*, the desktop shortcut and the install folder (the wizard is in English). Silently, the same choices are
+made with properties or `ADDLOCAL`:
 
 ```
 msiexec /i clipcloak-vX.Y.Z-windows-x86_64.msi /qn
 msiexec /i clipcloak-vX.Y.Z-windows-x86_64.msi /qn AUTOSTART=0 DESKTOPSHORTCUT=1
-msiexec /i clipcloak-vX.Y.Z-windows-x86_64.msi /qn ADDLOCAL=Main        (without the NER plugin)
-msiexec /x clipcloak-vX.Y.Z-windows-x86_64.msi /qn                      (uninstall)
+msiexec /i clipcloak-vX.Y.Z-windows-x86_64.msi /qn ADDLOCAL=Main,Autostart   (without the NER plugin)
+msiexec /x clipcloak-vX.Y.Z-windows-x86_64.msi /qn                           (uninstall)
 ```
 
-| Property / feature | Meaning | Default |
-|---|---|---|
-| `AUTOSTART` | `1`: start for every user at logon (HKLM `…\Run`) | `1` |
-| `DESKTOPSHORTCUT` | `1`: shortcut on the common desktop | `0` |
-| Feature `Main` | program, start menu entry | always |
-| Feature `NER` | NER plugin | installed |
+| Feature | Meaning | Default | Silent |
+|---|---|---|---|
+| `Main` | program, start menu entry | always | – |
+| `NER` | NER plugin | on | leave out of `ADDLOCAL` |
+| `Autostart` | start for every user at logon (HKLM `…\Run`) | on | `AUTOSTART=0` turns it off |
+| `DesktopShortcut` | shortcut on the common desktop | off | `DESKTOPSHORTCUT=1` turns it on |
+
+The choice can be changed later under *Settings › Apps* (Change).
 
 - **Group Policy:** *Computer Configuration › Policies › Software Settings › Software installation*, package from a network share (assigned).
 - **ESET PROTECT:** client task *Software Install* › *Install by direct package URL* (`http://…/…msi` or `file://\\server\share\…msi`). The task always installs MSI packages silently; msiexec switches cannot be set there, only the package's properties, e.g. `AUTOSTART=0`.
 - **baramundi Management Suite:** create an application from the MSI (or with the command line above) and assign it with a job; to detect the installed version use the MSI product (upgrade code below) or the registry value `HKLM\SOFTWARE\it-an-der-bar\ClipCloak\Version`.
-- **Updates:** install the newer MSI the same way; it replaces the old version (major upgrade, upgrade code `{F6A0337E-BD8E-448C-AEFF-A1E4D06678B7}`). Pass properties such as `AUTOSTART=0` again on every update.
+- **Updates:** install the newer MSI the same way; it replaces the old version (major upgrade, upgrade code `{F6A0337E-BD8E-448C-AEFF-A1E4D06678B7}`) and keeps the feature selection of the installed version (from 0.1.10 on; `ADDLOCAL`/`REMOVE` on the command line take precedence).
 - User settings, projects and logs stay in the users' profiles; uninstalling does not delete them.
 - The Windows build is a folder build: nothing is unpacked to `%TEMP%` at start, which suits AppLocker and endpoint protection. If the CI has a code signing certificate (variables `SIGN_PFX_BASE64`, `SIGN_PFX_PASSWORD`), the programs and the MSI are signed.
 

@@ -1,25 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Windows installer (WiX Toolset 5). Built in CI, see .gitlab-ci.yml (build:windows):
+  Windows installer (WiX Toolset 5 + UI extension). Built in CI, see .gitlab-ci.yml (build:windows):
 
-    wix build packaging\windows\clipcloak.wxs -arch x64
+    wix extension add WixToolset.UI.wixext/5.0.2
+    wix build packaging\windows\clipcloak.wxs -arch x64 -ext WixToolset.UI.wixext
         -d Version=1.2.3 -d AppDir=<abs>\dist\clipcloak -d NerDir=<abs>\dist\clipcloak-ner
-        -d Icon=<abs>\clipcloak\resources\icon.ico -o clipcloak-v1.2.3-windows-x86_64.msi
+        -d Icon=<abs>\clipcloak\resources\icon.ico -d LicenseRtf=<abs>\dist\license.rtf
+        -o clipcloak-v1.2.3-windows-x86_64.msi
 
   Per-machine installation to "C:\Program Files\ClipCloak" (program in the folder,
-  NER plugin in "ner\"). Silent installation, e.g. for GPO, ESET PROTECT, baramundi:
+  NER plugin in "ner\"). Interactive setup: welcome, license, feature selection
+  (program, NER plugin, autostart, desktop shortcut, install folder), install.
 
+  Silent installation, e.g. for GPO, ESET PROTECT, baramundi:
     msiexec /i clipcloak-v1.2.3-windows-x86_64.msi /qn
-    msiexec /i clipcloak-v1.2.3-windows-x86_64.msi /qn AUTOSTART=0 ADDLOCAL=Main
-    msiexec /x {product code} /qn     or     msiexec /x clipcloak-v1.2.3-windows-x86_64.msi /qn
+    msiexec /i clipcloak-v1.2.3-windows-x86_64.msi /qn AUTOSTART=0 DESKTOPSHORTCUT=1
+    msiexec /i clipcloak-v1.2.3-windows-x86_64.msi /qn ADDLOCAL=Main,Autostart   (without NER)
+    msiexec /x clipcloak-v1.2.3-windows-x86_64.msi /qn
 
-  Properties:
-    AUTOSTART=1        start for every user at logon (HKLM Run), default 1
-    DESKTOPSHORTCUT=1  shortcut on the common desktop, default 0
-  Features: Main (always), NER (plugin, default on; leave out with ADDLOCAL=Main)
-  A newer version replaces an older one (major upgrade, same UpgradeCode).
+  Features: Main (always), NER (on), Autostart (on; off with AUTOSTART=0),
+            DesktopShortcut (off; on with DESKTOPSHORTCUT=1)
+  A newer version replaces an older one (major upgrade, same UpgradeCode) and keeps
+  the feature selection of the installed version.
 -->
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package Name="ClipCloak"
            Manufacturer="it-an-der-bar"
            Version="$(var.Version)"
@@ -35,9 +40,11 @@
     <Property Id="ARPPRODUCTICON" Value="AppIcon" />
     <Property Id="ARPURLINFOABOUT" Value="https://github.com/it-an-der-bar/ClipCloak" />
     <Property Id="ARPHELPLINK" Value="https://github.com/it-an-der-bar/ClipCloak" />
-    <Property Id="ARPNOMODIFY" Value="1" />
     <Property Id="AUTOSTART" Value="1" Secure="yes" />
     <Property Id="DESKTOPSHORTCUT" Value="0" Secure="yes" />
+
+    <ui:WixUI Id="WixUI_FeatureTree" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="ClipCloak">
@@ -50,7 +57,7 @@
                          Type="string" Value="$(var.Version)" />
         </Component>
 
-        <Component Id="Autostart" Guid="090879F5-C7E5-46EE-8207-BB744EC70456" Condition="AUTOSTART = 1">
+        <Component Id="Autostart" Guid="090879F5-C7E5-46EE-8207-BB744EC70456">
           <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Run" Name="clipcloak"
                          Type="string" Value="&quot;[INSTALLFOLDER]clipcloak.exe&quot;" KeyPath="yes" />
         </Component>
@@ -68,7 +75,7 @@
     </StandardDirectory>
 
     <StandardDirectory Id="DesktopFolder">
-      <Component Id="DesktopShortcut" Guid="5B1F4CF9-6F21-4428-BEDE-2954BB9F8473" Condition="DESKTOPSHORTCUT = 1">
+      <Component Id="DesktopShortcut" Guid="5B1F4CF9-6F21-4428-BEDE-2954BB9F8473">
         <Shortcut Id="DesktopShortcut" Name="ClipCloak"
                   Description="Redact, anonymise or pseudonymise clipboard contents"
                   Target="[INSTALLFOLDER]clipcloak.exe" WorkingDirectory="INSTALLFOLDER" />
@@ -85,16 +92,28 @@
       <Files Include="$(var.NerDir)\**" />
     </ComponentGroup>
 
-    <Feature Id="Main" Title="ClipCloak" Level="1" AllowAbsent="no">
+    <Feature Id="Main" Title="ClipCloak" Level="1" AllowAbsent="no" ConfigurableDirectory="INSTALLFOLDER"
+             Description="The program and its start menu entry.">
       <ComponentGroupRef Id="AppFiles" />
       <ComponentRef Id="InstallInfo" />
-      <ComponentRef Id="Autostart" />
       <ComponentRef Id="StartMenuShortcut" />
-      <ComponentRef Id="DesktopShortcut" />
     </Feature>
 
-    <Feature Id="NER" Title="NER plugin (names and companies, spaCy)" Level="1">
+    <Feature Id="NER" Title="NER plugin" Level="1"
+             Description="Finds names of people and companies (spaCy, German and English models). Runs locally.">
       <ComponentGroupRef Id="NerFiles" />
+    </Feature>
+
+    <Feature Id="Autostart" Title="Start with Windows" Level="1"
+             Description="Start ClipCloak for every user at logon.">
+      <Level Value="0" Condition="AUTOSTART = &quot;0&quot;" />
+      <ComponentRef Id="Autostart" />
+    </Feature>
+
+    <Feature Id="DesktopShortcut" Title="Desktop shortcut" Level="1000"
+             Description="Shortcut on the desktop of all users.">
+      <Level Value="1" Condition="DESKTOPSHORTCUT = &quot;1&quot;" />
+      <ComponentRef Id="DesktopShortcut" />
     </Feature>
   </Package>
 </Wix>

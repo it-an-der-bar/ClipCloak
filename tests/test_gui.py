@@ -156,6 +156,30 @@ class GuiTest(unittest.TestCase):
         pop._choose("")
         spin(50)
 
+    def test_layout_is_remembered(self):
+        from clipcloak.gui.app import Controller
+        c = self.c
+        c.show_main("history")
+        w = c.main
+        w.resize(900, 700)
+        spin(50)
+        w.history.split.setSizes([300, 350])
+        before = w.history.split.sizes()
+        w.history.table.setColumnWidth(0, 222)
+        w.save_state()
+        self.assertTrue((self.tmp and os.path.exists(os.path.join(self.tmp, "ui.ini"))))
+        c2 = Controller(app, Config(os.path.join(self.tmp, "config.yaml")))
+        try:
+            c2.show_main()
+            spin(50)
+            self.assertEqual(c2.main.tabs.currentIndex(), 1)          # history tab again
+            self.assertEqual(c2.main.history.table.columnWidth(0), 222)
+            self.assertEqual(c2.main.history.split.sizes(), before)
+        finally:
+            c2.shutdown()
+            c2.main.deleteLater()
+            spin(50)
+
     def test_policy_locks_settings(self):
         from clipcloak.gui.settings_dialog import SettingsDialog
         from clipcloak.policy import SystemConfig

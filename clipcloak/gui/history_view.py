@@ -9,7 +9,8 @@ from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMessageBox, QPushButton, QS
                                QVBoxLayout, QWidget)
 
 from ..i18n import t
-from .widgets import DiffView, fill_replacements, is_dark, item, make_table, replacements_table
+from .widgets import (DiffView, autosize, fill_replacements, is_dark, item, make_table, replacements_table,
+                      track_table)
 
 
 def fmt_time(ts: float) -> str:
@@ -41,17 +42,27 @@ class HistoryView(QWidget):
         self.btn_delete.clicked.connect(self._delete)
         self.btn_clear.clicked.connect(self._clear)
 
-        detail = QWidget()
-        dl = QVBoxLayout(detail)
-        dl.setContentsMargins(0, 0, 0, 0)
-        dl.addWidget(self.diff, 3)
-        dl.addWidget(self.warn)
-        dl.addWidget(self.reps, 1)
-        split = QSplitter(Qt.Vertical)
-        split.addWidget(self.table)
-        split.addWidget(detail)
-        split.setStretchFactor(0, 1)
-        split.setStretchFactor(1, 3)
+        self.table.setMinimumHeight(110)
+        diff_box = QWidget()
+        dbl = QVBoxLayout(diff_box)
+        dbl.setContentsMargins(0, 0, 0, 0)
+        dbl.addWidget(self.diff, 1)
+        dbl.addWidget(self.warn)
+        self.detail_split = QSplitter(Qt.Vertical)
+        self.detail_split.addWidget(diff_box)
+        self.detail_split.addWidget(self.reps)
+        self.detail_split.setChildrenCollapsible(False)
+        self.split = QSplitter(Qt.Vertical)
+        self.split.addWidget(self.table)
+        self.split.addWidget(self.detail_split)
+        self.split.setChildrenCollapsible(False)
+        split = self.split
+        st = getattr(controller, "ui_state", None)
+        if st is not None:
+            st.track("history/split", self.split, [260, 520])
+            st.track("history/detail", self.detail_split, [380, 140])
+        track_table(st, "history/columns", self.table)
+        track_table(st, "history/replacements", self.reps)
         btns = QHBoxLayout()
         for b in (self.btn_copy_out, self.btn_copy_in, self.btn_workbench, self.btn_delete):
             btns.addWidget(b)
@@ -75,7 +86,7 @@ class HistoryView(QWidget):
             self.table.setItem(i, 3, item(e.project or t("project.session")))
             self.table.setItem(i, 4, item(len(e.replacements)))
             self.table.setItem(i, 5, item(preview))
-        self.table.resizeColumnsToContents()
+        autosize(self.table)
         if sel is not None:
             for i, e in enumerate(entries):
                 if e.id == sel:
