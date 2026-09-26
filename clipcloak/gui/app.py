@@ -329,7 +329,8 @@ class Controller(QObject):
             log.warning("unknown action %s", action)
 
     def process_clipboard(self, mode: str, source: str, content: ClipContent | None = None,
-                          expect_hash: str | None = None):
+                          expect_hash: str | None = None, types: set | None = None, after=None):
+        """``types``: only change findings of these types (watcher rules); ``after`` runs when done."""
         content = content if content is not None else self.clip.read()
         text = content.text
         if not text:
@@ -345,12 +346,16 @@ class Controller(QObject):
             html = strip_cf_html(content.html)
         engine = self.engine
 
+        def run(s):
+            if types is None:
+                return engine.process(s, mode)
+            return engine.process(s, mode, findings=[f for f in engine.analyze(s) if f.type in types])
+
         def job():
-            res = engine.process(text, mode)
+            res = run(text)
             html_out = None
             if html:
-                fn = engine.revert if mode == "revert" else (lambda s: engine.process(s, mode))
-                html_out = process_html(html, fn)
+                html_out = process_html(html, engine.revert if mode == "revert" else run)
             return res, html_out
 
         def done(r):
@@ -366,6 +371,8 @@ class Controller(QObject):
             if res.changed and mode != "revert" and self.cfg.get("llm.enabled") \
                     and self.cfg.get("llm.verify_output") == "warn":
                 self.llm_verify(res.output, show=False, result=res)
+            if after is not None:
+                after()
 
         self.submit(job, done, label=t("job.clipboard", mode=t("mode." + mode)))
 
@@ -511,25 +518,45 @@ class Controller(QObject):
             if not findings:
                 event("log.watch_none")
                 return
-            crit_types = set(self.cfg.get("watcher.critical_types") or [])
-            critical = [f for f in findings if f.type in crit_types]
+            rules = self.watch_rules(mode)
+            auto = [f for f in findings if rules.get(f.type) == "auto"]
+            ask = [f for f in findings if rules.get(f.type) == "ask"]
             summary = _summary(findings)
-            if mode == "always":
-                act = self.cfg.get("watcher.action", "pseudonymize")
-                event("log.watch_findings", summary=summary, decision=t("mode." + act))
-                self.process_clipboard(act, "watcher", content, h)
-            elif mode == "critical" and critical:
-                act = self.cfg.get("watcher.critical_action", "pseudonymize")
-                event("log.watch_findings", summary=summary, decision=t("mode." + act))
-                self.process_clipboard(act, "watcher", content, h)
-            elif mode == "notify" or (mode == "critical" and self.cfg.get("watcher.notify_noncritical", True)):
-                event("log.watch_findings", summary=summary, decision=t("log.decision_popup"))
-                self._findings_popup(findings, content, h)
-            else:
+            if not auto and not ask:
                 event("log.watch_findings", summary=summary, decision=t("log.decision_ignore"))
+                return
+            if auto:
+                act = self.cfg.get("watcher.action", "pseudonymize")
+                event("log.watch_findings", summary=_summary(auto), decision=t("mode." + act))
+                if ask:
+                    event("log.watch_findings", summary=_summary(ask), decision=t("log.decision_popup"))
+                self.process_clipboard(act, "watcher", content, h, types={f.type for f in auto},
+                                       after=(lambda: self._findings_popup(ask, None, None)) if ask else None)
+            else:
+                event("log.watch_findings", summary=summary, decision=t("log.decision_popup"))
+                self._findings_popup(ask, content, h)
 
         event("log.watch_change", chars=len(text))
         self.submit(lambda: engine.analyze(text), done, label=t("job.watch"), quiet=True)
+
+    def watch_rules(self, mode: str | None = None) -> dict[str, str]:
+        """Finding type -> auto | ask | ignore for the current watcher mode.
+        notify: every category that is not ignored asks; always: they are all changed;
+        critical ("by category"): as set per category."""
+        from ..core.entities import CATEGORY_OF, DEFAULT_CATEGORY_RULES
+        mode = mode or self.cfg.get("watcher.mode", "off")
+        cats = dict(DEFAULT_CATEGORY_RULES, **(self.cfg.get("watcher.categories") or {}))
+        out = {}
+        for typ, cat in CATEGORY_OF.items():
+            rule = cats.get(cat, "ask")
+            if rule not in ("auto", "ask", "ignore"):
+                rule = "ask"
+            if mode == "notify" and rule == "auto":
+                rule = "ask"
+            elif mode == "always" and rule == "ask":
+                rule = "auto"
+            out[typ] = rule
+        return out
 
     def hotkey_text(self, action: str) -> str:
         """Configured global shortcut of an action, or "" if none or it could not be registered."""
@@ -579,7 +606,7 @@ class Controller(QObject):
         if key in ("pseudonymize", "anonymize", "redact"):
             self.process_clipboard(key, "popup", content, h)
         elif key == "details":
-            self.show_workbench(content.text)
+            self.show_workbench((content.text if content is not None else self.clip.read().text) or "")
 
     # ================================================================= LLM
     def llm_verify(self, text: str, show: bool = False, result: Result | None = None):

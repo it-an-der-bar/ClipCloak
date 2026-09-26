@@ -95,29 +95,29 @@ P = [
      "Die HTML-Fassung (Outlook, Teams, Browser) zusammen mit dem Text verarbeiten.", {}),
 
     ("watcher.mode", "enum", "watcher", "Watcher mode", "Überwachungsmodus",
-     "off: no watching. notify: popup when something sensitive is copied. critical automatically: secrets, "
-     "keys, IBANs and cards are processed at once. always: everything copied is processed.",
-     "aus: keine Überwachung. melden: Popup, wenn etwas Sensibles kopiert wird. kritisch automatisch: "
-     "Secrets, Schlüssel, IBANs und Karten werden sofort verarbeitet. immer: alles Kopierte wird verarbeitet.",
-     {"choices": ["off", "notify", "critical", "always"], "labels": choice("watch.")}),
-    ("watcher.action", "enum", "watcher", "Action in mode \"always\"", "Aktion im Modus \"immer\"",
-     "What the watcher does in mode \"always\".", "Was die Überwachung im Modus \"immer\" tut.",
+     "off: no watching. by category: per category as set in the category policies (always change / inform / "
+     "nothing). inform about everything: every category that is not set to nothing asks. change everything: "
+     "every category that is not set to nothing is changed at once.",
+     "aus: keine Überwachung. nach Kategorie: je Kategorie wie in den Kategorie-Richtlinien (immer ändern / "
+     "informieren / nichts). alles melden: jede Kategorie, die nicht auf nichts steht, fragt nach. alles ändern: "
+     "jede Kategorie, die nicht auf nichts steht, wird sofort geändert.",
+     {"choices": ["off", "critical", "notify", "always"], "labels": choice("watch.")}),
+    ("watcher.action", "enum", "watcher", "Action for automatic changes", "Aktion bei automatischer Änderung",
+     "What the watcher does with findings it changes automatically (tracking in links is always removed).",
+     "Was die Überwachung mit automatisch geänderten Funden tut (Tracking in Links wird immer entfernt).",
      {"choices": ["pseudonymize", "anonymize", "redact"], "labels": choice("mode.")}),
-    ("watcher.critical_action", "enum", "watcher", "Action for critical findings",
-     "Aktion bei kritischen Funden",
-     "What the watcher does with critical findings in mode \"critical automatically\".",
-     "Was die Überwachung im Modus \"kritisch automatisch\" mit kritischen Funden tut.",
-     {"choices": ["pseudonymize", "anonymize", "redact"], "labels": choice("mode.")}),
-    ("watcher.notify_noncritical", "bool", "watcher", "Popup for non-critical findings",
-     "Popup bei nicht kritischen Funden",
-     "In mode \"critical automatically\": ask for other findings.",
-     "Im Modus \"kritisch automatisch\": bei anderen Funden nachfragen.", {}),
-    ("watcher.critical_types", "list", "watcher", "Critical finding types", "Kritische Fundtypen",
-     "Types handled automatically in mode \"critical automatically\", e.g. PRIVATE_KEY, SECRET, IBAN, "
-     "CREDIT_CARD. Replaces the user's selection.",
-     "Typen, die im Modus \"kritisch automatisch\" sofort verarbeitet werden, z. B. PRIVATE_KEY, SECRET, IBAN, "
-     "CREDIT_CARD. Ersetzt die Auswahl des Benutzers.", {"additive": False}),
 ]
+
+from clipcloak.core.entities import CATEGORIES as FINDING_CATEGORIES  # noqa: E402
+
+for cat, types in FINDING_CATEGORIES.items():
+    P.append((f"watcher.categories.{cat}", "enum", "watcher",
+              "Category: " + I18N["en"]["cat." + cat], "Kategorie: " + I18N["de"]["cat." + cat],
+              f"Finding types: {', '.join(types)}. always change: processed at once; inform: popup; "
+              "nothing: the watcher ignores them.",
+              f"Fundtypen: {', '.join(types)}. immer ändern: sofort verarbeitet; informieren: Popup; "
+              "nichts: die Überwachung ignoriert sie.",
+              {"choices": ["auto", "ask", "ignore"], "labels": choice("rule.")}))
 
 for did in DEFAULTS["detectors"]["enabled"]:
     P.append((f"detectors.enabled.{did}", "bool", "detectors",

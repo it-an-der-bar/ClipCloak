@@ -5,8 +5,12 @@
 # Group Policy (ADMX) values in the registry take precedence over this file.
 
 watcher:
-  mode: critical            # off | notify | critical | always
-  critical_action: pseudonymize
+  mode: critical            # off | critical (by category) | notify (inform) | always (change)
+  action: pseudonymize
+  categories:               # auto = always change, ask = inform, ignore = nothing
+    tracking: auto
+    secrets: auto
+    persons: ask
 
 llm:
   enabled: true

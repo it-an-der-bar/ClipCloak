@@ -52,11 +52,7 @@ Nachher  yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/2
   - *Screenshot → Text*: Ein Vision-Modell liest ein Bild aus der Zwischenablage aus, der Text wird anschließend verarbeitet.
   - *Prüfung*: Der bereits verarbeitete Text geht ans LLM, das mögliche Reste meldet. Diese lassen sich per Klick als eigene Begriffe übernehmen.
   - *Erkenner*: Das LLM dient als zusätzlicher Namens-/Firmen-Erkenner. Dabei geht der Originaltext an deinen Endpunkt, daher ist das standardmäßig aus.
-- **Überwachung der Zwischenablage** mit vier Modi:
-  - *aus*
-  - *melden*: Ein Popup bietet Pseudonymisieren, Anonymisieren, Schwärzen oder Details an.
-  - *kritisch automatisch*: Secrets, Schlüssel, IBAN und Karten werden sofort verarbeitet, der Rest fragt nach.
-  - *immer*
+- **Überwachung der Zwischenablage**, je Kategorie einstellbar (Einstellungen › Überwachung): *immer ändern*, *informieren* (ein Popup bietet Pseudonymisieren, Anonymisieren, Schwärzen oder Details an) oder *nichts*. Kategorien: Herkunft/Tracking in Links, Secrets und Schlüssel, Bank- und Kartendaten, Personen und Konten, Organisationen und Orte, Netzwerk, Infrastruktur-Namen, eigene Begriffe. Standard: Tracking, Secrets und Bankdaten werden sofort geändert, der Rest informiert. Enthält ein Text beides, wird zuerst der automatische Teil erledigt und das Popup fragt für den Rest. Modi: *aus*, *nach Kategorie*, *alles melden*, *alles ändern* (die letzten beiden beachten *nichts* weiterhin).
 - **Werkbank** mit Live-Markierung, Fundtabelle und Rechtsklick-Aktionen (Ausnahme oder eigener Begriff). Beliebigen markierten Text in der Eingabe per Rechtsklick auf *immer ersetzen* oder *nie ersetzen* setzen.
 - **Verlauf** mit Vorher/Nachher-Diff jeder Aktion.
 - **Zuordnungsübersicht**: was wurde wodurch ersetzt, mit Filter und CSV-Export.

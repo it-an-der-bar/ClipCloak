@@ -64,35 +64,76 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
 
 Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: clipboard.process_html</string>
       <string id="P_watcher_mode">Überwachungsmodus</string>
-      <string id="P_watcher_mode_Help">aus: keine Überwachung. melden: Popup, wenn etwas Sensibles kopiert wird. kritisch automatisch: Secrets, Schlüssel, IBANs und Karten werden sofort verarbeitet. immer: alles Kopierte wird verarbeitet.
+      <string id="P_watcher_mode_Help">aus: keine Überwachung. nach Kategorie: je Kategorie wie in den Kategorie-Richtlinien (immer ändern / informieren / nichts). alles melden: jede Kategorie, die nicht auf nichts steht, fragt nach. alles ändern: jede Kategorie, die nicht auf nichts steht, wird sofort geändert.
 
 Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.mode</string>
       <string id="P_watcher_mode_off">aus</string>
-      <string id="P_watcher_mode_notify">melden</string>
-      <string id="P_watcher_mode_critical">kritisch automatisch</string>
-      <string id="P_watcher_mode_always">immer</string>
-      <string id="P_watcher_action">Aktion im Modus "immer"</string>
-      <string id="P_watcher_action_Help">Was die Überwachung im Modus "immer" tut.
+      <string id="P_watcher_mode_critical">nach Kategorie</string>
+      <string id="P_watcher_mode_notify">alles melden</string>
+      <string id="P_watcher_mode_always">alles ändern</string>
+      <string id="P_watcher_action">Aktion bei automatischer Änderung</string>
+      <string id="P_watcher_action_Help">Was die Überwachung mit automatisch geänderten Funden tut (Tracking in Links wird immer entfernt).
 
 Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.action</string>
       <string id="P_watcher_action_pseudonymize">Pseudonymisieren</string>
       <string id="P_watcher_action_anonymize">Anonymisieren</string>
       <string id="P_watcher_action_redact">Schwärzen</string>
-      <string id="P_watcher_critical_action">Aktion bei kritischen Funden</string>
-      <string id="P_watcher_critical_action_Help">Was die Überwachung im Modus "kritisch automatisch" mit kritischen Funden tut.
+      <string id="P_watcher_categories_tracking">Kategorie: Herkunft / Tracking in Links</string>
+      <string id="P_watcher_categories_tracking_Help">Fundtypen: TRACKING. immer ändern: sofort verarbeitet; informieren: Popup; nichts: die Überwachung ignoriert sie.
 
-Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.critical_action</string>
-      <string id="P_watcher_critical_action_pseudonymize">Pseudonymisieren</string>
-      <string id="P_watcher_critical_action_anonymize">Anonymisieren</string>
-      <string id="P_watcher_critical_action_redact">Schwärzen</string>
-      <string id="P_watcher_notify_noncritical">Popup bei nicht kritischen Funden</string>
-      <string id="P_watcher_notify_noncritical_Help">Im Modus "kritisch automatisch": bei anderen Funden nachfragen.
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.categories.tracking</string>
+      <string id="P_watcher_categories_tracking_auto">immer ändern</string>
+      <string id="P_watcher_categories_tracking_ask">informieren</string>
+      <string id="P_watcher_categories_tracking_ignore">nichts</string>
+      <string id="P_watcher_categories_secrets">Kategorie: Secrets und Schlüssel</string>
+      <string id="P_watcher_categories_secrets_Help">Fundtypen: SECRET, PRIVATE_KEY, CERTIFICATE. immer ändern: sofort verarbeitet; informieren: Popup; nichts: die Überwachung ignoriert sie.
 
-Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.notify_noncritical</string>
-      <string id="P_watcher_critical_types">Kritische Fundtypen</string>
-      <string id="P_watcher_critical_types_Help">Typen, die im Modus "kritisch automatisch" sofort verarbeitet werden, z. B. PRIVATE_KEY, SECRET, IBAN, CREDIT_CARD. Ersetzt die Auswahl des Benutzers.
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.categories.secrets</string>
+      <string id="P_watcher_categories_secrets_auto">immer ändern</string>
+      <string id="P_watcher_categories_secrets_ask">informieren</string>
+      <string id="P_watcher_categories_secrets_ignore">nichts</string>
+      <string id="P_watcher_categories_finance">Kategorie: Bank- und Kartendaten</string>
+      <string id="P_watcher_categories_finance_Help">Fundtypen: IBAN, CREDIT_CARD. immer ändern: sofort verarbeitet; informieren: Popup; nichts: die Überwachung ignoriert sie.
 
-Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.critical_types</string>
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.categories.finance</string>
+      <string id="P_watcher_categories_finance_auto">immer ändern</string>
+      <string id="P_watcher_categories_finance_ask">informieren</string>
+      <string id="P_watcher_categories_finance_ignore">nichts</string>
+      <string id="P_watcher_categories_persons">Kategorie: Personen und Konten</string>
+      <string id="P_watcher_categories_persons_Help">Fundtypen: PERSON, EMAIL, USERNAME, PHONE, SID. immer ändern: sofort verarbeitet; informieren: Popup; nichts: die Überwachung ignoriert sie.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.categories.persons</string>
+      <string id="P_watcher_categories_persons_auto">immer ändern</string>
+      <string id="P_watcher_categories_persons_ask">informieren</string>
+      <string id="P_watcher_categories_persons_ignore">nichts</string>
+      <string id="P_watcher_categories_orgs">Kategorie: Organisationen und Orte</string>
+      <string id="P_watcher_categories_orgs_Help">Fundtypen: ORG, LOCATION. immer ändern: sofort verarbeitet; informieren: Popup; nichts: die Überwachung ignoriert sie.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.categories.orgs</string>
+      <string id="P_watcher_categories_orgs_auto">immer ändern</string>
+      <string id="P_watcher_categories_orgs_ask">informieren</string>
+      <string id="P_watcher_categories_orgs_ignore">nichts</string>
+      <string id="P_watcher_categories_network">Kategorie: Netzwerk (IP, MAC, Domains, Hosts)</string>
+      <string id="P_watcher_categories_network_Help">Fundtypen: IPV4, IPV6, MAC, DOMAIN, HOSTNAME. immer ändern: sofort verarbeitet; informieren: Popup; nichts: die Überwachung ignoriert sie.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.categories.network</string>
+      <string id="P_watcher_categories_network_auto">immer ändern</string>
+      <string id="P_watcher_categories_network_ask">informieren</string>
+      <string id="P_watcher_categories_network_ignore">nichts</string>
+      <string id="P_watcher_categories_infra">Kategorie: Infrastruktur-Namen</string>
+      <string id="P_watcher_categories_infra_Help">Fundtypen: IDENTIFIER. immer ändern: sofort verarbeitet; informieren: Popup; nichts: die Überwachung ignoriert sie.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.categories.infra</string>
+      <string id="P_watcher_categories_infra_auto">immer ändern</string>
+      <string id="P_watcher_categories_infra_ask">informieren</string>
+      <string id="P_watcher_categories_infra_ignore">nichts</string>
+      <string id="P_watcher_categories_custom">Kategorie: Eigene Begriffe</string>
+      <string id="P_watcher_categories_custom_Help">Fundtypen: CUSTOM. immer ändern: sofort verarbeitet; informieren: Popup; nichts: die Überwachung ignoriert sie.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.categories.custom</string>
+      <string id="P_watcher_categories_custom_auto">immer ändern</string>
+      <string id="P_watcher_categories_custom_ask">informieren</string>
+      <string id="P_watcher_categories_custom_ignore">nichts</string>
       <string id="P_detectors_enabled_pem">Erkennung: PEM-Schlüssel / Zertifikate</string>
       <string id="P_detectors_enabled_pem_Help">Diese Erkennung ein- oder ausschalten.
 
@@ -346,9 +387,15 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <presentation id="P_processing_anonymize_style"><dropdownList refId="P_processing_anonymize_style" noSort="true">Art der Anonymisierung</dropdownList></presentation>
       <presentation id="P_processing_redact_template"><textBox refId="P_processing_redact_template"><label>Schwärzungstext</label></textBox></presentation>
       <presentation id="P_watcher_mode"><dropdownList refId="P_watcher_mode" noSort="true">Überwachungsmodus</dropdownList></presentation>
-      <presentation id="P_watcher_action"><dropdownList refId="P_watcher_action" noSort="true">Aktion im Modus "immer"</dropdownList></presentation>
-      <presentation id="P_watcher_critical_action"><dropdownList refId="P_watcher_critical_action" noSort="true">Aktion bei kritischen Funden</dropdownList></presentation>
-      <presentation id="P_watcher_critical_types"><listBox refId="P_watcher_critical_types">Kritische Fundtypen</listBox></presentation>
+      <presentation id="P_watcher_action"><dropdownList refId="P_watcher_action" noSort="true">Aktion bei automatischer Änderung</dropdownList></presentation>
+      <presentation id="P_watcher_categories_tracking"><dropdownList refId="P_watcher_categories_tracking" noSort="true">Kategorie: Herkunft / Tracking in Links</dropdownList></presentation>
+      <presentation id="P_watcher_categories_secrets"><dropdownList refId="P_watcher_categories_secrets" noSort="true">Kategorie: Secrets und Schlüssel</dropdownList></presentation>
+      <presentation id="P_watcher_categories_finance"><dropdownList refId="P_watcher_categories_finance" noSort="true">Kategorie: Bank- und Kartendaten</dropdownList></presentation>
+      <presentation id="P_watcher_categories_persons"><dropdownList refId="P_watcher_categories_persons" noSort="true">Kategorie: Personen und Konten</dropdownList></presentation>
+      <presentation id="P_watcher_categories_orgs"><dropdownList refId="P_watcher_categories_orgs" noSort="true">Kategorie: Organisationen und Orte</dropdownList></presentation>
+      <presentation id="P_watcher_categories_network"><dropdownList refId="P_watcher_categories_network" noSort="true">Kategorie: Netzwerk (IP, MAC, Domains, Hosts)</dropdownList></presentation>
+      <presentation id="P_watcher_categories_infra"><dropdownList refId="P_watcher_categories_infra" noSort="true">Kategorie: Infrastruktur-Namen</dropdownList></presentation>
+      <presentation id="P_watcher_categories_custom"><dropdownList refId="P_watcher_categories_custom" noSort="true">Kategorie: Eigene Begriffe</dropdownList></presentation>
       <presentation id="P_lists_custom_terms"><listBox refId="P_lists_custom_terms">Eigene Begriffe</listBox></presentation>
       <presentation id="P_lists_known_domains"><listBox refId="P_lists_known_domains">Bekannte Domains</listBox></presentation>
       <presentation id="P_lists_allow_terms"><listBox refId="P_lists_allow_terms">Erlaubte Begriffe</listBox></presentation>

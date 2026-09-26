@@ -137,11 +137,11 @@
           <item displayName="$(string.P_watcher_mode_off)">
             <value><string>off</string></value>
           </item>
-          <item displayName="$(string.P_watcher_mode_notify)">
-            <value><string>notify</string></value>
-          </item>
           <item displayName="$(string.P_watcher_mode_critical)">
             <value><string>critical</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_mode_notify)">
+            <value><string>notify</string></value>
           </item>
           <item displayName="$(string.P_watcher_mode_always)">
             <value><string>always</string></value>
@@ -166,34 +166,140 @@
         </enum>
       </elements>
     </policy>
-    <policy name="P_watcher_critical_action" class="Both" displayName="$(string.P_watcher_critical_action)" explainText="$(string.P_watcher_critical_action_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_critical_action)">
+    <policy name="P_watcher_categories_tracking" class="Both" displayName="$(string.P_watcher_categories_tracking)" explainText="$(string.P_watcher_categories_tracking_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_categories_tracking)">
       <parentCategory ref="C_watcher" />
       <supportedOn ref="SUPPORTED_0_1_9" />
       <elements>
-        <enum id="P_watcher_critical_action" valueName="watcher.critical_action" required="true">
-          <item displayName="$(string.P_watcher_critical_action_pseudonymize)">
-            <value><string>pseudonymize</string></value>
+        <enum id="P_watcher_categories_tracking" valueName="watcher.categories.tracking" required="true">
+          <item displayName="$(string.P_watcher_categories_tracking_auto)">
+            <value><string>auto</string></value>
           </item>
-          <item displayName="$(string.P_watcher_critical_action_anonymize)">
-            <value><string>anonymize</string></value>
+          <item displayName="$(string.P_watcher_categories_tracking_ask)">
+            <value><string>ask</string></value>
           </item>
-          <item displayName="$(string.P_watcher_critical_action_redact)">
-            <value><string>redact</string></value>
+          <item displayName="$(string.P_watcher_categories_tracking_ignore)">
+            <value><string>ignore</string></value>
           </item>
         </enum>
       </elements>
     </policy>
-    <policy name="P_watcher_notify_noncritical" class="Both" displayName="$(string.P_watcher_notify_noncritical)" explainText="$(string.P_watcher_notify_noncritical_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="watcher.notify_noncritical">
-      <parentCategory ref="C_watcher" />
-      <supportedOn ref="SUPPORTED_0_1_9" />
-      <enabledValue><decimal value="1" /></enabledValue>
-      <disabledValue><decimal value="0" /></disabledValue>
-    </policy>
-    <policy name="P_watcher_critical_types" class="Both" displayName="$(string.P_watcher_critical_types)" explainText="$(string.P_watcher_critical_types_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_critical_types)">
+    <policy name="P_watcher_categories_secrets" class="Both" displayName="$(string.P_watcher_categories_secrets)" explainText="$(string.P_watcher_categories_secrets_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_categories_secrets)">
       <parentCategory ref="C_watcher" />
       <supportedOn ref="SUPPORTED_0_1_9" />
       <elements>
-        <list id="P_watcher_critical_types" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak\watcher.critical_types" valuePrefix="" />
+        <enum id="P_watcher_categories_secrets" valueName="watcher.categories.secrets" required="true">
+          <item displayName="$(string.P_watcher_categories_secrets_auto)">
+            <value><string>auto</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_secrets_ask)">
+            <value><string>ask</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_secrets_ignore)">
+            <value><string>ignore</string></value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="P_watcher_categories_finance" class="Both" displayName="$(string.P_watcher_categories_finance)" explainText="$(string.P_watcher_categories_finance_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_categories_finance)">
+      <parentCategory ref="C_watcher" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <enum id="P_watcher_categories_finance" valueName="watcher.categories.finance" required="true">
+          <item displayName="$(string.P_watcher_categories_finance_auto)">
+            <value><string>auto</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_finance_ask)">
+            <value><string>ask</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_finance_ignore)">
+            <value><string>ignore</string></value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="P_watcher_categories_persons" class="Both" displayName="$(string.P_watcher_categories_persons)" explainText="$(string.P_watcher_categories_persons_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_categories_persons)">
+      <parentCategory ref="C_watcher" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <enum id="P_watcher_categories_persons" valueName="watcher.categories.persons" required="true">
+          <item displayName="$(string.P_watcher_categories_persons_auto)">
+            <value><string>auto</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_persons_ask)">
+            <value><string>ask</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_persons_ignore)">
+            <value><string>ignore</string></value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="P_watcher_categories_orgs" class="Both" displayName="$(string.P_watcher_categories_orgs)" explainText="$(string.P_watcher_categories_orgs_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_categories_orgs)">
+      <parentCategory ref="C_watcher" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <enum id="P_watcher_categories_orgs" valueName="watcher.categories.orgs" required="true">
+          <item displayName="$(string.P_watcher_categories_orgs_auto)">
+            <value><string>auto</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_orgs_ask)">
+            <value><string>ask</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_orgs_ignore)">
+            <value><string>ignore</string></value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="P_watcher_categories_network" class="Both" displayName="$(string.P_watcher_categories_network)" explainText="$(string.P_watcher_categories_network_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_categories_network)">
+      <parentCategory ref="C_watcher" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <enum id="P_watcher_categories_network" valueName="watcher.categories.network" required="true">
+          <item displayName="$(string.P_watcher_categories_network_auto)">
+            <value><string>auto</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_network_ask)">
+            <value><string>ask</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_network_ignore)">
+            <value><string>ignore</string></value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="P_watcher_categories_infra" class="Both" displayName="$(string.P_watcher_categories_infra)" explainText="$(string.P_watcher_categories_infra_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_categories_infra)">
+      <parentCategory ref="C_watcher" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <enum id="P_watcher_categories_infra" valueName="watcher.categories.infra" required="true">
+          <item displayName="$(string.P_watcher_categories_infra_auto)">
+            <value><string>auto</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_infra_ask)">
+            <value><string>ask</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_infra_ignore)">
+            <value><string>ignore</string></value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="P_watcher_categories_custom" class="Both" displayName="$(string.P_watcher_categories_custom)" explainText="$(string.P_watcher_categories_custom_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_categories_custom)">
+      <parentCategory ref="C_watcher" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <enum id="P_watcher_categories_custom" valueName="watcher.categories.custom" required="true">
+          <item displayName="$(string.P_watcher_categories_custom_auto)">
+            <value><string>auto</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_custom_ask)">
+            <value><string>ask</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_custom_ignore)">
+            <value><string>ignore</string></value>
+          </item>
+        </enum>
       </elements>
     </policy>
     <policy name="P_detectors_enabled_pem" class="Both" displayName="$(string.P_detectors_enabled_pem)" explainText="$(string.P_detectors_enabled_pem_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="detectors.enabled.pem">

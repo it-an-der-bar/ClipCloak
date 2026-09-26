@@ -35,6 +35,22 @@ class EntityType(str, Enum):
 
 ALL_TYPES = [t.value for t in EntityType]
 
+# Categories for the clipboard watcher: per category "auto" (always change), "ask"
+# (popup) or "ignore" (nothing).
+CATEGORIES: dict[str, tuple[str, ...]] = {
+    "tracking": ("TRACKING",),
+    "secrets": ("SECRET", "PRIVATE_KEY", "CERTIFICATE"),
+    "finance": ("IBAN", "CREDIT_CARD"),
+    "persons": ("PERSON", "EMAIL", "USERNAME", "PHONE", "SID"),
+    "orgs": ("ORG", "LOCATION"),
+    "network": ("IPV4", "IPV6", "MAC", "DOMAIN", "HOSTNAME"),
+    "infra": ("IDENTIFIER",),
+    "custom": ("CUSTOM",),
+}
+CATEGORY_OF = {typ: cat for cat, types in CATEGORIES.items() for typ in types}
+DEFAULT_CATEGORY_RULES = {"tracking": "auto", "secrets": "auto", "finance": "auto", "persons": "ask",
+                          "orgs": "ask", "network": "ask", "infra": "ask", "custom": "ask"}
+
 # Types treated as "critical" by default for the clipboard watcher.
 DEFAULT_CRITICAL = ["SECRET", "PRIVATE_KEY", "CREDIT_CARD", "IBAN"]
 

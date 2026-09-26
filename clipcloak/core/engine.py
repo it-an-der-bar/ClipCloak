@@ -98,7 +98,9 @@ class Engine:
                  if f.type not in s.disabled_types
                  and f.text.strip()
                  and f.text.lower() not in allow
-                 and s.type_modes.get(f.type) != "keep"]
+                 and s.type_modes.get(f.type) != "keep"
+                 # allow-listed domains are no findings (they are never changed)
+                 and not (f.type == T.DOMAIN.value and self.pseudo.domain_allowed(f.text.lower()))]
         resolved = resolve_overlaps(found)
         if s.skip_known_surrogates:
             ci = {k.lower() for k in self.vault.by_surrogate}

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.14
+
+- Clipboard watcher **per category**: for each category *always change*, *inform* (popup) or *nothing* – origin/tracking in links, secrets and keys, bank and card data, people and accounts, organisations and places, network, infrastructure names, custom terms. Default: tracking, secrets and bank data change at once, the rest informs. With both in one text the automatic part is done first, then the popup asks for the rest.
+  - Modes: *off*, *by category* (was "critical automatically"), *inform about everything* (was "notify"), *change everything* (was "always"); the last two keep categories set to *nothing* out.
+  - One action for automatic changes (`watcher.action`); `watcher.critical_types`, `watcher.critical_action` and `watcher.notify_noncritical` are replaced by `watcher.categories.<category>` (also as ADMX policies).
+- Allow-listed domains are no longer reported as findings (no popups for them, not shown as findings in the workbench).
+
 ## 0.1.13
 
 - New detector **Tracking in links** (on by default): origin marks are removed in every mode (they are not pseudonymised and not restored by revert):

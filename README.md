@@ -52,11 +52,7 @@ After   yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/24
   - *Screenshot → text*: a vision model transcribes an image from the clipboard, and the text is then processed.
   - *Check*: the already processed text is sent to the LLM, which lists possible leftovers. You can add them as custom terms with one click.
   - *Detector*: the LLM is used as an additional name/company detector. This sends the original text to your endpoint, so it is off by default.
-- **Clipboard watcher** with four modes:
-  - *off*
-  - *notify*: a popup offers Pseudonymise, Anonymise, Redact or Details.
-  - *critical automatically*: secrets, keys, IBANs and cards are processed immediately, other findings ask.
-  - *always*
+- **Clipboard watcher**, set per category (Settings › Watcher): *always change*, *inform* (a popup offers Pseudonymise, Anonymise, Redact or Details) or *nothing*. Categories: origin/tracking in links, secrets and keys, bank and card data, people and accounts, organisations and places, network, infrastructure names, custom terms. Default: tracking, secrets and bank data are changed at once, the rest informs. If a text has both, the automatic part is done first and the popup asks for the rest. Modes: *off*, *by category*, *inform about everything*, *change everything* (the last two still respect *nothing*).
 - **Workbench** with live highlighting, a findings table and right-click actions (allowlist or custom term). Any marked text can be set to *always replace* or *never replace* with a right click in the input.
 - **History** with a side-by-side diff of every action.
 - **Mapping overview**: what was replaced by what, with filter and CSV export.

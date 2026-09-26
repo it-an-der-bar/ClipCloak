@@ -12,7 +12,7 @@ import yaml
 from .core import wordlists
 from .core.detectors import DetectorContext, builtin_detectors
 from .core.engine import EngineSettings
-from .core.entities import DEFAULT_CRITICAL
+from .core.entities import DEFAULT_CATEGORY_RULES
 from .core.surrogates import SurrogateSettings
 
 log = logging.getLogger(__name__)
@@ -47,11 +47,10 @@ DEFAULTS: dict = {
         "toggle_watcher": "",
     },
     "watcher": {
-        "mode": "off",               # off | notify | critical | always
-        "action": "pseudonymize",    # used by "always"
-        "critical_types": list(DEFAULT_CRITICAL),
-        "critical_action": "pseudonymize",
-        "notify_noncritical": True,  # "critical": popup for non-critical findings
+        "mode": "off",               # off | notify (all ask) | critical (per category) | always (all auto)
+        "action": "pseudonymize",    # what automatic changes do
+        # per category: auto = always change, ask = popup, ignore = nothing (see entities.CATEGORIES)
+        "categories": dict(DEFAULT_CATEGORY_RULES),
         "popup_timeout": 12,
         "max_chars": 500_000,
     },

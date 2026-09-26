@@ -64,35 +64,76 @@ If configured, the user cannot change this setting. Setting: processing.redact_t
 
 If configured, the user cannot change this setting. Setting: clipboard.process_html</string>
       <string id="P_watcher_mode">Watcher mode</string>
-      <string id="P_watcher_mode_Help">off: no watching. notify: popup when something sensitive is copied. critical automatically: secrets, keys, IBANs and cards are processed at once. always: everything copied is processed.
+      <string id="P_watcher_mode_Help">off: no watching. by category: per category as set in the category policies (always change / inform / nothing). inform about everything: every category that is not set to nothing asks. change everything: every category that is not set to nothing is changed at once.
 
 If configured, the user cannot change this setting. Setting: watcher.mode</string>
       <string id="P_watcher_mode_off">off</string>
-      <string id="P_watcher_mode_notify">notify</string>
-      <string id="P_watcher_mode_critical">critical automatically</string>
-      <string id="P_watcher_mode_always">always</string>
-      <string id="P_watcher_action">Action in mode "always"</string>
-      <string id="P_watcher_action_Help">What the watcher does in mode "always".
+      <string id="P_watcher_mode_critical">by category</string>
+      <string id="P_watcher_mode_notify">inform about everything</string>
+      <string id="P_watcher_mode_always">change everything</string>
+      <string id="P_watcher_action">Action for automatic changes</string>
+      <string id="P_watcher_action_Help">What the watcher does with findings it changes automatically (tracking in links is always removed).
 
 If configured, the user cannot change this setting. Setting: watcher.action</string>
       <string id="P_watcher_action_pseudonymize">Pseudonymise</string>
       <string id="P_watcher_action_anonymize">Anonymise</string>
       <string id="P_watcher_action_redact">Redact</string>
-      <string id="P_watcher_critical_action">Action for critical findings</string>
-      <string id="P_watcher_critical_action_Help">What the watcher does with critical findings in mode "critical automatically".
+      <string id="P_watcher_categories_tracking">Category: Origin / tracking in links</string>
+      <string id="P_watcher_categories_tracking_Help">Finding types: TRACKING. always change: processed at once; inform: popup; nothing: the watcher ignores them.
 
-If configured, the user cannot change this setting. Setting: watcher.critical_action</string>
-      <string id="P_watcher_critical_action_pseudonymize">Pseudonymise</string>
-      <string id="P_watcher_critical_action_anonymize">Anonymise</string>
-      <string id="P_watcher_critical_action_redact">Redact</string>
-      <string id="P_watcher_notify_noncritical">Popup for non-critical findings</string>
-      <string id="P_watcher_notify_noncritical_Help">In mode "critical automatically": ask for other findings.
+If configured, the user cannot change this setting. Setting: watcher.categories.tracking</string>
+      <string id="P_watcher_categories_tracking_auto">always change</string>
+      <string id="P_watcher_categories_tracking_ask">inform</string>
+      <string id="P_watcher_categories_tracking_ignore">nothing</string>
+      <string id="P_watcher_categories_secrets">Category: Secrets and keys</string>
+      <string id="P_watcher_categories_secrets_Help">Finding types: SECRET, PRIVATE_KEY, CERTIFICATE. always change: processed at once; inform: popup; nothing: the watcher ignores them.
 
-If configured, the user cannot change this setting. Setting: watcher.notify_noncritical</string>
-      <string id="P_watcher_critical_types">Critical finding types</string>
-      <string id="P_watcher_critical_types_Help">Types handled automatically in mode "critical automatically", e.g. PRIVATE_KEY, SECRET, IBAN, CREDIT_CARD. Replaces the user's selection.
+If configured, the user cannot change this setting. Setting: watcher.categories.secrets</string>
+      <string id="P_watcher_categories_secrets_auto">always change</string>
+      <string id="P_watcher_categories_secrets_ask">inform</string>
+      <string id="P_watcher_categories_secrets_ignore">nothing</string>
+      <string id="P_watcher_categories_finance">Category: Bank and card data</string>
+      <string id="P_watcher_categories_finance_Help">Finding types: IBAN, CREDIT_CARD. always change: processed at once; inform: popup; nothing: the watcher ignores them.
 
-If configured, the user cannot change this setting. Setting: watcher.critical_types</string>
+If configured, the user cannot change this setting. Setting: watcher.categories.finance</string>
+      <string id="P_watcher_categories_finance_auto">always change</string>
+      <string id="P_watcher_categories_finance_ask">inform</string>
+      <string id="P_watcher_categories_finance_ignore">nothing</string>
+      <string id="P_watcher_categories_persons">Category: People and accounts</string>
+      <string id="P_watcher_categories_persons_Help">Finding types: PERSON, EMAIL, USERNAME, PHONE, SID. always change: processed at once; inform: popup; nothing: the watcher ignores them.
+
+If configured, the user cannot change this setting. Setting: watcher.categories.persons</string>
+      <string id="P_watcher_categories_persons_auto">always change</string>
+      <string id="P_watcher_categories_persons_ask">inform</string>
+      <string id="P_watcher_categories_persons_ignore">nothing</string>
+      <string id="P_watcher_categories_orgs">Category: Organisations and places</string>
+      <string id="P_watcher_categories_orgs_Help">Finding types: ORG, LOCATION. always change: processed at once; inform: popup; nothing: the watcher ignores them.
+
+If configured, the user cannot change this setting. Setting: watcher.categories.orgs</string>
+      <string id="P_watcher_categories_orgs_auto">always change</string>
+      <string id="P_watcher_categories_orgs_ask">inform</string>
+      <string id="P_watcher_categories_orgs_ignore">nothing</string>
+      <string id="P_watcher_categories_network">Category: Network (IP, MAC, domains, hosts)</string>
+      <string id="P_watcher_categories_network_Help">Finding types: IPV4, IPV6, MAC, DOMAIN, HOSTNAME. always change: processed at once; inform: popup; nothing: the watcher ignores them.
+
+If configured, the user cannot change this setting. Setting: watcher.categories.network</string>
+      <string id="P_watcher_categories_network_auto">always change</string>
+      <string id="P_watcher_categories_network_ask">inform</string>
+      <string id="P_watcher_categories_network_ignore">nothing</string>
+      <string id="P_watcher_categories_infra">Category: Infrastructure names</string>
+      <string id="P_watcher_categories_infra_Help">Finding types: IDENTIFIER. always change: processed at once; inform: popup; nothing: the watcher ignores them.
+
+If configured, the user cannot change this setting. Setting: watcher.categories.infra</string>
+      <string id="P_watcher_categories_infra_auto">always change</string>
+      <string id="P_watcher_categories_infra_ask">inform</string>
+      <string id="P_watcher_categories_infra_ignore">nothing</string>
+      <string id="P_watcher_categories_custom">Category: Custom terms</string>
+      <string id="P_watcher_categories_custom_Help">Finding types: CUSTOM. always change: processed at once; inform: popup; nothing: the watcher ignores them.
+
+If configured, the user cannot change this setting. Setting: watcher.categories.custom</string>
+      <string id="P_watcher_categories_custom_auto">always change</string>
+      <string id="P_watcher_categories_custom_ask">inform</string>
+      <string id="P_watcher_categories_custom_ignore">nothing</string>
       <string id="P_detectors_enabled_pem">Detector: PEM keys / certificates</string>
       <string id="P_detectors_enabled_pem_Help">Enable or disable this detector.
 
@@ -346,9 +387,15 @@ If configured, the user cannot change this setting. Setting: hotkeys.toggle_watc
       <presentation id="P_processing_anonymize_style"><dropdownList refId="P_processing_anonymize_style" noSort="true">Anonymisation style</dropdownList></presentation>
       <presentation id="P_processing_redact_template"><textBox refId="P_processing_redact_template"><label>Redaction text</label></textBox></presentation>
       <presentation id="P_watcher_mode"><dropdownList refId="P_watcher_mode" noSort="true">Watcher mode</dropdownList></presentation>
-      <presentation id="P_watcher_action"><dropdownList refId="P_watcher_action" noSort="true">Action in mode "always"</dropdownList></presentation>
-      <presentation id="P_watcher_critical_action"><dropdownList refId="P_watcher_critical_action" noSort="true">Action for critical findings</dropdownList></presentation>
-      <presentation id="P_watcher_critical_types"><listBox refId="P_watcher_critical_types">Critical finding types</listBox></presentation>
+      <presentation id="P_watcher_action"><dropdownList refId="P_watcher_action" noSort="true">Action for automatic changes</dropdownList></presentation>
+      <presentation id="P_watcher_categories_tracking"><dropdownList refId="P_watcher_categories_tracking" noSort="true">Category: Origin / tracking in links</dropdownList></presentation>
+      <presentation id="P_watcher_categories_secrets"><dropdownList refId="P_watcher_categories_secrets" noSort="true">Category: Secrets and keys</dropdownList></presentation>
+      <presentation id="P_watcher_categories_finance"><dropdownList refId="P_watcher_categories_finance" noSort="true">Category: Bank and card data</dropdownList></presentation>
+      <presentation id="P_watcher_categories_persons"><dropdownList refId="P_watcher_categories_persons" noSort="true">Category: People and accounts</dropdownList></presentation>
+      <presentation id="P_watcher_categories_orgs"><dropdownList refId="P_watcher_categories_orgs" noSort="true">Category: Organisations and places</dropdownList></presentation>
+      <presentation id="P_watcher_categories_network"><dropdownList refId="P_watcher_categories_network" noSort="true">Category: Network (IP, MAC, domains, hosts)</dropdownList></presentation>
+      <presentation id="P_watcher_categories_infra"><dropdownList refId="P_watcher_categories_infra" noSort="true">Category: Infrastructure names</dropdownList></presentation>
+      <presentation id="P_watcher_categories_custom"><dropdownList refId="P_watcher_categories_custom" noSort="true">Category: Custom terms</dropdownList></presentation>
       <presentation id="P_lists_custom_terms"><listBox refId="P_lists_custom_terms">Custom terms</listBox></presentation>
       <presentation id="P_lists_known_domains"><listBox refId="P_lists_known_domains">Known domains</listBox></presentation>
       <presentation id="P_lists_allow_terms"><listBox refId="P_lists_allow_terms">Allowed terms</listBox></presentation>

@@ -140,6 +140,33 @@ class GuiTest(unittest.TestCase):
         self.assertTrue(c.clip.read().text.startswith("token glpat-"))
         c.set_watch_mode("off")
 
+    def test_watcher_rules_per_category(self):
+        c = self.c
+        c.cfg.set("lists.allow_domains", ["example.com"])
+        c.apply_config()
+        c.set_watch_mode("critical")
+        # tracking: auto, persons (e-mail): ask -> link cleaned at once, popup for the address
+        c.clip.write("Link https://example.com/p?id=5&utm_source=nl von max.muster@firma.de", None)
+        c._watch_check()
+        self.assertTrue(wait_for(lambda: "utm_source" not in (c.clip.read().text or "")))
+        self.assertIn("max.muster@firma.de", c.clip.read().text)
+        self.assertTrue(wait_for(lambda: c._popup is not None))
+        c._popup._choose("")
+        c._popup = None
+        # persons: nothing -> no popup, tracking still removed
+        c.cfg.set("watcher.categories.persons", "ignore")
+        c.clip.write("wieder https://example.com/?fbclid=x2 an max.muster@firma.de", None)
+        c._watch_check()
+        self.assertTrue(wait_for(lambda: "fbclid" not in (c.clip.read().text or "")))
+        spin(200)
+        self.assertIsNone(c._popup)
+        # notify: auto categories ask instead
+        rules = c.watch_rules("notify")
+        self.assertEqual(rules["TRACKING"], "ask")
+        self.assertEqual(rules["EMAIL"], "ignore")
+        self.assertEqual(c.watch_rules("always")["IPV4"], "auto")
+        c.set_watch_mode("off")
+
     def test_popup_shows_shortcuts(self):
         c = self.c
         c.cfg.set("hotkeys.pseudonymize", "Ctrl+Alt+P")

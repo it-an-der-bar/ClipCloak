@@ -162,8 +162,6 @@ class SettingsDialog(QDialog):
         for action, ed in self.hk_edits.items():
             self._lock(ed, "hotkeys." + action)
             self._lock(self.hk_clear[action], "hotkeys." + action)
-        for cb in self.crit.values():
-            self._lock(cb, "watcher.critical_types")
         for did, cb in self.det.items():
             self._lock(cb, "detectors.enabled." + did)
         for ty, cb in self.type_modes.items():
@@ -286,17 +284,18 @@ class SettingsDialog(QDialog):
         f = QFormLayout(w)
         f.addRow(t("settings.watch_mode"), self._combo("watcher.mode", ["off", "notify", "critical", "always"], "watch."))
         f.addRow(t("settings.watch_action"), self._combo("watcher.action", MODE_CHOICES, "mode."))
-        f.addRow(t("settings.critical_action"), self._combo("watcher.critical_action", MODE_CHOICES, "mode."))
-        f.addRow("", self._check("watcher.notify_noncritical", t("settings.notify_noncritical")))
         f.addRow(t("settings.popup_timeout"), self._spin("watcher.popup_timeout", 0, 600))
         f.addRow(t("settings.max_chars"), self._spin("watcher.max_chars", 1000, 50_000_000))
-        box = QGroupBox(t("settings.critical_types"))
+        from ..core.entities import CATEGORIES
+        box = QGroupBox(t("settings.watch_categories"))
         grid = QGridLayout(box)
-        self.crit = {}
-        for i, ty in enumerate(ALL_TYPES):
-            cb = QCheckBox(ty)
-            self.crit[ty] = cb
-            grid.addWidget(cb, i // 3, i % 3)
+        for i, (cat, types) in enumerate(CATEGORIES.items()):
+            lab = QLabel("<b>" + t("cat." + cat) + "</b>")
+            lab.setToolTip(", ".join(types))
+            grid.addWidget(lab, i, 0)
+            grid.addWidget(QLabel(", ".join(types)), i, 1)
+            grid.addWidget(self._combo("watcher.categories." + cat, ["auto", "ask", "ignore"], "rule."), i, 2)
+        grid.setColumnStretch(1, 1)
         f.addRow(box)
         expl = QLabel(t("settings.watch_explain"))
         expl.setWordWrap(True)
@@ -575,9 +574,6 @@ class SettingsDialog(QDialog):
                 wdg.setValue(int(val or 0))
         for action, ed in self.hk_edits.items():
             ed.setKeySequence(QKeySequence(data["hotkeys"].get(action) or ""))
-        crit = set(data["watcher"].get("critical_types") or [])
-        for ty, cb in self.crit.items():
-            cb.setChecked(ty in crit)
         enabled = data["detectors"].get("enabled") or {}
         for did, cb in self.det.items():
             cb.setChecked(bool(enabled.get(did, False)))
@@ -620,7 +616,6 @@ class SettingsDialog(QDialog):
                 put(key, int(wdg.value()))
         for action, ed in self.hk_edits.items():
             d["hotkeys"][action] = ed.keySequence().toString(QKeySequence.PortableText)
-        d["watcher"]["critical_types"] = [ty for ty, cb in self.crit.items() if cb.isChecked()]
         d["detectors"]["enabled"] = {did: cb.isChecked() for did, cb in self.det.items()}
         d["processing"]["type_modes"] = {ty: cb.currentData() for ty, cb in self.type_modes.items() if cb.currentData()}
         d["lists"]["custom_terms"] = self.terms.terms()
