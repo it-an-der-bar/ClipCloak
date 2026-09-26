@@ -26,6 +26,7 @@ class EntityType(str, Enum):
     PRIVATE_KEY = "PRIVATE_KEY"
     CERTIFICATE = "CERTIFICATE"
     IDENTIFIER = "IDENTIFIER"       # parts of infrastructure names (namespace, release …)
+    TRACKING = "TRACKING"           # tracking parameters / redirect wrappers in URLs (removed)
     CUSTOM = "CUSTOM"
 
     def __str__(self) -> str:  # pragma: no cover - convenience

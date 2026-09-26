@@ -94,6 +94,7 @@ DEFAULTS: dict = {
         "allow_ip_ranges": [],
         "generic_labels_extra": [],
         "extra_tlds": [],
+        "tracking_params": [],        # additional URL parameters to remove
     },
     "llm": {
         "enabled": False,
@@ -341,7 +342,8 @@ def engine_settings(cfg: Config, project_terms: list | None = None,
                           extra_tlds=set(lists.get("extra_tlds") or []),
                           options={"entropy_threshold": d["detectors"].get("entropy_threshold", 4.0),
                                    "generic_labels": set(lists.get("generic_labels_extra") or []),
-                                   "allow_terms": set(lists.get("allow_terms") or [])})
+                                   "allow_terms": set(lists.get("allow_terms") or []),
+                                   "tracking_params": set(lists.get("tracking_params") or [])})
     enabled = {k for k, v in (d["detectors"].get("enabled") or {}).items() if v}
     if cfg.get("ner.enabled"):
         enabled.add("ner")

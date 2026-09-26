@@ -6,6 +6,7 @@ from .base import Detector, DetectorContext
 from .identity import (CardDetector, CustomTermDetector, IbanDetector, PhoneDetector,
                        SidDetector, UserPathDetector)
 from .infra import InfraNameDetector
+from .tracking import TrackingDetector
 from .network import (DomainDetector, EmailDetector, HostnameDetector, IPv4Detector,
                       IPv6Detector, MacDetector)
 from .secrets import EntropyDetector, KeyValueSecretDetector, PemDetector, TokenDetector
@@ -14,7 +15,7 @@ BUILTIN_DETECTORS: list[type[Detector]] = [
     PemDetector, TokenDetector, KeyValueSecretDetector, EntropyDetector,
     EmailDetector, IPv4Detector, IPv6Detector, MacDetector, DomainDetector,
     HostnameDetector, UserPathDetector, IbanDetector, CardDetector, PhoneDetector,
-    SidDetector, InfraNameDetector, CustomTermDetector,
+    SidDetector, InfraNameDetector, TrackingDetector, CustomTermDetector,
 ]
 
 

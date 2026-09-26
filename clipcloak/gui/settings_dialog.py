@@ -351,7 +351,7 @@ class SettingsDialog(QDialog):
         tabs.addTab(self._with_help(self.terms, "lists.terms_help", "lists.custom_terms"), t("lists.terms"))
         self.lists = {}
         for key in ("known_domains", "allow_terms", "allow_domains", "allow_ip_ranges",
-                    "generic_labels_extra", "extra_tlds"):
+                    "generic_labels_extra", "extra_tlds", "tracking_params"):
             ed = ListEdit()
             self.lists[key] = ed
             tabs.addTab(self._with_help(ed, "lists." + key + "_help", "lists." + key), t("lists." + key))

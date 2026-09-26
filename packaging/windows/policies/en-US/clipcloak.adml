@@ -157,6 +157,10 @@ If configured, the user cannot change this setting. Setting: detectors.enabled.s
       <string id="P_detectors_enabled_infra_names_Help">Enable or disable this detector.
 
 If configured, the user cannot change this setting. Setting: detectors.enabled.infra-names</string>
+      <string id="P_detectors_enabled_tracking">Detector: Tracking in links (utm_*, click ids, Safe Links …) – removed</string>
+      <string id="P_detectors_enabled_tracking_Help">Enable or disable this detector.
+
+If configured, the user cannot change this setting. Setting: detectors.enabled.tracking</string>
       <string id="P_detectors_enabled_custom">Detector: Custom terms</string>
       <string id="P_detectors_enabled_custom_Help">Enable or disable this detector.
 

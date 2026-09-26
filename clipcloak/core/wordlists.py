@@ -142,6 +142,60 @@ elastic.co hashicorp.com rancher.com k3s.io rke2.io vmware.com openshift.io redh
 docker.com docker.io quay.io ghcr.io gcr.io registry.k8s.io mcr.microsoft.com
 """.split())
 
+# URL parameters that only say where a link came from / who clicked it.
+TRACKING_PARAMS = set("""
+fbclid gclid gclsrc dclid gbraid wbraid msclkid twclid ttclid yclid ysclid li_fat_id
+mc_cid mc_eid mkt_tok _hsenc _hsmi hsctatracking __hssc __hstc __hsfp vero_id vero_conv
+oly_anon_id oly_enc_id rb_clickid s_cid ml_subscriber ml_subscriber_hash wickedid
+_openstat igshid igsh epik _ga _gl _gac cmpid ncid sr_share mbid trk trkemail
+fb_action_ids fb_action_types fb_ref fb_source action_object_map action_type_map
+action_ref_map ref_src ref_url spm scm share_id sharesource share_source sc_cid
+et_rid sfmc_id sfmc_activityid ss_source ss_campaign_id ss_email_id cvid ocid ebisu
+wt_mc wt_zmc wt_ref at_medium at_campaign at_campaign_type at_creation at_emailtype at_link
+at_link_id at_link_origin at_link_type at_ptr_name at_recipient_id at_recipient_list
+at_send_date gad_source gad_campaignid srsltid
+""".split())
+TRACKING_PREFIXES = ("utm_", "pk_", "mtm_", "piwik_", "hsa_", "__hs", "pf_rd_", "pd_rd_",
+                     "matomo_", "stm_", "_bta_", "vgo_ee")
+# Parameters that are tracking only on these sites (elsewhere "si" or "t" mean something else).
+TRACKING_SITE_PARAMS = [
+    (("youtube.com", "youtu.be", "youtube-nocookie.com"), {"si", "feature", "pp"}),
+    (("spotify.com", "spotify.link"), {"si", "nd"}),
+    (("twitter.com", "x.com"), {"s", "t", "ref_src", "ref_url"}),
+    (("instagram.com",), {"igshid", "igsh"}),
+    (("tiktok.com",), {"_t", "_r", "is_from_webapp", "sender_device", "sender_web_id", "share_app_id",
+                       "share_item_id", "share_link_id", "tt_from", "u_code", "timestamp", "user_id", "utm_campaign"}),
+    (("linkedin.com", "lnkd.in"), {"trackingid", "lipi", "midtoken", "midsig", "eid", "refid", "trk",
+                                   "trkemail", "rcm", "origin"}),
+    (("facebook.com", "fb.com", "fb.me", "messenger.com"), {"mibextid", "__cft__", "__tn__", "ref",
+                                                             "rdid", "share_url", "sfnsn", "hc_ref"}),
+    (("google.*",), {"ved", "ei", "sa", "usg", "oq", "aqs", "sourceid", "gs_lcrp", "gs_lp", "sclient",
+                     "bih", "biw", "uact", "rlz", "sxsrf", "iflsig", "gs_l", "sca_esv", "sca_upv"}),
+    (("amazon.*",), {"ref", "ref_", "_encoding", "content-id", "crid", "sprefix", "qid", "dib", "dib_tag",
+                     "sr", "linkcode", "linkid", "tag", "ascsubtag", "creativeasin", "creative", "camp"}),
+    (("reddit.com", "redd.it"), {"share_id", "ref_source", "ref", "rdt"}),
+    (("medium.com",), {"source"}),
+    (("ebay.*",), {"_trkparms", "_trksid", "hash", "amdata", "mkcid", "mkrid", "campid", "toolid", "mkevt"}),
+    (("aliexpress.com",), {"spm", "scm", "pvid", "algo_pvid", "algo_exp_id", "aff_platform", "aff_trace_key",
+                           "sk", "terminal_id", "afsmartredirect", "gatewayadapt"}),
+]
+# Redirect wrappers: (host regex, path regex, query keys holding the real target).
+REDIRECT_WRAPPERS = [
+    (r".*safelinks\.protection\.outlook\.com", r"/", ("url",)),
+    (r"statics\.teams\.cdn\.office\.net", r"/evergreen-assets/safelinks/", ("url",)),
+    (r"(www\.)?google\.[a-z.]+", r"/url", ("q", "url")),
+    (r"(l|lm|m)\.facebook\.com", r"/l\.php", ("u",)),
+    (r"(www\.)?linkedin\.com", r"/(redir/redirect|safety/go)", ("url",)),
+    (r"slack-redir\.net", r"/link", ("url",)),
+    (r"(www\.)?youtube\.com", r"/redirect", ("q",)),
+    (r"steamcommunity\.com", r"/linkfilter", ("url", "u")),
+    (r"(html\.)?duckduckgo\.com", r"/l/", ("uddg",)),
+    (r"(www\.)?bing\.com", r"/ck/a", ("u",)),
+    (r"out\.reddit\.com", r"/", ("url",)),
+    (r"t\.umblr\.com", r"/redirect", ("z",)),
+    (r"l\.instagram\.com", r"/", ("u",)),
+]
+
 # Mailbox local parts that are functional rather than personal.
 FUNCTIONAL_MAILBOXES = set("""
 info admin administrator support noreply no-reply donotreply do-not-reply

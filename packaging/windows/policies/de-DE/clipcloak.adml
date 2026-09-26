@@ -157,6 +157,10 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_detectors_enabled_infra_names_Help">Diese Erkennung ein- oder ausschalten.
 
 Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: detectors.enabled.infra-names</string>
+      <string id="P_detectors_enabled_tracking">Erkennung: Tracking in Links (utm_*, Klick-IDs, Safe Links …) – wird entfernt</string>
+      <string id="P_detectors_enabled_tracking_Help">Diese Erkennung ein- oder ausschalten.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: detectors.enabled.tracking</string>
       <string id="P_detectors_enabled_custom">Erkennung: Eigene Begriffe</string>
       <string id="P_detectors_enabled_custom_Help">Diese Erkennung ein- oder ausschalten.
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.13
+
+- New detector **Tracking in links** (on by default): origin marks are removed in every mode (they are not pseudonymised and not restored by revert):
+  - `utm_*`, click ids (`fbclid`, `gclid`, `gbraid`, `msclkid`, `twclid`, `ttclid` …), newsletter/CRM recipient ids (`mc_eid`, `mc_cid`, `_hsenc`, `_hsmi`, `mkt_tok`, `vero_id` …), Matomo/Piwik/Webtrekk/AT Internet parameters, `_ga`/`_gl`
+  - site-specific share ids: YouTube/Spotify `si`, Instagram `igsh`, X `s`/`t`, TikTok, LinkedIn, Facebook, Reddit, Google search, Amazon (incl. `/ref=…`), eBay, AliExpress
+  - text fragments `#:~:text=…`
+  - redirect wrappers are replaced by their target, which is then processed normally: Outlook Safe Links (the `data` part contains the recipient's e-mail address), Google `/url`, Facebook `l.php`, LinkedIn, Slack, YouTube, Steam, DuckDuckGo, Bing, Proofpoint URL Defense v2/v3
+  - the URL stays valid (`?`/`&` are removed with the parameter); works in HTML links too
+  - own parameters: Settings › Lists › Tracking parameters (`lists.tracking_params`, also via policy)
+- Fixed: in *Redact* mode, domains on the allow list were redacted anyway.
+
 ## 0.1.12
 
 - Fixed: Kubernetes label/annotation keys and API groups (`argocd.argoproj.io/tracking-id:`, `cert-manager.io/cluster-issuer:`, `app.kubernetes.io/name=web`) were replaced as domains, which broke the YAML. A DNS prefix followed by `/name:` or `/name=` is no longer a host. Well-known tool domains (argoproj.io, cert-manager.io, x-k8s.io, prometheus.io, coreos.com, istio.io, traefik.io, …) are always kept.

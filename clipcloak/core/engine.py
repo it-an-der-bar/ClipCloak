@@ -143,7 +143,14 @@ class Engine:
             return Result(mode, text, out, reps, warnings)
 
     def _replacement(self, f: Finding, mode: str) -> str | None:
+        if f.type == T.TRACKING.value:
+            # origin marks are removed in every mode; a redirect wrapper becomes its real
+            # target, which is processed like any other URL (and cleaned of its own tracking)
+            target = f.meta.get("unwrap")
+            return self.process(target, mode).output if target else ""
         if mode == Mode.REDACT.value:
+            if f.type == T.DOMAIN.value and self.pseudo.domain_allowed(f.text.lower()):
+                return None          # allow list applies to redaction too
             try:
                 return self.settings.redact_template.format(type=f.type)
             except (KeyError, IndexError, ValueError):
