@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.21
+
+- **Fix: real IP addresses were not found** once an earlier pseudonymisation had produced a surrogate in the same /24 (e.g. `192.168.1.53` stayed unchanged after some other address had been mapped into 192.168.1.x). With "skip already pseudonymised values" IPs were skipped when they merely lay in a surrogate network – in homelabs and company networks with 192.168.x/10.x that hit real addresses. IPs are now never skipped: surrogates and real addresses share the same private ranges, and a leaked real address is worse than a second replacement.
+
 ## 0.1.20
 
 - New detector **Long hex strings** (on, category secrets): a hex string of 32+ characters standing alone (API keys, tokens, webhook secrets such as `75d54631…c56319caa`) is found and replaced format-preserving (hex stays hex, same length, reversible). Public ids stay: image digests (`@sha256:…`, `digest:`), `commit …`, `sha256sum` output (`<hash>  file`), values after `sha256:`/`md5:`/`checksum`/`etag`, placeholders such as `0000…`.

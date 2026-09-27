@@ -74,7 +74,11 @@ class PseudonymiseRevert(unittest.TestCase):
     def test_skip_known_surrogates(self):
         out1 = self.e.process("10.1.2.3 und kunde.contoso.de", "pseudonymize").output
         out2 = self.e.process(out1, "pseudonymize").output
-        self.assertEqual(out1, out2)
+        # domains/names already pseudonymised stay; IPs are always processed (surrogates share
+        # the private ranges with real addresses, skipping them would leak real ones)
+        self.assertEqual(out1.split()[1:], out2.split()[1:])
+        self.assertNotEqual(out1.split()[0], out2.split()[0])
+        self.assertEqual(self.e.revert(self.e.revert(out2).output).output, "10.1.2.3 und kunde.contoso.de")
 
     def test_anonymize_realistic_not_revertible(self):
         r = self.e.process("10.1.2.3 j.hartmann@contoso.de", "anonymize")

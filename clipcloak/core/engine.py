@@ -109,14 +109,12 @@ class Engine:
 
     def _looks_pseudonymised(self, f: Finding, ci_surrogates: set | None = None) -> bool:
         v = self.vault
+        if f.type in (T.IPV4.value, T.IPV6.value):
+            # never skip IPs: surrogates live in the same private ranges as real addresses
+            # (192.168.x.y), so "looks like a surrogate" would leak real ones
+            return False
         if v.is_surrogate(f.text):
             return True
-        if f.type in (T.IPV4.value, T.IPV6.value):
-            try:
-                addr = ipaddress.ip_address(f.text.split("/")[0])
-            except ValueError:
-                return False
-            return v.in_known_network(addr)
         if f.type in CI_TYPES:
             if ci_surrogates is None:
                 ci_surrogates = {k.lower() for k in v.by_surrogate}

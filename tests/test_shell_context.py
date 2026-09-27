@@ -65,3 +65,14 @@ class HexStringTest(unittest.TestCase):
                      "sha256: " + self.KEY, "0" * 64, "digest: " + self.KEY):
             with self.subTest(text=text[:20]):
                 self.assertEqual([f for f in found(text) if f[0] == "SECRET"], [])
+
+
+class IpNeverSkippedTest(unittest.TestCase):
+    def test_real_ip_in_a_surrogate_network_is_found(self):
+        e = Engine(engine_settings(Config()), Vault("t"))
+        outs = [e.process(f"host 192.168.{i}.10", "pseudonymize").output.split()[-1] for i in range(64)]
+        net = outs[0].rsplit(".", 1)[0]
+        real = net + ".53" if outs[0] != net + ".53" else net + ".54"
+        self.assertEqual([(f.type, f.text) for f in e.analyze("- " + real)], [("IPV4", real)])
+        # even an address that equals an earlier surrogate is still found
+        self.assertEqual([f.text for f in e.analyze("ip " + outs[1])], [outs[1]])
