@@ -9,3 +9,5 @@ venv/
 *.egg-info/
 .idea/
 .vscode/
+dist-portable/
+build-portable/

@@ -69,12 +69,15 @@ After   yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/24
 | File | Contents |
 |---|---|
 | `clipcloak-vX.Y.Z-windows-x86_64.msi` | Windows installer for all users (`C:\Program Files\ClipCloak`), program + NER plugin; for managed deployment see [Deployment](#deployment-windows) |
-| `clipcloak-vX.Y.Z-windows-x86_64.zip` | Windows portable: folder with `clipcloak.exe`, NER plugin in `ner\`, ADMX templates and example policy files in `policies\`, README, license |
+| `clipcloak-vX.Y.Z-windows-x86_64-portable.zip` | Windows portable: just `clipcloak.exe` and the NER plugin `clipcloak-ner.exe` (single files), README, license |
+| `clipcloak-vX.Y.Z-policies.zip` | For administrators: Group Policy templates (`PolicyDefinitions\clipcloak.admx`, `en-US`/`de-DE`), example `policy.yaml`/`defaults.yaml`/`.reg`, short guide |
 | `clipcloak-vX.Y.Z-linux-x86_64.tar.gz` | `clipcloak`, NER plugin `clipcloak-ner`, `.desktop` file, icon, example policy files, README, license (unpack with `tar xzf`, executable bits are kept) |
 | `clipcloak-vX.Y.Z-linux-x86_64` | Linux program only, without the NER plugin |
 
-The ZIP and tar.gz need no installation: unpack them anywhere and start the program. Keep the folder
-together – on Windows the program needs its `_internal` folder, the NER plugin its `ner` folder.
+The ZIP and tar.gz need no installation: unpack them anywhere and start the program; the NER plugin
+is found next to it. The portable EXEs unpack themselves into `%TEMP%` at every start, so they start a bit
+slower than the installed version (the NER plugin noticeably: it holds the language, face and OCR models) –
+where AppLocker or endpoint protection block programs from `%TEMP%`, use the MSI.
 The NER plugin only runs when it is enabled in the settings.
 
 On Linux the binary needs glibc ≥ 2.36 (Debian 12, Ubuntu 24.04, Fedora 37 or newer) and the usual
@@ -236,15 +239,15 @@ Two levels, each from files and/or the registry:
 - **Defaults** – the user can change them: `%ProgramData%\clipcloak\defaults.yaml` (Linux `/etc/clipcloak/defaults.yaml`) or registry values under `HKLM\SOFTWARE\Policies\it-an-der-bar\ClipCloak\Recommended`.
 - **Policy** – enforced, greyed out in the UI with the note "Managed by your administrator": `%ProgramData%\clipcloak\policy.yaml` (Linux `/etc/clipcloak/policy.yaml`), registry `HKCU\…` or `HKLM\SOFTWARE\Policies\it-an-der-bar\ClipCloak` (HKLM wins).
 
-The YAML files use the structure of `config.yaml`; examples are in `policies\examples\` of the ZIP
-(`examples/` in the tar.gz). Registry values are named after the setting, e.g. `watcher.mode` (REG_SZ `critical`),
+The YAML files use the structure of `config.yaml`; examples are in `examples\` of the policies ZIP
+(`clipcloak-vX.Y.Z-policies.zip`, also `examples/` in the tar.gz). Registry values are named after the setting, e.g. `watcher.mode` (REG_SZ `critical`),
 `ner.enabled` (DWORD `1`), `llm.base_url`. Lists are a subkey of that name with values `1`, `2`, … or REG_MULTI_SZ;
 custom terms are written as `term` or `term|TYPE|replacement` – see `policy-example.reg`.
 
 Policy entries under `lists` (custom terms, known domains, allowlists) are **added** to the users' own entries
 and are always active, e.g. to give everyone the company's names and domains.
 
-**Group Policy templates:** copy `policies\clipcloak.admx` and the folders `en-US`/`de-DE` from the ZIP into the
+**Group Policy templates:** copy the content of `PolicyDefinitions\` from `clipcloak-vX.Y.Z-policies.zip` (`clipcloak.admx` and the folders `en-US`/`de-DE`) into the
 central store (`\\<domain>\SYSVOL\<domain>\Policies\PolicyDefinitions`) or `C:\Windows\PolicyDefinitions`.
 The settings then appear under *Computer/User Configuration › Policies › Administrative Templates › ClipCloak*.
 With ESET or baramundi without GPO, distribute `policy.yaml` to `%ProgramData%\clipcloak\` or the registry values instead.

@@ -69,12 +69,15 @@ Nachher  yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/2
 | Datei | Inhalt |
 |---|---|
 | `clipcloak-vX.Y.Z-windows-x86_64.msi` | Windows-Installer für alle Benutzer (`C:\Program Files\ClipCloak`), Programm + NER-Plugin; für die Softwareverteilung siehe [Verteilung](#verteilung-windows) |
-| `clipcloak-vX.Y.Z-windows-x86_64.zip` | Windows portabel: Ordner mit `clipcloak.exe`, NER-Plugin in `ner\`, ADMX-Vorlagen und Beispiel-Richtliniendateien in `policies\`, README, Lizenz |
+| `clipcloak-vX.Y.Z-windows-x86_64-portable.zip` | Windows portabel: nur `clipcloak.exe` und das NER-Plugin `clipcloak-ner.exe` (Einzeldateien), README, Lizenz |
+| `clipcloak-vX.Y.Z-policies.zip` | Für Administratoren: Gruppenrichtlinien-Vorlagen (`PolicyDefinitions\clipcloak.admx`, `en-US`/`de-DE`), Beispiel-`policy.yaml`/`defaults.yaml`/`.reg`, Kurzanleitung |
 | `clipcloak-vX.Y.Z-linux-x86_64.tar.gz` | `clipcloak`, NER-Plugin `clipcloak-ner`, `.desktop`-Datei, Icon, Beispiel-Richtliniendateien, README, Lizenz (mit `tar xzf` entpacken, die Ausführungsrechte bleiben erhalten) |
 | `clipcloak-vX.Y.Z-linux-x86_64` | nur das Linux-Programm, ohne NER-Plugin |
 
-ZIP und tar.gz brauchen keine Installation: irgendwohin entpacken und das Programm starten. Den Ordner
-zusammenlassen – unter Windows braucht das Programm seinen Ordner `_internal`, das NER-Plugin den Ordner `ner`.
+ZIP und tar.gz brauchen keine Installation: irgendwohin entpacken und das Programm starten; das NER-Plugin
+wird daneben gefunden. Die portablen EXEs entpacken sich bei jedem Start nach `%TEMP%` und starten daher etwas
+langsamer als die installierte Version (das NER-Plugin deutlich: es enthält Sprach-, Gesichts- und OCR-Modelle) –
+wo AppLocker oder Endpoint-Schutz Programme aus `%TEMP%` sperren, das MSI nehmen.
 Das NER-Plugin läuft nur, wenn es in den Einstellungen aktiviert ist.
 
 Unter Linux braucht das Binary glibc ≥ 2.36 (Debian 12, Ubuntu 24.04, Fedora 37 oder neuer) und die
@@ -237,15 +240,15 @@ Zwei Ebenen, jeweils aus Dateien und/oder der Registry:
 - **Standards** – der Benutzer kann sie ändern: `%ProgramData%\clipcloak\defaults.yaml` (Linux `/etc/clipcloak/defaults.yaml`) oder Registry-Werte unter `HKLM\SOFTWARE\Policies\it-an-der-bar\ClipCloak\Recommended`.
 - **Richtlinie** – vorgegeben, in der Oberfläche ausgegraut mit dem Hinweis "Vom Administrator verwaltet": `%ProgramData%\clipcloak\policy.yaml` (Linux `/etc/clipcloak/policy.yaml`), Registry `HKCU\…` oder `HKLM\SOFTWARE\Policies\it-an-der-bar\ClipCloak` (HKLM gewinnt).
 
-Die YAML-Dateien haben den Aufbau von `config.yaml`; Beispiele liegen im ZIP unter `policies\examples\`
-(im tar.gz unter `examples/`). Registry-Werte heißen wie die Einstellung, z. B. `watcher.mode` (REG_SZ `critical`),
+Die YAML-Dateien haben den Aufbau von `config.yaml`; Beispiele liegen im Richtlinien-ZIP
+(`clipcloak-vX.Y.Z-policies.zip`) unter `examples\` (auch im tar.gz unter `examples/`). Registry-Werte heißen wie die Einstellung, z. B. `watcher.mode` (REG_SZ `critical`),
 `ner.enabled` (DWORD `1`), `llm.base_url`. Listen sind ein Unterschlüssel dieses Namens mit den Werten `1`, `2`, …
 oder REG_MULTI_SZ; eigene Begriffe als `Begriff` oder `Begriff|TYP|Ersatz` – siehe `policy-example.reg`.
 
 Richtlinien-Einträge unter `lists` (eigene Begriffe, bekannte Domains, Erlaubt-Listen) **ergänzen** die eigenen
 Einträge der Benutzer und sind immer aktiv – z. B. um allen die Firmen- und Domainnamen mitzugeben.
 
-**Gruppenrichtlinien-Vorlagen:** `policies\clipcloak.admx` und die Ordner `en-US`/`de-DE` aus dem ZIP in den
+**Gruppenrichtlinien-Vorlagen:** den Inhalt von `PolicyDefinitions\` aus `clipcloak-vX.Y.Z-policies.zip` (`clipcloak.admx` und die Ordner `en-US`/`de-DE`) in den
 Central Store (`\\<Domäne>\SYSVOL\<Domäne>\Policies\PolicyDefinitions`) oder nach `C:\Windows\PolicyDefinitions`
 kopieren. Die Einstellungen stehen dann unter *Computer-/Benutzerkonfiguration › Richtlinien › Administrative
 Vorlagen › ClipCloak*. Mit ESET oder baramundi ohne GPO stattdessen `policy.yaml` nach `%ProgramData%\clipcloak\`

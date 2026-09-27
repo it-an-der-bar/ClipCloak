@@ -1,17 +1,20 @@
 """Bundle the CI builds into one download per platform.
 
-    python tools/package_release.py linux   v0.1.9 [--dist dist] [--upload]
-    python tools/package_release.py windows v0.1.9 --app dist/clipcloak [--ner dist/clipcloak-ner]
-                                            [--dist dist] [--upload] [--also FILE ...]
+    python tools/package_release.py linux    v0.1.9 [--dist dist] [--upload]
+    python tools/package_release.py windows  v0.1.9 --app dist-portable/clipcloak.exe
+                                             [--ner dist-portable/clipcloak-ner.exe]
+                                             [--dist dist] [--upload] [--also FILE ...]
+    python tools/package_release.py policies v0.1.9 [--dist dist] [--upload]
 
-linux:   <dist>/<app>-<tag>-linux-x86_64.tar.gz from the single-file builds
-         <app>-<tag>-linux-x86_64 and <app>-ner-<tag>-linux-x86_64:
-           <app>-<tag>/<app>, <app>-ner, <app>.desktop, <app>.png, examples/, docs   (exec bits kept)
-windows: <dist>/<app>-<tag>-windows-x86_64.zip from the folder builds (PyInstaller --onedir):
-           <app>-<tag>/<app>.exe + _internal\\      program
-           <app>-<tag>/ner/<app>-ner.exe + _internal\\   NER plugin
-           <app>-<tag>/policies/                  ADMX/ADML templates, examples/ (policy files, .reg)
-           docs
+linux:    <dist>/<app>-<tag>-linux-x86_64.tar.gz from the single-file builds
+          <app>-<tag>-linux-x86_64 and <app>-ner-<tag>-linux-x86_64:
+            <app>-<tag>/<app>, <app>-ner, <app>.desktop, <app>.png, examples/, docs   (exec bits kept)
+windows:  <dist>/<app>-<tag>-windows-x86_64-portable.zip from the single-file builds (--onefile):
+            <app>-<tag>/<app>.exe, <app>-ner.exe, docs          – nothing else
+          (the MSI keeps the folder builds: no unpacking to %TEMP% at every start)
+policies: <dist>/<app>-<tag>-policies.zip for administrators:
+            PolicyDefinitions/<app>.admx, PolicyDefinitions/en-US|de-DE/<app>.adml
+            examples/ (policy.yaml, defaults.yaml, policy-example.reg), README.txt
 
 A missing NER build only gives a warning (the archive then holds the program alone).
 
@@ -32,7 +35,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from clipcloak.meta import APP_NAME  # noqa: E402
+from clipcloak.meta import APP_DISPLAY_NAME, APP_NAME  # noqa: E402
 
 DOCS = ["README.md", "README.de.md", "LICENSE", "CHANGELOG.md"]
 POLICIES = ROOT / "packaging" / "windows" / "policies"
@@ -89,24 +92,65 @@ def _add_tree(zf: zipfile.ZipFile, src: Path, prefix: str) -> int:
 
 
 def make_zip(dist: Path, tag: str, app: Path, ner: Path | None) -> Path | None:
-    exe = app / f"{APP_NAME}.exe"
-    if not exe.is_file():
-        print(f"[windows] {exe} missing - skipped")
+    """Portable: the two single-file EXEs and the docs, no _internal folders."""
+    if not app.is_file():
+        print(f"[windows] {app} missing - skipped")
         return None
     top = f"{APP_NAME}-{tag}"
-    out = dist / f"{APP_NAME}-{tag}-windows-x86_64.zip"
+    out = dist / f"{APP_NAME}-{tag}-windows-x86_64-portable.zip"
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
-        _add_tree(zf, app, top)
-        if ner is not None and (ner / f"{APP_NAME}-ner.exe").is_file():
-            _add_tree(zf, ner, f"{top}/ner")
+        zf.write(app, f"{top}/{APP_NAME}.exe")
+        if ner is not None and ner.is_file():
+            zf.write(ner, f"{top}/{APP_NAME}-ner.exe")
         else:
             print(f"[windows] WARNING: NER build missing ({ner}) - archive without NER plugin")
-        if POLICIES.is_dir():
-            _add_tree(zf, POLICIES, f"{top}/policies")
-        if EXAMPLES.is_dir():
-            _add_tree(zf, EXAMPLES, f"{top}/policies/examples")
         for d in DOCS:
             zf.write(ROOT / d, f"{top}/{d}")
+    return out
+
+
+POLICY_README = """{app} {tag} - Group Policy templates and example policy files
+
+PolicyDefinitions/   copy into the central store  \\\\<domain>\\SYSVOL\\<domain>\\Policies\\PolicyDefinitions
+                     (or C:\\Windows\\PolicyDefinitions on a single machine). The settings then appear under
+                     Computer/User Configuration > Policies > Administrative Templates > {name}.
+examples/policy.yaml     enforced settings  -> %ProgramData%\\{app}\\policy.yaml   (Linux /etc/{app}/policy.yaml)
+examples/defaults.yaml   defaults the user may change -> %ProgramData%\\{app}\\defaults.yaml
+examples/policy-example.reg  the same as registry values (HKLM\\SOFTWARE\\Policies\\it-an-der-bar\\{name})
+
+Without GPO (ESET, baramundi, Intune ...): distribute policy.yaml or the registry values.
+Details: README.md, section "Deployment (Windows)".
+
+---
+
+{app} {tag} - Gruppenrichtlinien-Vorlagen und Beispiel-Richtliniendateien
+
+PolicyDefinitions/   in den zentralen Speicher kopieren  \\\\<domain>\\SYSVOL\\<domain>\\Policies\\PolicyDefinitions
+                     (oder C:\\Windows\\PolicyDefinitions auf einem Einzelrechner). Die Einstellungen stehen dann unter
+                     Computer-/Benutzerkonfiguration > Richtlinien > Administrative Vorlagen > {name}.
+examples/policy.yaml     erzwungene Einstellungen -> %ProgramData%\\{app}\\policy.yaml   (Linux /etc/{app}/policy.yaml)
+examples/defaults.yaml   Vorgaben, die der Benutzer ändern darf -> %ProgramData%\\{app}\\defaults.yaml
+examples/policy-example.reg  dasselbe als Registry-Werte (HKLM\\SOFTWARE\\Policies\\it-an-der-bar\\{name})
+
+Ohne GPO (ESET, baramundi, Intune ...): policy.yaml oder die Registry-Werte verteilen.
+Details: README.de.md, Abschnitt "Verteilung (Windows)".
+"""
+
+
+def make_policies(dist: Path, tag: str) -> Path | None:
+    if not (POLICIES / f"{APP_NAME}.admx").is_file():
+        print(f"[policies] {POLICIES} missing - skipped")
+        return None
+    out = dist / f"{APP_NAME}-{tag}-policies.zip"
+    dist.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+        _add_tree(zf, POLICIES, "PolicyDefinitions")
+        for f in sorted(EXAMPLES.glob("*")):
+            if f.is_file():
+                zf.write(f, f"examples/{f.name}")
+        zf.writestr("README.txt", POLICY_README.format(app=APP_NAME, name=APP_DISPLAY_NAME, tag=tag)
+                    .replace("\n", "\r\n"))
+        zf.write(ROOT / "LICENSE", "LICENSE")
     return out
 
 
@@ -126,17 +170,19 @@ def upload(path: Path, tag: str) -> str:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("platform", choices=["linux", "windows"])
+    ap.add_argument("platform", choices=["linux", "windows", "policies"])
     ap.add_argument("tag")
     ap.add_argument("--dist", default="dist")
-    ap.add_argument("--app", help="windows: folder build of the program")
-    ap.add_argument("--ner", help="windows: folder build of the NER plugin")
+    ap.add_argument("--app", help="windows: single-file build of the program (.exe)")
+    ap.add_argument("--ner", help="windows: single-file build of the NER plugin (.exe)")
     ap.add_argument("--also", nargs="*", default=[], help="further files to upload (e.g. the MSI)")
     ap.add_argument("--upload", action="store_true")
     args = ap.parse_args(argv)
     dist = Path(args.dist)
     if args.platform == "linux":
         made = make_tar(dist, args.tag)
+    elif args.platform == "policies":
+        made = make_policies(dist, args.tag)
     else:
         if not args.app:
             ap.error("windows needs --app")

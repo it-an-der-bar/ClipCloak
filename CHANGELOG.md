@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.23
+
+- Windows portable download is now just **two EXEs**: `clipcloak-vX.Y.Z-windows-x86_64-portable.zip` holds `clipcloak.exe` and `clipcloak-ner.exe` (single-file builds) plus README/license – no `_internal` folders any more. They unpack themselves into `%TEMP%` at start (a bit slower, the NER plugin noticeably); where AppLocker/endpoint protection block `%TEMP%`, use the MSI. The MSI keeps the folder builds (fast start, nothing in `%TEMP%`).
+- **Group Policy templates as a download of their own:** `clipcloak-vX.Y.Z-policies.zip` with `PolicyDefinitions\` (ADMX + `en-US`/`de-DE` ADML, ready to copy into the central store), `examples\` (`policy.yaml`, `defaults.yaml`, `policy-example.reg`) and a short guide (EN/DE). Built by the Linux job, so it is there even without a Windows runner.
+
 ## 0.1.22
 
 - Watcher recognises **pseudonymised results** (e.g. the LLM's answer): if the copied text contains replacement values of the current project and they outweigh new findings, the popup offers *Revert* (with its shortcut) instead of Pseudonymise/Anonymise/Redact – and nothing is changed automatically, also not in the modes *by category*/*change everything* (no double pseudonymisation). New findings next to them are named ("Also found: …") and can still be pseudonymised.
