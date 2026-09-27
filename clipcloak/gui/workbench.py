@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (QCheckBox, QFileDialog, QHBoxLayout, QLabel, QMen
 from ..core.entities import Result
 from ..core.files import read_text_file, suggest_output_path, write_text_file
 from ..i18n import t
-from .widgets import (autosize, fill_replacements, highlighted_html, is_dark, item, make_table, mono_font,
+from .widgets import (autosize, fill_replacements, group_by, replacements_table, highlighted_html, is_dark, item, make_table, mono_font,
                       track_table, type_color)
 
 MODES = ["pseudonymize", "anonymize", "redact", "revert"]
@@ -58,13 +58,15 @@ class Workbench(QWidget):
         self.btn_shot = QPushButton(t("wb.screenshot"))
         self.btn_check = QPushButton(t("wb.llm_check"))
         self.status = QLabel("")
-        self.findings = make_table([t("col.type"), t("col.text"), t("col.detector")])
+        self.findings = make_table([t("col.type"), t("col.text"), t("col.times"), t("col.detector")])
         self.findings.setContextMenuPolicy(Qt.CustomContextMenu)
         self.findings.customContextMenuRequested.connect(self._findings_menu)
         self.input.setContextMenuPolicy(Qt.CustomContextMenu)
         self.input.customContextMenuRequested.connect(self._input_menu)
         self.findings.itemSelectionChanged.connect(self._select_finding)
-        self.reps = make_table([t("col.type"), t("col.original"), t("col.replacement"), t("col.detector")])
+        self.findings.cellDoubleClicked.connect(self._next_occurrence)
+        self.findings.setToolTip(t("wb.findings_tip"))
+        self.reps = replacements_table()
 
         # workflow left -> right: 1. input  |  2. action  |  3. result
         in_bar = QHBoxLayout()
@@ -149,6 +151,8 @@ class Workbench(QWidget):
         self.btn_shot.clicked.connect(lambda: self.c.screenshot_to_text(target=self))
         self.btn_check.clicked.connect(self.llm_check)
         self._findings = []
+        self._occurrences: dict = {}
+        self._next_occ: dict = {}
         self._last: Result | None = None
         self.refresh_llm_buttons()
 
@@ -216,13 +220,20 @@ class Workbench(QWidget):
                       label=t("job.analyze"), quiet=len(text) < 200_000)
 
     def _show_findings(self, findings):
-        self._findings = findings
+        # one row per distinct value; all occurrences are highlighted in the text
+        groups = group_by(findings, lambda f: (f.type, f.text.lower()))
+        self._findings = [f for f, _n in groups]
+        self._occurrences = {(f.type, f.text.lower()): [] for f in self._findings}
+        for f in findings:
+            self._occurrences[(f.type, f.text.lower())].append(f)
+        self._next_occ: dict = {}
         dark = is_dark(self)
-        self.findings.setRowCount(len(findings))
-        for i, f in enumerate(findings):
+        self.findings.setRowCount(len(groups))
+        for i, (f, n) in enumerate(groups):
             self.findings.setItem(i, 0, item(f.type, data=i, color=type_color(f.type, dark)))
             self.findings.setItem(i, 1, item(f.text))
-            self.findings.setItem(i, 2, item(f.detector))
+            self.findings.setItem(i, 2, item(n))
+            self.findings.setItem(i, 3, item(f.detector))
         autosize(self.findings)
         sels = []
         text = self.input.toPlainText()
@@ -239,17 +250,29 @@ class Workbench(QWidget):
             sel.cursor = cur
             sels.append(sel)
         self.input.setExtraSelections(sels)
-        self.status.setText(t("wb.n_findings", n=len(findings)))
+        self.status.setText(t("wb.n_findings_grouped", n=len(findings), d=len(groups))
+                            if len(groups) != len(findings) else t("wb.n_findings", n=len(findings)))
 
     def _select_finding(self):
         rows = {i.row() for i in self.findings.selectedItems()}
         if len(rows) == 1:
-            f = self._findings[rows.pop()]
+            first = self._findings[rows.pop()]
+            key = (first.type, first.text.lower())
+            occ = self._occurrences.get(key) or [first]
+            f = occ[self._next_occ.get(key, 0) % len(occ)]
             text = self.input.toPlainText()
             cur = self.input.textCursor()
             cur.setPosition(u16(text, f.start))
             cur.setPosition(u16(text, f.end), QTextCursor.KeepAnchor)
             self.input.setTextCursor(cur)
+
+    def _next_occurrence(self, row: int, _col: int = 0):
+        """Double click: jump to the next place where this value occurs."""
+        if 0 <= row < len(self._findings):
+            f = self._findings[row]
+            key = (f.type, f.text.lower())
+            self._next_occ[key] = self._next_occ.get(key, 0) + 1
+            self._select_finding()
 
     def _auto_copy_toggled(self, on: bool):
         self.c.cfg.set("general.workbench_auto_copy", bool(on))

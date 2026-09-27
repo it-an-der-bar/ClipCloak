@@ -126,15 +126,29 @@ def item(text, data=None, color: str | None = None) -> QTableWidgetItem:
 
 
 def replacements_table() -> QTableWidget:
-    return make_table([t("col.type"), t("col.original"), t("col.replacement"), t("col.detector")])
+    return make_table([t("col.type"), t("col.original"), t("col.replacement"), t("col.times"), t("col.detector")])
+
+
+def group_by(entries, key):
+    """[(first entry, count)] – one row per distinct key, in order of first appearance."""
+    groups: dict = {}
+    for e in entries:
+        k = key(e)
+        if k in groups:
+            groups[k][1] += 1
+        else:
+            groups[k] = [e, 1]
+    return [tuple(v) for v in groups.values()]
 
 
 def fill_replacements(tbl: QTableWidget, reps: list[Replacement], dark: bool = False):
+    rows = group_by(reps, lambda r: (r.type, r.original, r.replacement))
     tbl.setRowCount(0)
-    tbl.setRowCount(len(reps))
-    for i, r in enumerate(reps):
+    tbl.setRowCount(len(rows))
+    for i, (r, n) in enumerate(rows):
         tbl.setItem(i, 0, item(r.type, color=type_color(r.type, dark)))
         tbl.setItem(i, 1, item(r.original))
         tbl.setItem(i, 2, item(r.replacement))
-        tbl.setItem(i, 3, item(r.detector))
+        tbl.setItem(i, 3, item(n))
+        tbl.setItem(i, 4, item(r.detector))
     autosize(tbl)

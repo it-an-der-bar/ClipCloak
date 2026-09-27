@@ -17,6 +17,7 @@ from pathlib import Path
 from ...activity import event
 from ...meta import NER_HELPER_NAME
 from ..entities import EntityType as T
+from .. import wordlists
 from ..wordlists import GENERIC_LABELS
 from ..textutil import WORD_BOUNDARY_L, WORD_BOUNDARY_R
 from .base import Detector
@@ -182,6 +183,29 @@ def _title(word: str) -> bool:
     return word[:1].isupper() and any(c.islower() for c in word[1:])
 
 
+# identifiers of code: "ComInterop", "IntPtr", "Int32", "ByRef", "iPhone" is fine (starts lower)
+_CAMEL = re.compile(r"[a-zß-ÿ][A-ZÀ-Þ]|^[A-Z]{2,}[a-z]|\d")
+_NAME_PREFIX = re.compile(r"^(Mc|Mac|De|Di|Da|Du|La|Le|Van|Von|O')[A-ZÀ-Þ][a-zß-ÿ]+$")
+# lines of code / stack traces: "Avalonia.Threading.Dispatcher.Run(", "at System.Dynamic…"
+_CODE_LINE = re.compile(r"\b[A-Za-z_]\w*(?:\.[A-Z_]\w*){2,}|^\s*at\s+[\w.$<>`]+\(|\w\(\)|::\w")
+
+
+def _in_code_context(text: str, s: int, e: int) -> bool:
+    before = text[s - 1] if s > 0 else ""
+    before2 = text[s - 2] if s > 1 else ""
+    after = text[e] if e < len(text) else ""
+    after2 = text[e + 1] if e + 1 < len(text) else ""
+    if before == "." and before2.isalnum():
+        return True                       # Microsoft.CSharp  ->  "CSharp"
+    if after == "." and after2.isalpha() and after2.isupper():
+        return True                       # "Avalonia".Threading
+    if after in "([<" and after:
+        return True                       # Method(  Generic<  Array[
+    ls = text.rfind("\n", 0, s) + 1
+    le = text.find("\n", e)
+    return bool(_CODE_LINE.search(text[ls:le if le >= 0 else len(text)]))
+
+
 def plausible_entity(text: str, s: int, e: int, typ: str, tokens: list | None):
     """Return the (possibly trimmed) span of a believable PERSON/ORG/LOCATION or None."""
     span = text[s:e]
@@ -195,6 +219,13 @@ def plausible_entity(text: str, s: int, e: int, typ: str, tokens: list | None):
     lower = [w.lower().strip(".") for w in words]
     if any(w in CODE_WORDS for w in lower):
         return None
+    if any(_CAMEL.search(w) and not _NAME_PREFIX.match(w) for w in words) \
+            and not any(w in LEGAL_FORMS for w in lower):
+        return None                         # ComInterop, IntPtr, Int32, ByRef, CancellationToken
+    if _in_code_context(text, s, e):
+        return None                         # stack traces, namespaces, method calls
+    if typ != T.PERSON.value and " ".join(lower) in wordlists.PUBLIC_ORGS:
+        return None                         # Microsoft, Google, SAP … are no personal data
     if span.lower() in GENERIC_LABELS:
         return None
     toks = tokens or []

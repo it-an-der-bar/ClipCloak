@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.16
+
+- NER: far fewer false positives on code and logs. Entities are rejected when
+  - a word is an identifier (CamelCase such as `ComInterop`, `DispatcherOperation`, `CancellationToken`, capitals + lower case such as `IDispatch`, digits such as `Int32`); name prefixes like Mc/Mac/O'/Van/Von stay allowed,
+  - they are part of a dotted name or a call (`Microsoft.CSharp…`, `Avalonia.Threading…`, `Name(`),
+  - the line is a stack trace / code line (`at X.Y.Z(`, `Namespace.Class.Member`, `foo()`),
+  - they are well-known public companies/products (Microsoft, Google, SAP, Avalonia …).
+  Measured on a .NET stack trace: 43 findings before, 0 now; names and companies in normal text are still found.
+- Secrets: keys containing "public" (`PublicKeyToken=…`, `public_key:`) are no secrets. Unquoted values stop at a closing bracket they did not open (`…7798e]](System…` → `…7798e`).
+- Workbench/history: findings and replacements are shown once per value with a × column (how often). Double click on a finding jumps to its next occurrence.
+
 ## 0.1.15
 
 - Watcher: when one part is changed automatically and the rest asks, there is only **one** popup ("Already done: tracking removed: 3 · Found: ORG ×12 …") instead of a Windows notification lying over the popup.

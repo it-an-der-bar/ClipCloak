@@ -104,6 +104,8 @@ def is_secret_key(key: str) -> bool:
     words = key_words(key)
     if not words:
         return False
+    if "public" in words:
+        return False          # PublicKeyToken=…, public_key: – public by definition
     if words[-1] in NON_SECRET_LAST:
         return False
     if any(w in SECRET_WORDS for w in words):
@@ -112,6 +114,19 @@ def is_secret_key(key: str) -> bool:
     if joined in SECRET_WORDS:
         return True
     return any((a, b) in SECRET_PAIRS for a, b in zip(words, words[1:]))
+
+
+def _balanced_len(val: str) -> int:
+    """Length of an unquoted value up to the first closing bracket that it did not open."""
+    depth = 0
+    for i, ch in enumerate(val):
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            if depth == 0:
+                return i
+            depth -= 1
+    return len(val)
 
 
 def is_placeholder(val: str) -> bool:
@@ -191,6 +206,8 @@ class KeyValueSecretDetector(Detector):
                 if val.lower() in AUTH_SCHEMES:
                     continue  # "Authorization: Bearer <token>" – the token is found separately
                 s, e = m.start(vg), m.end(vg)
+                if vg == "val2":
+                    e = s + _balanced_len(text[s:e])     # "…7798e]](System…" -> "…7798e"
                 # trim YAML/ini trailing spaces
                 while e > s and text[e - 1] in " \t":
                     e -= 1

@@ -172,6 +172,19 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(c.watch_rules("always")["IPV4"], "auto")
         c.set_watch_mode("off")
 
+    def test_findings_grouped(self):
+        c = self.c
+        c.show_main("workbench")
+        wb = c.main.workbench
+        wb.input.setPlainText("a 10.0.0.1 b 10.0.0.1 c 10.0.0.1 d 10.0.0.2")
+        wb.analyze()
+        self.assertTrue(wait_for(lambda: wb.findings.rowCount() == 2))
+        self.assertEqual(wb.findings.item(0, 2).text(), "3")
+        wb.findings.selectRow(0)
+        first = wb.input.textCursor().selectionStart()
+        wb._next_occurrence(0)
+        self.assertGreater(wb.input.textCursor().selectionStart(), first)
+
     def test_result_text_names_tracking_separately(self):
         from clipcloak.core.entities import Replacement, Result
         reps = [Replacement(0, 1, 0, 0, "TRACKING", "?utm=1", ""), Replacement(2, 3, 2, 3, "EMAIL", "a@b.de", "x@y.de")]

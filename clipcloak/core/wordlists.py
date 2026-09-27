@@ -196,6 +196,18 @@ REDIRECT_WRAPPERS = [
     (r"l\.instagram\.com", r"/", ("u",)),
 ]
 
+# Large public companies/projects: the NER plugin finds them everywhere (vendor names in
+# logs, stack traces, docs); they are no personal or customer data.
+PUBLIC_ORGS = set("""
+microsoft google alphabet apple amazon aws meta facebook oracle ibm sap cisco intel amd nvidia
+adobe salesforce vmware broadcom dell hp hpe lenovo samsung sony siemens bosch telekom vodafone
+red hat redhat canonical suse mozilla github gitlab docker kubernetes linux apache python
+openai anthropic cloudflare akamai fortinet paloalto palo alto networks checkpoint sophos
+eset kaspersky crowdstrike okta atlassian jira confluence slack zoom teams windows azure
+office outlook exchange sharepoint avalonia dotnet java spring jetbrains visual studio
+""".split()) | {"red hat", "palo alto networks", "check point", "visual studio", "google cloud",
+                "microsoft azure", "amazon web services", "deutsche telekom"}
+
 # Mailbox local parts that are functional rather than personal.
 FUNCTIONAL_MAILBOXES = set("""
 info admin administrator support noreply no-reply donotreply do-not-reply

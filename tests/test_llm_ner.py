@@ -152,6 +152,24 @@ class NerFilterTest(unittest.TestCase):
                          ("Contoso Solutions GmbH", "ORG"), ("Siemens AG", "ORG"), ("Kassel", "LOCATION")):
             self.assertIsNotNone(self.check(t, sub, typ), sub)
 
+    def test_rejects_stack_traces_and_identifiers(self):
+        t = ("   at Microsoft.CSharp.RuntimeBinder.ComInterop.UnsafeMethods.IDispatchInvoke(IntPtr, Int32)\n"
+             "   at Avalonia.Threading.DispatcherOperation.InvokeCore()\n"
+             "Bitte ComVariant ByRef und CancellationToken pruefen.\n"
+             "Wir nutzen Microsoft und Avalonia.\n")
+        for sub, typ in (("Microsoft", "ORG"), ("ComInterop", "ORG"), ("IntPtr", "ORG"), ("Int32", "ORG"),
+                         ("Avalonia", "ORG"), ("DispatcherOperation", "ORG"), ("ComVariant ByRef", "PERSON"),
+                         ("CancellationToken", "ORG")):
+            self.assertIsNone(self.check(t, sub, typ), sub)
+        last = t.rindex("Microsoft")
+        from clipcloak.core.detectors.external import plausible_entity
+        self.assertIsNone(plausible_entity(t, last, last + 9, "ORG", None))     # public company
+
+    def test_keeps_names_next_to_code(self):
+        t = "Ticket von Sarah McDonald und Hans O'Neil (Müller Bau GmbH).\nat Foo.Bar.Baz()"
+        for sub, typ in (("Sarah McDonald", "PERSON"), ("Hans O'Neil", "PERSON"), ("Müller Bau GmbH", "ORG")):
+            self.assertIsNotNone(self.check(t, sub, typ), sub)
+
     def test_person_trimmed_with_pos(self):
         t = "Contact John Smith at Globex Corporation"
         sub = "John Smith at Globex Corporation"

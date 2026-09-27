@@ -173,3 +173,15 @@ class IdentityDetectors(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PublicKeyTokenTest(unittest.TestCase):
+    def test_public_key_token_is_no_secret(self):
+        from clipcloak.config import Config, engine_settings
+        from clipcloak.core.engine import Engine
+        from clipcloak.core.vault import Vault
+        e = Engine(engine_settings(Config()), Vault("t"))
+        text = "[[System.__Canon, System.Private.CoreLib, Version=10.0.0.0, PublicKeyToken=7cec85d7bea7798e]](x)"
+        self.assertFalse([f for f in e.analyze(text) if f.type == "SECRET"])
+        found = [f.text for f in e.analyze("x(password=S3cr3t!x)]") if f.type == "SECRET"]
+        self.assertEqual(found, ["S3cr3t!x"])
