@@ -53,6 +53,7 @@ DEFAULTS: dict = {
         "categories": dict(DEFAULT_CATEGORY_RULES),
         "popup_timeout": 12,
         "max_chars": 500_000,
+        "offer_revert": True,        # a pseudonymised result (LLM answer) -> popup offers revert, no auto change
     },
     "image": {                        # image redaction (detection needs the plugin)
         "faces": True,

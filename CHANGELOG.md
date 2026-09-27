@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.22
+
+- Watcher recognises **pseudonymised results** (e.g. the LLM's answer): if the copied text contains replacement values of the current project and they outweigh new findings, the popup offers *Revert* (with its shortcut) instead of Pseudonymise/Anonymise/Redact – and nothing is changed automatically, also not in the modes *by category*/*change everything* (no double pseudonymisation). New findings next to them are named ("Also found: …") and can still be pseudonymised.
+  - Hints: exact replacement values of the vault with 4+ characters (names, e-mails, domains, secrets …); replacement IPs count only from two on, because they share the private ranges with real addresses.
+  - Setting `watcher.offer_revert` (Settings › Watcher, on by default; also as ADMX policy).
+- Workbench: a pseudonymised input is marked in the status line and *Revert* becomes the default button (Enter).
+
 ## 0.1.21
 
 - **Fix: real IP addresses were not found** once an earlier pseudonymisation had produced a surrogate in the same /24 (e.g. `192.168.1.53` stayed unchanged after some other address had been mapped into 192.168.1.x). With "skip already pseudonymised values" IPs were skipped when they merely lay in a surrogate network – in homelabs and company networks with 192.168.x/10.x that hit real addresses. IPs are now never skipped: surrogates and real addresses share the same private ranges, and a leaked real address is worse than a second replacement.

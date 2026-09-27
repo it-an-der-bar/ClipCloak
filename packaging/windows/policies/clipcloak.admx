@@ -166,6 +166,12 @@
         </enum>
       </elements>
     </policy>
+    <policy name="P_watcher_offer_revert" class="Both" displayName="$(string.P_watcher_offer_revert)" explainText="$(string.P_watcher_offer_revert_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="watcher.offer_revert">
+      <parentCategory ref="C_watcher" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
     <policy name="P_watcher_categories_tracking" class="Both" displayName="$(string.P_watcher_categories_tracking)" explainText="$(string.P_watcher_categories_tracking_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_categories_tracking)">
       <parentCategory ref="C_watcher" />
       <supportedOn ref="SUPPORTED_0_1_9" />

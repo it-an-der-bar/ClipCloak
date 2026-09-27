@@ -52,6 +52,10 @@ def _summary(findings) -> str:
     return ", ".join(f"{k} ×{v}" for k, v in sorted(counts.items(), key=lambda kv: -kv[1]))
 
 
+def _counts(counts: dict) -> str:
+    return ", ".join(f"{k} ×{v}" for k, v in sorted(counts.items(), key=lambda kv: -kv[1]))
+
+
 def text_hash(text: str | None) -> str:
     return hashlib.sha256((text or "").encode("utf-8", "surrogatepass")).hexdigest()
 
@@ -528,7 +532,24 @@ class Controller(QObject):
             return
         engine = self.engine
 
-        def done(findings):
+        offer_revert = bool(self.cfg.get("watcher.offer_revert", True))
+
+        def job():
+            findings = engine.analyze(text)
+            if offer_revert:
+                looks, reverted, real = engine.surrogate_hint(text, findings)
+                if looks:
+                    return findings, (reverted, real)
+            return findings, None
+
+        def done(r):
+            findings, hint = r
+            if hint is not None:
+                # a pseudonymised result (e.g. the LLM's answer): offer revert, change nothing automatically
+                reverted, real = hint
+                event("log.watch_pseudonymised", n=len(reverted.replacements), summary=_counts(reverted.counts()))
+                self._revert_popup(reverted, real, content, h)
+                return
             if not findings:
                 event("log.watch_none")
                 return
@@ -551,7 +572,7 @@ class Controller(QObject):
                 self._findings_popup(ask, content, h)
 
         event("log.watch_change", chars=len(text))
-        self.submit(lambda: engine.analyze(text), done, label=t("job.watch"), quiet=True)
+        self.submit(job, done, label=t("job.watch"), quiet=True)
 
     def watch_rules(self, mode: str | None = None) -> dict[str, str]:
         """Finding type -> auto | ask | ignore for the current watcher mode.
@@ -613,6 +634,18 @@ class Controller(QObject):
                                int(self.cfg.get("watcher.popup_timeout", 12))),
                          lambda key: self._popup_choice(key, content, h))
 
+    def _revert_popup(self, reverted: Result, real, content, h):
+        from .popup import Popup
+        text = t("popup.pseudo_text", n=len(reverted.replacements), summary=_counts(reverted.counts()))
+        actions = [("revert", t("mode.revert"), self.hotkey_text("revert"))]
+        if real:
+            text += "\n" + t("popup.pseudo_also", summary=_summary(real))
+            actions.append(("pseudonymize", t("mode.pseudonymize"), self.hotkey_text("pseudonymize")))
+        actions.append(("details", t("popup.details"), ""))
+        self._show_popup(Popup(t("popup.pseudo_title"), text, actions,
+                               int(self.cfg.get("watcher.popup_timeout", 12))),
+                         lambda key: self._popup_choice(key, content, h))
+
     def _show_popup(self, popup, handler):
         if self._popup is not None:
             try:
@@ -625,7 +658,7 @@ class Controller(QObject):
 
     def _popup_choice(self, key, content, h):
         self._popup = None
-        if key in ("pseudonymize", "anonymize", "redact"):
+        if key in ("pseudonymize", "anonymize", "redact", "revert"):
             self.process_clipboard(key, "popup", content, h)
         elif key == "details":
             self.show_workbench((content.text if content is not None else self.clip.read().text) or "")

@@ -78,6 +78,10 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_watcher_action_pseudonymize">Pseudonymisieren</string>
       <string id="P_watcher_action_anonymize">Anonymisieren</string>
       <string id="P_watcher_action_redact">Schwärzen</string>
+      <string id="P_watcher_offer_revert">Bei pseudonymisierten Ergebnissen Zurückübersetzen anbieten</string>
+      <string id="P_watcher_offer_revert_Help">Besteht der kopierte Text aus Ersatzwerten dieses Projekts (z. B. die Antwort des LLM), bietet das Popup Zurückübersetzen an und nichts wird automatisch geändert.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.offer_revert</string>
       <string id="P_watcher_categories_tracking">Kategorie: Herkunft / Tracking in Links</string>
       <string id="P_watcher_categories_tracking_Help">Fundtypen: TRACKING. immer ändern: sofort verarbeitet; informieren: Popup; nichts: die Überwachung ignoriert sie.
 

@@ -78,6 +78,10 @@ If configured, the user cannot change this setting. Setting: watcher.action</str
       <string id="P_watcher_action_pseudonymize">Pseudonymise</string>
       <string id="P_watcher_action_anonymize">Anonymise</string>
       <string id="P_watcher_action_redact">Redact</string>
+      <string id="P_watcher_offer_revert">Offer revert for pseudonymised results</string>
+      <string id="P_watcher_offer_revert_Help">If the copied text consists of this project's replacement values (e.g. the LLM's answer), the popup offers revert and nothing is changed automatically.
+
+If configured, the user cannot change this setting. Setting: watcher.offer_revert</string>
       <string id="P_watcher_categories_tracking">Category: Origin / tracking in links</string>
       <string id="P_watcher_categories_tracking_Help">Finding types: TRACKING. always change: processed at once; inform: popup; nothing: the watcher ignores them.
 

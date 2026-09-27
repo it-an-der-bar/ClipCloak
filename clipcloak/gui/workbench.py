@@ -151,6 +151,7 @@ class Workbench(QWidget):
         self.btn_shot.clicked.connect(lambda: self.c.screenshot_to_text(target=self))
         self.btn_check.clicked.connect(self.llm_check)
         self._findings = []
+        self.pseudonymised = 0
         self._occurrences: dict = {}
         self._next_occ: dict = {}
         self._last: Result | None = None
@@ -216,10 +217,28 @@ class Workbench(QWidget):
 
     def analyze(self):
         text = self.input.toPlainText()
-        self.c.submit(lambda: self.c.engine.analyze(text), self._show_findings,
-                      label=t("job.analyze"), quiet=len(text) < 200_000)
+        engine = self.c.engine
 
-    def _show_findings(self, findings):
+        def job():
+            findings = engine.analyze(text)
+            looks, reverted, _real = engine.surrogate_hint(text, findings)
+            return findings, (len(reverted.replacements) if looks else 0)
+
+        self.c.submit(job, self._show_findings, label=t("job.analyze"), quiet=len(text) < 200_000)
+
+    def _mark_pseudonymised(self, n: int):
+        """A pseudonymised result in the input: Revert becomes the default button."""
+        self.pseudonymised = n
+        default_mode = self.c.cfg.get("general.mode", "pseudonymize")
+        for m, b in self.action_buttons.items():
+            b.setDefault(m == ("revert" if n else default_mode))
+        rb = self.action_buttons.get("revert")
+        if rb is not None:
+            rb.setStyleSheet("font-weight:bold;" if n else "")
+
+    def _show_findings(self, result):
+        findings, pseudo = result if isinstance(result, tuple) else (result, 0)
+        self._mark_pseudonymised(pseudo)
         # one row per distinct value; all occurrences are highlighted in the text
         groups = group_by(findings, lambda f: (f.type, f.text.lower()))
         self._findings = [f for f, _n in groups]
@@ -252,6 +271,8 @@ class Workbench(QWidget):
         self.input.setExtraSelections(sels)
         self.status.setText(t("wb.n_findings_grouped", n=len(findings), d=len(groups))
                             if len(groups) != len(findings) else t("wb.n_findings", n=len(findings)))
+        if pseudo:
+            self.status.setText(self.status.text() + " · " + t("wb.pseudonymised", n=pseudo))
 
     def _select_finding(self):
         rows = {i.row() for i in self.findings.selectedItems()}

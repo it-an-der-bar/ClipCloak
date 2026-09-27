@@ -107,6 +107,39 @@ class Engine:
             resolved = [f for f in resolved if not self._looks_pseudonymised(f, ci)]
         return resolved
 
+    def surrogate_hint(self, text: str, findings: list[Finding] | None = None):
+        """Is ``text`` a pseudonymised result (e.g. an LLM answer) rather than new data?
+
+        Returns ``(looks, reverted, real)``: ``reverted`` is the revert result, ``real`` the
+        findings that are no surrogates. Strong hints are exact surrogates of this vault with
+        at least 4 characters (names, e-mails, domains, secrets …); IP surrogates count only
+        from two on, because they share the private ranges with real addresses.
+        """
+        empty = Result(Mode.REVERT.value, text, text, [], [])
+        v = self.vault
+        if not v.by_surrogate or not text:
+            return False, empty, list(findings or [])
+        res = self.revert(text)
+        if not res.replacements:
+            return False, res, list(findings or [])
+        ci = {k.lower() for k in v.by_surrogate}
+        strong = strong_ip = 0
+        seen = set()
+        for r in res.replacements:
+            s = r.original
+            if s in seen:
+                continue
+            seen.add(s)
+            if r.type in (T.IPV4.value, T.IPV6.value):
+                strong_ip += s in v.by_surrogate
+            elif len(s) >= 4 and (s in v.by_surrogate or s.lower() in ci):
+                strong += 1
+        spans = [(r.in_start, r.in_end) for r in res.replacements]
+        real = [f for f in (findings or []) if not any(f.start < e and s < f.end for s, e in spans)]
+        distinct_real = len({(f.type, f.text.lower()) for f in real})
+        looks = (strong >= 1 or strong_ip >= 2) and strong + strong_ip >= distinct_real
+        return looks, res, real
+
     def _looks_pseudonymised(self, f: Finding, ci_surrogates: set | None = None) -> bool:
         v = self.vault
         if f.type in (T.IPV4.value, T.IPV6.value):

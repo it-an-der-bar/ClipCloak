@@ -106,6 +106,12 @@ P = [
      "What the watcher does with findings it changes automatically (tracking in links is always removed).",
      "Was die Überwachung mit automatisch geänderten Funden tut (Tracking in Links wird immer entfernt).",
      {"choices": ["pseudonymize", "anonymize", "redact"], "labels": choice("mode.")}),
+    ("watcher.offer_revert", "bool", "watcher", "Offer revert for pseudonymised results",
+     "Bei pseudonymisierten Ergebnissen Zurückübersetzen anbieten",
+     "If the copied text consists of this project's replacement values (e.g. the LLM's answer), the popup offers "
+     "revert and nothing is changed automatically.",
+     "Besteht der kopierte Text aus Ersatzwerten dieses Projekts (z. B. die Antwort des LLM), bietet das Popup "
+     "Zurückübersetzen an und nichts wird automatisch geändert.", {}),
 ]
 
 from clipcloak.core.entities import CATEGORIES as FINDING_CATEGORIES  # noqa: E402

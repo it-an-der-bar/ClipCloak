@@ -172,6 +172,47 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(c.watch_rules("always")["IPV4"], "auto")
         c.set_watch_mode("off")
 
+    def test_watcher_offers_revert_for_pseudonymised_result(self):
+        c = self.c
+        original = "Bitte an jonas.hartmann@contoso.com, Server 10.88.10.10, password: Geheim123"
+        pseudo = c.engine.process(original, "pseudonymize").output
+        c.set_watch_mode("always")                   # would change everything at once
+        # the LLM answers with the replacement values -> copied from the browser
+        answer = "Klar, ich schreibe " + pseudo.split(" Server")[0].split("an ")[1] + " an. " + pseudo
+        c.clip.write(answer, None)
+        c._watch_check()
+        self.assertTrue(wait_for(lambda: c._popup is not None))
+        self.assertIn("revert", c._popup.buttons)
+        self.assertNotIn("redact", c._popup.buttons)
+        self.assertEqual(c.clip.read().text, answer)     # nothing changed automatically
+        c._popup._choose("revert")
+        self.assertTrue(wait_for(lambda: "jonas.hartmann@contoso.com" in (c.clip.read().text or "")))
+        self.assertIn("Geheim123", c.clip.read().text)
+        c.set_watch_mode("off")
+
+    def test_real_data_is_not_mistaken_for_a_result(self):
+        c = self.c
+        c.engine.process("Mail an jonas.hartmann@contoso.com", "pseudonymize")
+        c.set_watch_mode("notify")
+        c.clip.write("Neue Daten: max.muster@firma.de, 10.1.1.1, kunde@beispiel-gmbh.de", None)
+        c._watch_check()
+        self.assertTrue(wait_for(lambda: c._popup is not None))
+        self.assertNotIn("revert", c._popup.buttons)
+        self.assertIn("redact", c._popup.buttons)
+        c._popup._choose("")
+        c.set_watch_mode("off")
+
+    def test_workbench_marks_pseudonymised_input(self):
+        c = self.c
+        pseudo = c.engine.process("Mail an jonas.hartmann@contoso.com", "pseudonymize").output
+        c.show_workbench(pseudo)
+        wb = c.main.workbench
+        self.assertTrue(wait_for(lambda: wb.pseudonymised > 0))
+        self.assertTrue(wb.action_buttons["revert"].isDefault())
+        c.show_workbench("nur max.muster@firma.de")
+        self.assertTrue(wait_for(lambda: wb.pseudonymised == 0))
+        self.assertFalse(wb.action_buttons["revert"].isDefault())
+
     def test_findings_grouped(self):
         c = self.c
         c.show_main("workbench")
