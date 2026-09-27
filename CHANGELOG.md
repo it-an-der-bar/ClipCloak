@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.15
+
+- Watcher: when one part is changed automatically and the rest asks, there is only **one** popup ("Already done: tracking removed: 3 · Found: ORG ×12 …") instead of a Windows notification lying over the popup.
+- Notifications name removed tracking separately ("tracking removed: 3") instead of counting it as pseudonymised replacements.
+
 ## 0.1.14
 
 - Clipboard watcher **per category**: for each category *always change*, *inform* (popup) or *nothing* – origin/tracking in links, secrets and keys, bank and card data, people and accounts, organisations and places, network, infrastructure names, custom terms. Default: tracking, secrets and bank data change at once, the rest informs. With both in one text the automatic part is done first, then the popup asks for the rest.

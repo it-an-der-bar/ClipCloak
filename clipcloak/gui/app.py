@@ -367,12 +367,13 @@ class Controller(QObject):
             if res.changed:
                 self.write_clipboard(res.output, html_out)
             self.record(res, source)
-            self._notify_result(res)
+            if after is not None:
+                after(res)                # it reports the result itself (one popup, no extra toast)
+            else:
+                self._notify_result(res)
             if res.changed and mode != "revert" and self.cfg.get("llm.enabled") \
                     and self.cfg.get("llm.verify_output") == "warn":
                 self.llm_verify(res.output, show=False, result=res)
-            if after is not None:
-                after()
 
         self.submit(job, done, label=t("job.clipboard", mode=t("mode." + mode)))
 
@@ -444,9 +445,21 @@ class Controller(QObject):
         if not res.changed:
             self.notify(t("msg.nothing_reverted" if res.mode == "revert" else "msg.nothing_found"), force=True)
             return
+        self.notify(self._result_text(res))
+
+    @staticmethod
+    def _result_text(res: Result) -> str:
+        """"Pseudonymise: 2 replacement(s) – EMAIL ×2 · tracking removed: 3" – removed tracking
+        is not a pseudonymisation, so it is named separately."""
         counts = res.counts()
-        details = ", ".join(f"{k} ×{v}" for k, v in sorted(counts.items(), key=lambda kv: -kv[1]))
-        self.notify(t("msg.done", mode=t("mode." + res.mode), n=len(res.replacements), details=details))
+        tracking = counts.pop("TRACKING", 0)
+        parts = []
+        if counts:
+            details = ", ".join(f"{k} ×{v}" for k, v in sorted(counts.items(), key=lambda kv: -kv[1]))
+            parts.append(t("msg.done", mode=t("mode." + res.mode), n=sum(counts.values()), details=details))
+        if tracking:
+            parts.append(t("msg.tracking_removed", n=tracking))
+        return " · ".join(parts)
 
     # ================================================================= watcher
     def clip_can_watch(self) -> bool:
@@ -531,7 +544,7 @@ class Controller(QObject):
                 if ask:
                     event("log.watch_findings", summary=_summary(ask), decision=t("log.decision_popup"))
                 self.process_clipboard(act, "watcher", content, h, types={f.type for f in auto},
-                                       after=(lambda: self._findings_popup(ask, None, None)) if ask else None)
+                                       after=(lambda res: self._after_auto(res, ask)) if ask else None)
             else:
                 event("log.watch_findings", summary=summary, decision=t("log.decision_popup"))
                 self._findings_popup(ask, content, h)
@@ -579,15 +592,23 @@ class Controller(QObject):
                                int(self.cfg.get("watcher.popup_timeout", 12))),
                          lambda key: self.redact_image(content) if key == "image" else None)
 
-    def _findings_popup(self, findings, content, h):
+    def _after_auto(self, res: Result, ask):
+        """Automatic part done, the rest asks: one popup that says both."""
+        if res.changed:
+            event("log.process_result", mode=t("mode." + res.mode), n=len(res.replacements),
+                  details=", ".join(f"{k} ×{v}" for k, v in sorted(res.counts().items(), key=lambda kv: -kv[1])),
+                  chars=len(res.input))
+        self._findings_popup(ask, None, None, auto_res=res)
+
+    def _findings_popup(self, findings, content, h, auto_res: Result | None = None):
         from .popup import Popup
-        counts: dict[str, int] = {}
-        for f in findings:
-            counts[f.type] = counts.get(f.type, 0) + 1
-        summary = ", ".join(f"{k} ×{v}" for k, v in sorted(counts.items(), key=lambda kv: -kv[1]))
+        summary = _summary(findings)
+        text = t("popup.found_text", summary=summary)
+        if auto_res is not None and auto_res.changed:
+            text = t("popup.auto_done", what=self._result_text(auto_res)) + "\n" + text
         actions = [(m, t("mode." + m), self.hotkey_text(m)) for m in ("pseudonymize", "anonymize", "redact")]
         actions.append(("details", t("popup.details"), ""))
-        self._show_popup(Popup(t("popup.found_title"), t("popup.found_text", summary=summary), actions,
+        self._show_popup(Popup(t("popup.found_title"), text, actions,
                                int(self.cfg.get("watcher.popup_timeout", 12))),
                          lambda key: self._popup_choice(key, content, h))
 

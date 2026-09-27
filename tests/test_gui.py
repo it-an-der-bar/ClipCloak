@@ -151,6 +151,11 @@ class GuiTest(unittest.TestCase):
         self.assertTrue(wait_for(lambda: "utm_source" not in (c.clip.read().text or "")))
         self.assertIn("max.muster@firma.de", c.clip.read().text)
         self.assertTrue(wait_for(lambda: c._popup is not None))
+        from PySide6.QtWidgets import QLabel
+        texts = " ".join(lab.text() for lab in c._popup.findChildren(QLabel))
+        self.assertIn("EMAIL", texts)
+        self.assertIn("1", texts)                      # "Already done: tracking removed: 1"
+        self.assertNotIn("TRACKING", texts)
         c._popup._choose("")
         c._popup = None
         # persons: nothing -> no popup, tracking still removed
@@ -166,6 +171,15 @@ class GuiTest(unittest.TestCase):
         self.assertEqual(rules["EMAIL"], "ignore")
         self.assertEqual(c.watch_rules("always")["IPV4"], "auto")
         c.set_watch_mode("off")
+
+    def test_result_text_names_tracking_separately(self):
+        from clipcloak.core.entities import Replacement, Result
+        reps = [Replacement(0, 1, 0, 0, "TRACKING", "?utm=1", ""), Replacement(2, 3, 2, 3, "EMAIL", "a@b.de", "x@y.de")]
+        text = self.c._result_text(Result("pseudonymize", "i", "o", reps, []))
+        self.assertIn("EMAIL ×1", text)
+        self.assertNotIn("TRACKING", text)
+        only = self.c._result_text(Result("pseudonymize", "i", "o", reps[:1], []))
+        self.assertNotIn("replacement", only.lower().replace("tracking removed", ""))
 
     def test_popup_shows_shortcuts(self):
         c = self.c
