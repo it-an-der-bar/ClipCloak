@@ -127,6 +127,13 @@ If configured, the user cannot change this setting. Setting: watcher.categories.
       <string id="P_watcher_categories_infra_auto">always change</string>
       <string id="P_watcher_categories_infra_ask">inform</string>
       <string id="P_watcher_categories_infra_ignore">nothing</string>
+      <string id="P_watcher_categories_ids">Category: Key and certificate identifiers</string>
+      <string id="P_watcher_categories_ids_Help">Finding types: FINGERPRINT. always change: processed at once; inform: popup; nothing: the watcher ignores them.
+
+If configured, the user cannot change this setting. Setting: watcher.categories.ids</string>
+      <string id="P_watcher_categories_ids_auto">always change</string>
+      <string id="P_watcher_categories_ids_ask">inform</string>
+      <string id="P_watcher_categories_ids_ignore">nothing</string>
       <string id="P_watcher_categories_custom">Category: Custom terms</string>
       <string id="P_watcher_categories_custom_Help">Finding types: CUSTOM. always change: processed at once; inform: popup; nothing: the watcher ignores them.
 
@@ -198,6 +205,10 @@ If configured, the user cannot change this setting. Setting: detectors.enabled.s
       <string id="P_detectors_enabled_infra_names_Help">Enable or disable this detector.
 
 If configured, the user cannot change this setting. Setting: detectors.enabled.infra-names</string>
+      <string id="P_detectors_enabled_fingerprints">Detector: Key/certificate identifiers (PublicKeyToken, thumbprints, serials, SSH/GPG fingerprints)</string>
+      <string id="P_detectors_enabled_fingerprints_Help">Enable or disable this detector.
+
+If configured, the user cannot change this setting. Setting: detectors.enabled.fingerprints</string>
       <string id="P_detectors_enabled_tracking">Detector: Tracking in links (utm_*, click ids, Safe Links …) – removed</string>
       <string id="P_detectors_enabled_tracking_Help">Enable or disable this detector.
 
@@ -395,6 +406,7 @@ If configured, the user cannot change this setting. Setting: hotkeys.toggle_watc
       <presentation id="P_watcher_categories_orgs"><dropdownList refId="P_watcher_categories_orgs" noSort="true">Category: Organisations and places</dropdownList></presentation>
       <presentation id="P_watcher_categories_network"><dropdownList refId="P_watcher_categories_network" noSort="true">Category: Network (IP, MAC, domains, hosts)</dropdownList></presentation>
       <presentation id="P_watcher_categories_infra"><dropdownList refId="P_watcher_categories_infra" noSort="true">Category: Infrastructure names</dropdownList></presentation>
+      <presentation id="P_watcher_categories_ids"><dropdownList refId="P_watcher_categories_ids" noSort="true">Category: Key and certificate identifiers</dropdownList></presentation>
       <presentation id="P_watcher_categories_custom"><dropdownList refId="P_watcher_categories_custom" noSort="true">Category: Custom terms</dropdownList></presentation>
       <presentation id="P_lists_custom_terms"><listBox refId="P_lists_custom_terms">Custom terms</listBox></presentation>
       <presentation id="P_lists_known_domains"><listBox refId="P_lists_known_domains">Known domains</listBox></presentation>

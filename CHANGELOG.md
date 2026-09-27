@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.17
+
+- New optional detector **Key and certificate identifiers** (off by default, Settings › Detection; watcher category of its own, default *inform*):
+  - .NET `PublicKeyToken=…` of own assemblies – the Microsoft/.NET framework tokens (`7cec85d7bea7798e`, `b77a5c561934e089`, `b03f5f7f11d50a3a`, `31bf3856ad364e35` …) identify nobody and are never reported
+  - certificate thumbprints and serial numbers (`Thumbprint:`, `Serial Number:`, `fingerprint=`, `KeyId` …, also the PowerShell `Cert:\` table)
+  - SSH host key fingerprints (`SHA256:…`, `MD5:aa:bb:…`), GPG fingerprints (`Key fingerprint = …`, the line below `pub`/`sec`)
+  - placeholders such as `0000…` are ignored; replacements keep the format (hex stays hex, case and `:`/`-` separators stay) and are reversible.
+
 ## 0.1.16
 
 - NER: far fewer false positives on code and logs. Entities are rejected when

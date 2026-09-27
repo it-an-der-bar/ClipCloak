@@ -127,6 +127,13 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_watcher_categories_infra_auto">immer ändern</string>
       <string id="P_watcher_categories_infra_ask">informieren</string>
       <string id="P_watcher_categories_infra_ignore">nichts</string>
+      <string id="P_watcher_categories_ids">Kategorie: Schlüssel- und Zertifikats-Kennungen</string>
+      <string id="P_watcher_categories_ids_Help">Fundtypen: FINGERPRINT. immer ändern: sofort verarbeitet; informieren: Popup; nichts: die Überwachung ignoriert sie.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.categories.ids</string>
+      <string id="P_watcher_categories_ids_auto">immer ändern</string>
+      <string id="P_watcher_categories_ids_ask">informieren</string>
+      <string id="P_watcher_categories_ids_ignore">nichts</string>
       <string id="P_watcher_categories_custom">Kategorie: Eigene Begriffe</string>
       <string id="P_watcher_categories_custom_Help">Fundtypen: CUSTOM. immer ändern: sofort verarbeitet; informieren: Popup; nichts: die Überwachung ignoriert sie.
 
@@ -198,6 +205,10 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_detectors_enabled_infra_names_Help">Diese Erkennung ein- oder ausschalten.
 
 Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: detectors.enabled.infra-names</string>
+      <string id="P_detectors_enabled_fingerprints">Erkennung: Schlüssel-/Zertifikats-Kennungen (PublicKeyToken, Thumbprints, Seriennummern, SSH/GPG-Fingerprints)</string>
+      <string id="P_detectors_enabled_fingerprints_Help">Diese Erkennung ein- oder ausschalten.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: detectors.enabled.fingerprints</string>
       <string id="P_detectors_enabled_tracking">Erkennung: Tracking in Links (utm_*, Klick-IDs, Safe Links …) – wird entfernt</string>
       <string id="P_detectors_enabled_tracking_Help">Diese Erkennung ein- oder ausschalten.
 
@@ -395,6 +406,7 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <presentation id="P_watcher_categories_orgs"><dropdownList refId="P_watcher_categories_orgs" noSort="true">Kategorie: Organisationen und Orte</dropdownList></presentation>
       <presentation id="P_watcher_categories_network"><dropdownList refId="P_watcher_categories_network" noSort="true">Kategorie: Netzwerk (IP, MAC, Domains, Hosts)</dropdownList></presentation>
       <presentation id="P_watcher_categories_infra"><dropdownList refId="P_watcher_categories_infra" noSort="true">Kategorie: Infrastruktur-Namen</dropdownList></presentation>
+      <presentation id="P_watcher_categories_ids"><dropdownList refId="P_watcher_categories_ids" noSort="true">Kategorie: Schlüssel- und Zertifikats-Kennungen</dropdownList></presentation>
       <presentation id="P_watcher_categories_custom"><dropdownList refId="P_watcher_categories_custom" noSort="true">Kategorie: Eigene Begriffe</dropdownList></presentation>
       <presentation id="P_lists_custom_terms"><listBox refId="P_lists_custom_terms">Eigene Begriffe</listBox></presentation>
       <presentation id="P_lists_known_domains"><listBox refId="P_lists_known_domains">Bekannte Domains</listBox></presentation>

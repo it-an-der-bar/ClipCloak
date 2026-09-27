@@ -27,6 +27,7 @@ class EntityType(str, Enum):
     CERTIFICATE = "CERTIFICATE"
     IDENTIFIER = "IDENTIFIER"       # parts of infrastructure names (namespace, release …)
     TRACKING = "TRACKING"           # tracking parameters / redirect wrappers in URLs (removed)
+    FINGERPRINT = "FINGERPRINT"     # public key/cert ids: PublicKeyToken, thumbprints, SSH/GPG fingerprints
     CUSTOM = "CUSTOM"
 
     def __str__(self) -> str:  # pragma: no cover - convenience
@@ -45,11 +46,13 @@ CATEGORIES: dict[str, tuple[str, ...]] = {
     "orgs": ("ORG", "LOCATION"),
     "network": ("IPV4", "IPV6", "MAC", "DOMAIN", "HOSTNAME"),
     "infra": ("IDENTIFIER",),
+    "ids": ("FINGERPRINT",),
     "custom": ("CUSTOM",),
 }
 CATEGORY_OF = {typ: cat for cat, types in CATEGORIES.items() for typ in types}
 DEFAULT_CATEGORY_RULES = {"tracking": "auto", "secrets": "auto", "finance": "auto", "persons": "ask",
-                          "orgs": "ask", "network": "ask", "infra": "ask", "custom": "ask"}
+                          "orgs": "ask", "network": "ask", "infra": "ask", "ids": "ask",
+                          "custom": "ask"}
 
 # Types treated as "critical" by default for the clipboard watcher.
 DEFAULT_CRITICAL = ["SECRET", "PRIVATE_KEY", "CREDIT_CARD", "IBAN"]

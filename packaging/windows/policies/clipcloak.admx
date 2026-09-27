@@ -285,6 +285,23 @@
         </enum>
       </elements>
     </policy>
+    <policy name="P_watcher_categories_ids" class="Both" displayName="$(string.P_watcher_categories_ids)" explainText="$(string.P_watcher_categories_ids_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_categories_ids)">
+      <parentCategory ref="C_watcher" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <enum id="P_watcher_categories_ids" valueName="watcher.categories.ids" required="true">
+          <item displayName="$(string.P_watcher_categories_ids_auto)">
+            <value><string>auto</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_ids_ask)">
+            <value><string>ask</string></value>
+          </item>
+          <item displayName="$(string.P_watcher_categories_ids_ignore)">
+            <value><string>ignore</string></value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
     <policy name="P_watcher_categories_custom" class="Both" displayName="$(string.P_watcher_categories_custom)" explainText="$(string.P_watcher_categories_custom_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_categories_custom)">
       <parentCategory ref="C_watcher" />
       <supportedOn ref="SUPPORTED_0_1_9" />
@@ -393,6 +410,12 @@
       <disabledValue><decimal value="0" /></disabledValue>
     </policy>
     <policy name="P_detectors_enabled_infra_names" class="Both" displayName="$(string.P_detectors_enabled_infra_names)" explainText="$(string.P_detectors_enabled_infra_names_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="detectors.enabled.infra-names">
+      <parentCategory ref="C_detectors" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="P_detectors_enabled_fingerprints" class="Both" displayName="$(string.P_detectors_enabled_fingerprints)" explainText="$(string.P_detectors_enabled_fingerprints_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="detectors.enabled.fingerprints">
       <parentCategory ref="C_detectors" />
       <supportedOn ref="SUPPORTED_0_1_9" />
       <enabledValue><decimal value="1" /></enabledValue>

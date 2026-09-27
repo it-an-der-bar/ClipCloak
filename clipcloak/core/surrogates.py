@@ -101,6 +101,7 @@ class SurrogateFactory:
             T.SID.value: self._sid, T.SECRET.value: self._secret,
             T.PRIVATE_KEY.value: self._secret, T.CERTIFICATE.value: self._secret,
             T.IDENTIFIER.value: self._identifier,
+            T.FINGERPRINT.value: self._fingerprint,
             T.CUSTOM.value: self._custom,
         }.get(typ, self._custom)
         out = None
@@ -449,6 +450,12 @@ class SurrogateFactory:
     def _identifier(self, f: Finding, attempt: int = 0):
         # same word map as domain labels: "acme" in acme-prod and acme.local match
         return re.sub(r"[A-Za-zÀ-ɏ]{2,}", lambda m: self.word(m.group(0), force_new=attempt > 0), f.text)
+
+    def _fingerprint(self, f: Finding, attempt: int = 0):
+        # format-preserving: hex stays hex (case, ":" / "-" separators), base64 stays base64
+        rng = self._rng("fingerprint", f.text, attempt)
+        is_hex = bool(re.fullmatch(r"[0-9A-Fa-f:\- ]+", f.text))
+        return randomize_chars(f.text, rng, hex_mode=is_hex)
 
     # ------------------------------------------------------------ custom
     def _custom(self, f: Finding, attempt: int = 0):
