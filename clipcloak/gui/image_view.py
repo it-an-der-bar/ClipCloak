@@ -3,17 +3,19 @@
 Left to right: 1. image (clipboard / file) → 2. detect automatically (plugin) or draw
 boxes by hand → 3. result to the clipboard or into a file. Boxes can be moved,
 resized (lower right corner), deleted (Del) and switched between the effects.
+The margin around detected faces can be widened in the tab; boxes edited by hand
+keep their size.
 """
 
 from __future__ import annotations
 
-from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QImage, QKeySequence, QPainter, QPen, QPixmap, QShortcut
 from PySide6.QtWidgets import (QComboBox, QFileDialog, QGraphicsItem, QGraphicsPixmapItem, QGraphicsRectItem,
                                QGraphicsScene, QGraphicsView, QHBoxLayout, QLabel, QMenu, QPushButton,
-                               QSplitter, QVBoxLayout, QWidget)
+                               QSpinBox, QSplitter, QVBoxLayout, QWidget)
 
-from ..core.imageredact import EFFECTS, Region
+from ..core.imageredact import EFFECTS, Region, with_margin
 from ..i18n import t
 from . import image_effects
 from .widgets import item, make_table, track_table
@@ -34,10 +36,22 @@ class RegionItem(QGraphicsRectItem):
                       QGraphicsItem.ItemSendsGeometryChanges)
         self.setAcceptHoverEvents(True)
         self._resizing = False
+        self._press_geo = None
         self._cache_key = None
         self._cache: QPixmap | None = None
 
     # geometry ----------------------------------------------------------------
+    def set_geometry(self, x: int, y: int, w: int, h: int):
+        """Programmatic resize (margin changed); keeps ``region.base``."""
+        self.prepareGeometryChange()
+        self.setRect(0, 0, w, h)
+        self.setPos(x, y)
+        self.sync()
+        self.update()
+
+    def _geo(self):
+        return (self.pos().x(), self.pos().y(), self.rect().width(), self.rect().height())
+
     def sync(self):
         r = self.rect()
         self.region.x, self.region.y = int(round(self.pos().x())), int(round(self.pos().y()))
@@ -69,6 +83,7 @@ class RegionItem(QGraphicsRectItem):
         super().hoverMoveEvent(ev)
 
     def mousePressEvent(self, ev):
+        self._press_geo = self._geo()
         if ev.button() == Qt.LeftButton and self._in_handle(ev.pos()):
             self._resizing = True
             self.setSelected(True)
@@ -94,6 +109,9 @@ class RegionItem(QGraphicsRectItem):
     def mouseReleaseEvent(self, ev):
         self._resizing = False
         super().mouseReleaseEvent(ev)
+        if self._press_geo is not None and self._press_geo != self._geo():
+            self.region.base = None            # edited by hand: the margin setting no longer applies
+        self._press_geo = None
 
     def contextMenuEvent(self, ev):
         self.view.scene().clearSelection()
@@ -264,6 +282,21 @@ class ImageView(QWidget):
         self.btn_clear = QPushButton(t("img.clear"))
         self.table = make_table([t("col.type"), t("col.text"), t("img.col_effect")])
         track_table(getattr(controller, "ui_state", None), "image/columns", self.table)
+        self.face_margin = QSpinBox()
+        self.face_margin.setRange(0, 200)
+        self.face_margin.setSingleStep(5)
+        self.face_margin.setSuffix(" %")
+        self.face_margin.setToolTip(t("img.face_margin_tip"))
+        cfg = getattr(controller, "cfg", None)
+        if cfg is not None:
+            self.face_margin.setValue(int(cfg.get("image.face_margin", 15) or 0))
+            self.face_margin.setEnabled(not cfg.is_locked("image.face_margin"))
+        else:
+            self.face_margin.setValue(15)
+        self._save_margin = QTimer(self)
+        self._save_margin.setSingleShot(True)
+        self._save_margin.setInterval(600)
+        self._save_margin.timeout.connect(self._store_margin)
         self.info = QLabel(t("img.hint"))
         self.info.setWordWrap(True)
 
@@ -290,6 +323,10 @@ class ImageView(QWidget):
         row.addWidget(QLabel(t("img.col_effect") + ":"))
         row.addWidget(self.effect, 1)
         sl.addLayout(row)
+        row_m = QHBoxLayout()
+        row_m.addWidget(QLabel(t("img.face_margin") + ":"))
+        row_m.addWidget(self.face_margin, 1)
+        sl.addLayout(row_m)
         row2 = QHBoxLayout()
         row2.addWidget(self.btn_delete)
         row2.addWidget(self.btn_clear)
@@ -318,6 +355,7 @@ class ImageView(QWidget):
         self.btn_delete.clicked.connect(self.delete_selected)
         self.btn_clear.clicked.connect(lambda: self.canvas.clear_regions())
         self.effect.activated.connect(self._effect_chosen)
+        self.face_margin.valueChanged.connect(self._margin_changed)
         self.canvas.region_changed.connect(self.refresh_table)
         self.canvas.selection_changed.connect(self._scene_selection)
         self.table.itemSelectionChanged.connect(self._table_selection)
@@ -368,6 +406,23 @@ class ImageView(QWidget):
             for r in regions:
                 self.canvas.add_region(r)
         self.info.setText(message)
+
+    def _margin_changed(self, pct: int):
+        """Grow/shrink the detected faces around their detected box (hand-edited boxes stay)."""
+        img = self.canvas.image
+        if img is not None:
+            cfg = getattr(self.c, "cfg", None)
+            pad = int((cfg.get("image.padding", 3) if cfg is not None else 3) or 0)
+            for it in self.canvas.items_list():
+                r = it.region
+                if r.source == "face" and r.base is not None:
+                    it.set_geometry(*with_margin(r.base, pct, pad, img.width(), img.height()))
+        self._save_margin.start()
+
+    def _store_margin(self):
+        cfg = getattr(self.c, "cfg", None)
+        if cfg is not None and not cfg.is_locked("image.face_margin"):
+            cfg.set("image.face_margin", int(self.face_margin.value()))
 
     # ------------------------------------------------------------------ result
     def result_image(self) -> QImage | None:
@@ -477,4 +532,10 @@ class ImageView(QWidget):
 
     def showEvent(self, ev):
         super().showEvent(ev)
+        cfg = getattr(self.c, "cfg", None)
+        if cfg is not None and not self._save_margin.isActive():      # changed in the settings meanwhile
+            self.face_margin.blockSignals(True)
+            self.face_margin.setValue(int(cfg.get("image.face_margin", 15) or 0))
+            self.face_margin.blockSignals(False)
+            self.face_margin.setEnabled(not cfg.is_locked("image.face_margin"))
         self.canvas.fit()

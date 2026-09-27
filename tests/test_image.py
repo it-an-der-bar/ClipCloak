@@ -83,6 +83,18 @@ class RegionMappingTest(unittest.TestCase):
         line = {"text": "abcdefghij", "x": 100, "y": 5, "w": 200, "h": 10, "words": []}
         self.assertEqual(span_box(line, 5, 10), {"x": 200, "y": 5, "w": 100, "h": 10})
 
+    def test_face_margin_configurable(self):
+        box = [{"x": 100, "y": 100, "w": 50, "h": 60}]
+        r0 = face_regions(box, ImageSettings(face_margin=0, padding=0), 400, 400)[0]
+        self.assertEqual(r0.as_tuple(), (100, 100, 50, 60))
+        r50 = face_regions(box, ImageSettings(face_margin=50, padding=0), 400, 400)[0]
+        self.assertEqual(r50.as_tuple(), (70, 70, 110, 120))          # 50 % of 60 = 30 px on every side
+        self.assertEqual(r50.base, (100, 100, 50, 60))
+        s = ImageSettings.from_config({"face_margin": 80, "nudity_margin": "x"})
+        self.assertEqual((s.face_margin, s.nudity_margin), (80, 0))
+        self.assertEqual(ImageSettings.from_config({}).face_margin, 15)
+        self.assertEqual(ImageSettings.from_config({"face_margin": 999}).face_margin, 200)
+
     def test_face_margin_and_clamping(self):
         regs = face_regions([{"x": 5, "y": 5, "w": 100, "h": 100}], ImageSettings(), 110, 110)
         r = regs[0]
@@ -166,6 +178,26 @@ class ImageTabTest(unittest.TestCase):
         img = c.clip.cb.image()
         self.assertFalse(img.isNull())
         self.assertEqual(QColor(img.pixel(5, 5)).name(), "#000000")
+
+    def test_face_margin_in_tab(self):
+        c = self.c
+        c.cfg.set("image.face_margin", 0)
+        c.cfg.set("image.padding", 0)
+        c.clip.cb.setImage(picture())
+        c.redact_image()
+        view = c.main.image
+        self.assertEqual(view.face_margin.value(), 0)
+        self.assertTrue(wait_for(lambda: len(view.canvas.regions()) == 3))
+        face = next(i for i in view.canvas.items_list() if i.region.source == "face")
+        self.assertEqual(face.region.as_tuple(), (250, 60, 60, 70))
+        view.face_margin.setValue(20)                                  # 20 % of 70 = 14 px
+        self.assertEqual(face.region.as_tuple(), (236, 46, 88, 98))
+        self.assertEqual((face.pos().x(), face.rect().width()), (236, 88))
+        # a box edited by hand keeps its size
+        face.region.base = None
+        view.face_margin.setValue(60)
+        self.assertEqual(face.region.as_tuple(), (236, 46, 88, 98))
+        self.assertTrue(wait_for(lambda: c.cfg.get("image.face_margin") == 60, 2000))
 
     def test_without_plugin_manual_only(self):
         c = self.c

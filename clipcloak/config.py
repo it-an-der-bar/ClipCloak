@@ -64,6 +64,8 @@ DEFAULTS: dict = {
         "text_effect": "black",       # black is the only safe choice for text
         "code_effect": "black",
         "padding": 3,
+        "face_margin": 15,            # extra margin around faces, % of the face size (0-200)
+        "nudity_margin": 12,          # the same for nudity
         "watch": True,                # watcher offers "Redact image" for images
     },
     "clipboard": {

@@ -347,6 +347,14 @@ If configured, the user cannot change this setting. Setting: image.code_effect</
       <string id="P_image_code_effect_black">black</string>
       <string id="P_image_code_effect_mosaic">mosaic</string>
       <string id="P_image_code_effect_blur">blur</string>
+      <string id="P_image_face_margin">Extra margin around faces (%)</string>
+      <string id="P_image_face_margin_Help">Area added around detected faces, in % of the face size (0-200). Covers hair, ears and neck.
+
+If configured, the user cannot change this setting. Setting: image.face_margin</string>
+      <string id="P_image_nudity_margin">Extra margin around nudity (%)</string>
+      <string id="P_image_nudity_margin_Help">Area added around detected nudity, in % of its size (0-200).
+
+If configured, the user cannot change this setting. Setting: image.nudity_margin</string>
       <string id="P_image_watch">Offer image redaction for copied images</string>
       <string id="P_image_watch_Help">The clipboard watcher shows a popup "Redact image" when an image is copied.
 
@@ -427,6 +435,8 @@ If configured, the user cannot change this setting. Setting: hotkeys.toggle_watc
       <presentation id="P_image_nudity_effect"><dropdownList refId="P_image_nudity_effect" noSort="true">Effect for nudity</dropdownList></presentation>
       <presentation id="P_image_text_effect"><dropdownList refId="P_image_text_effect" noSort="true">Effect for text</dropdownList></presentation>
       <presentation id="P_image_code_effect"><dropdownList refId="P_image_code_effect" noSort="true">Effect for codes</dropdownList></presentation>
+      <presentation id="P_image_face_margin"><decimalTextBox refId="P_image_face_margin">Extra margin around faces (%)</decimalTextBox></presentation>
+      <presentation id="P_image_nudity_margin"><decimalTextBox refId="P_image_nudity_margin">Extra margin around nudity (%)</decimalTextBox></presentation>
       <presentation id="P_hotkeys_pseudonymize"><textBox refId="P_hotkeys_pseudonymize"><label>Shortcut: Pseudonymise clipboard</label></textBox></presentation>
       <presentation id="P_hotkeys_anonymize"><textBox refId="P_hotkeys_anonymize"><label>Shortcut: Anonymise clipboard</label></textBox></presentation>
       <presentation id="P_hotkeys_redact"><textBox refId="P_hotkeys_redact"><label>Shortcut: Redact clipboard</label></textBox></presentation>

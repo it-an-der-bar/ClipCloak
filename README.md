@@ -159,6 +159,7 @@ With the watcher on, copying an image shows a popup *Redact image*.
    - nudity – exposed breasts, genitals, buttocks → black (NudeNet model; large images are also searched in tiles),
    - text: OCR, then the same detectors as for clipboard text (IP, e-mail, domains, secrets, custom terms, NER names …) → black bars over exactly those characters,
    - QR codes and barcodes → black.
+   Face boxes get an extra margin (hair, ears, neck): 15 % of the face size by default, adjustable in the tab (*Margin around faces*, applies at once to the detected faces, boxes edited by hand stay) and in Settings › Images (also for nudity).
    Drag with the mouse to add areas by hand; move them, resize at the lower right corner, *Del* deletes, right click changes the effect (black, mosaic, blur). `Ctrl` + mouse wheel zooms.
 3. **Result:** to the clipboard or into a PNG/JPEG file. It is a new, flat image: the covered pixels are gone and no metadata of the source is carried over.
 

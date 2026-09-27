@@ -680,6 +680,20 @@
         </enum>
       </elements>
     </policy>
+    <policy name="P_image_face_margin" class="Both" displayName="$(string.P_image_face_margin)" explainText="$(string.P_image_face_margin_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_image_face_margin)">
+      <parentCategory ref="C_image" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <decimal id="P_image_face_margin" valueName="image.face_margin" required="true" minValue="0" maxValue="200" />
+      </elements>
+    </policy>
+    <policy name="P_image_nudity_margin" class="Both" displayName="$(string.P_image_nudity_margin)" explainText="$(string.P_image_nudity_margin_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_image_nudity_margin)">
+      <parentCategory ref="C_image" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <decimal id="P_image_nudity_margin" valueName="image.nudity_margin" required="true" minValue="0" maxValue="200" />
+      </elements>
+    </policy>
     <policy name="P_image_watch" class="Both" displayName="$(string.P_image_watch)" explainText="$(string.P_image_watch_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="image.watch">
       <parentCategory ref="C_image" />
       <supportedOn ref="SUPPORTED_0_1_9" />

@@ -347,6 +347,14 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_image_code_effect_black">schwarz</string>
       <string id="P_image_code_effect_mosaic">Mosaik</string>
       <string id="P_image_code_effect_blur">weichzeichnen</string>
+      <string id="P_image_face_margin">Zusätzlicher Rand um Gesichter (%)</string>
+      <string id="P_image_face_margin_Help">Bereich, der um erkannte Gesichter ergänzt wird, in % der Gesichtsgröße (0-200). Deckt Haare, Ohren und Hals ab.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: image.face_margin</string>
+      <string id="P_image_nudity_margin">Zusätzlicher Rand um Nacktheit (%)</string>
+      <string id="P_image_nudity_margin_Help">Bereich, der um erkannte Nacktheit ergänzt wird, in % ihrer Größe (0-200).
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: image.nudity_margin</string>
       <string id="P_image_watch">Bei kopierten Bildern Schwärzen anbieten</string>
       <string id="P_image_watch_Help">Die Überwachung zeigt beim Kopieren eines Bildes ein Popup "Bild schwärzen".
 
@@ -427,6 +435,8 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <presentation id="P_image_nudity_effect"><dropdownList refId="P_image_nudity_effect" noSort="true">Effekt für Nacktheit</dropdownList></presentation>
       <presentation id="P_image_text_effect"><dropdownList refId="P_image_text_effect" noSort="true">Effekt für Text</dropdownList></presentation>
       <presentation id="P_image_code_effect"><dropdownList refId="P_image_code_effect" noSort="true">Effekt für Codes</dropdownList></presentation>
+      <presentation id="P_image_face_margin"><decimalTextBox refId="P_image_face_margin">Zusätzlicher Rand um Gesichter (%)</decimalTextBox></presentation>
+      <presentation id="P_image_nudity_margin"><decimalTextBox refId="P_image_nudity_margin">Zusätzlicher Rand um Nacktheit (%)</decimalTextBox></presentation>
       <presentation id="P_hotkeys_pseudonymize"><textBox refId="P_hotkeys_pseudonymize"><label>Tastenkürzel: Zwischenablage pseudonymisieren</label></textBox></presentation>
       <presentation id="P_hotkeys_anonymize"><textBox refId="P_hotkeys_anonymize"><label>Tastenkürzel: Zwischenablage anonymisieren</label></textBox></presentation>
       <presentation id="P_hotkeys_redact"><textBox refId="P_hotkeys_redact"><label>Tastenkürzel: Zwischenablage schwärzen</label></textBox></presentation>

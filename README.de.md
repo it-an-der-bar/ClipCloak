@@ -160,6 +160,7 @@ Zwischenablage dort. Mit eingeschalteter Überwachung erscheint beim Kopieren ei
    - Nacktheit – unbedeckte Brüste, Genitalien, Gesäß → schwarz (NudeNet-Modell; große Bilder werden zusätzlich in Kacheln durchsucht),
    - Text: OCR, danach dieselben Erkennungen wie für Text in der Zwischenablage (IP, E-Mail, Domains, Secrets, eigene Begriffe, NER-Namen …) → schwarze Balken genau über diesen Zeichen,
    - QR-Codes und Barcodes → schwarz.
+   Gesichter bekommen einen zusätzlichen Rand (Haare, Ohren, Hals): standardmäßig 15 % der Gesichtsgröße, einstellbar im Reiter (*Rand um Gesichter*, wirkt sofort auf die erkannten Gesichter, von Hand bearbeitete Bereiche bleiben) und unter Einstellungen › Bilder (auch für Nacktheit).
    Mit der Maus aufziehen fügt Bereiche von Hand hinzu; verschieben, an der Ecke unten rechts in der Größe ändern, *Entf* löscht, Rechtsklick wechselt den Effekt (schwarz, Mosaik, weichzeichnen). `Strg` + Mausrad zoomt.
 3. **Ergebnis:** in die Zwischenablage oder als PNG/JPEG-Datei. Es ist ein neues, flaches Bild: die verdeckten Pixel sind weg, Metadaten der Quelle werden nicht übernommen.
 

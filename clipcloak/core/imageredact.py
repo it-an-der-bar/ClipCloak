@@ -22,6 +22,7 @@ class Region:
     effect: str = "black"
     label: str = ""               # recognised text (shown in the list only, never logged)
     source: str = "manual"        # manual | face | nudity | code | text
+    base: tuple | None = None     # detected box before the margin (x, y, w, h); None once edited by hand
 
     def as_tuple(self) -> tuple[int, int, int, int]:
         return self.x, self.y, self.w, self.h
@@ -39,6 +40,8 @@ class ImageSettings:
     skip_types: set = field(default_factory=set)
     nudity: bool = True
     nudity_effect: str = "black"
+    face_margin: int = 15         # extra margin around faces, % of the larger side of the detected box
+    nudity_margin: int = 12
 
     @classmethod
     def from_config(cls, d: dict) -> "ImageSettings":
@@ -47,7 +50,22 @@ class ImageSettings:
         return cls(bool(d.get("faces", True)), bool(d.get("text", True)), bool(d.get("codes", True)),
                    eff("face_effect", "mosaic"), eff("text_effect", "black"), eff("code_effect", "black"),
                    int(d.get("padding", 3) or 0), set(),
-                   bool(d.get("nudity", True)), eff("nudity_effect", "black"))
+                   bool(d.get("nudity", True)), eff("nudity_effect", "black"),
+                   _pct(d.get("face_margin", 15)), _pct(d.get("nudity_margin", 12)))
+
+
+def _pct(v) -> int:
+    try:
+        return max(0, min(200, int(v)))
+    except (TypeError, ValueError):
+        return 0
+
+
+def with_margin(base: tuple, pct: int, min_pad: int, width: int = 0, height: int = 0) -> tuple[int, int, int, int]:
+    """``base`` (x, y, w, h) grown by ``pct`` % of its larger side on every side (at least ``min_pad``)."""
+    x, y, w, h = base
+    pad = max(min_pad, int(round(pct / 100 * max(w, h))))
+    return _pad({"x": x, "y": y, "w": w, "h": h}, pad, width, height)
 
 
 def _pad(box: dict, pad: int, width: int, height: int) -> tuple[int, int, int, int]:
@@ -123,19 +141,19 @@ def merge_overlapping(regions: list[Region]) -> list[Region]:
 def face_regions(boxes: list[dict], settings: ImageSettings, width: int = 0, height: int = 0) -> list[Region]:
     out = []
     for b in boxes:
-        # faces: a generous margin so hair/ears/chin are covered too
-        pad = max(settings.padding, int(0.15 * max(b["w"], b["h"])))
-        x, y, w, h = _pad(b, pad, width, height)
-        out.append(Region(x, y, w, h, "FACE", settings.face_effect, "", "face"))
+        # faces: a margin so hair/ears/chin are covered too (configurable, "on top")
+        base = (int(b["x"]), int(b["y"]), int(b["w"]), int(b["h"]))
+        x, y, w, h = with_margin(base, settings.face_margin, settings.padding, width, height)
+        out.append(Region(x, y, w, h, "FACE", settings.face_effect, "", "face", base))
     return out
 
 
 def nudity_regions(boxes: list[dict], settings: ImageSettings, width: int = 0, height: int = 0) -> list[Region]:
     out = []
     for b in boxes:
-        pad = max(settings.padding, int(0.12 * max(b["w"], b["h"])))
-        x, y, w, h = _pad(b, pad, width, height)
-        out.append(Region(x, y, w, h, "NUDITY", settings.nudity_effect, "", "nudity"))
+        base = (int(b["x"]), int(b["y"]), int(b["w"]), int(b["h"]))
+        x, y, w, h = with_margin(base, settings.nudity_margin, settings.padding, width, height)
+        out.append(Region(x, y, w, h, "NUDITY", settings.nudity_effect, "", "nudity", base))
     return merge_overlapping(out)
 
 

@@ -201,9 +201,11 @@ class SettingsDialog(QDialog):
         self.w[key] = le
         return le
 
-    def _spin(self, key, lo, hi):
+    def _spin(self, key, lo, hi, suffix=""):
         sb = QSpinBox()
         sb.setRange(lo, hi)
+        if suffix:
+            sb.setSuffix(suffix)
         self.w[key] = sb
         return sb
 
@@ -461,6 +463,8 @@ class SettingsDialog(QDialog):
         f.addRow("", self._check("image.codes", t("img.set_codes")))
         f.addRow(t("img.set_code_effect"), self._combo("image.code_effect", list(EFFECTS), "effect."))
         f.addRow(t("img.set_padding"), self._spin("image.padding", 0, 50))
+        f.addRow(t("img.set_face_margin"), self._spin("image.face_margin", 0, 200, " %"))
+        f.addRow(t("img.set_nudity_margin"), self._spin("image.nudity_margin", 0, 200, " %"))
         f.addRow("", self._check("image.watch", t("img.set_watch")))
         warn = QLabel(t("img.effect_warning"))
         warn.setWordWrap(True)

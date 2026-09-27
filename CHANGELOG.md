@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.18
+
+- Images: configurable extra margin around detected faces ("on top" of the detected box), in % of the face size (0–200, default 15):
+  - in the *Image* tab (*Margin around faces*): changes the detected faces at once; boxes moved or resized by hand keep their size; the value is kept as the new default
+  - in Settings › Images, also for nudity (default 12); as ADMX policies `image.face_margin` / `image.nudity_margin`.
+
 ## 0.1.17
 
 - New optional detector **Key and certificate identifiers** (off by default, Settings › Detection; watcher category of its own, default *inform*):
