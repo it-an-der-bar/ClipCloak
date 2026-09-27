@@ -60,6 +60,7 @@ class Controller(QObject):
     history_changed = Signal()
     mappings_changed = Signal()
     activity_changed = Signal()
+    image_progress = Signal(str)       # current step of the image detection (shown in the image tab)
     _hotkey = Signal(str)
     _job_done = Signal(object, object)
 
@@ -758,14 +759,22 @@ class Controller(QObject):
             callback((None, t("img.no_plugin", helper=APP_NAME + "-ner")))
             return
 
+        steps = [k for k, on in (("faces", settings.faces), ("nudity", settings.nudity),
+                                 ("codes", settings.codes), ("text", settings.text)) if on]
+
+        def step(key):
+            self.image_progress.emit(t("img.step." + key, i=steps.index(key) + 1, n=len(steps)))
+
         def job():
             regions, counts = [], {}
             try:
                 if settings.faces:
+                    step("faces")
                     boxes = client.request({"op": "faces", "image": b64}, timeout=180).get("boxes", [])
                     regions += face_regions(boxes, settings, w, h)
                     counts["faces"] = len(boxes)
                 if settings.nudity:
+                    step("nudity")
                     try:
                         boxes = client.request({"op": "nudity", "image": b64}, timeout=180).get("boxes", [])
                     except RuntimeError as exc:           # plugin of 0.1.11 has no nudity model
@@ -776,10 +785,12 @@ class Controller(QObject):
                     regions += nudity_regions(boxes, settings, w, h)
                     counts["nudity"] = len(boxes)
                 if settings.codes:
+                    step("codes")
                     boxes = client.request({"op": "codes", "image": b64}, timeout=180).get("boxes", [])
                     regions += code_regions(boxes, settings, w, h)
                     counts["codes"] = len(boxes)
                 if settings.text:
+                    step("text")
                     lines = client.request({"op": "ocr", "image": b64}, timeout=300).get("boxes", [])
                     found = text_regions(lines, engine.analyze, settings, w, h)
                     regions += found

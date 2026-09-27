@@ -30,6 +30,7 @@ class MainWindow(QMainWindow):
         self.history = HistoryView(controller)
         self.mappings = MappingView(controller)
         self.image = ImageView(controller)
+        self.image.status.connect(lambda msg: self.statusBar().showMessage(msg, 8000))
         self.tabs.addTab(self.workbench, t("tab.workbench"))
         self.tabs.addTab(self.image, t("tab.image"))
         self.tabs.addTab(self.history, t("tab.history"))

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.19
+
+- Images: while the plugin analyses an image (e.g. after Ctrl+Alt+I) a box over the image shows what is happening – "Analysing image …", the current step (faces 1/4, nudity 2/4, codes 3/4, text/OCR 4/4), a progress bar and the seconds so far; the button reads "Detecting …" and the status bar says so too.
+- *Result → clipboard* and *Save result* are disabled until the detection is finished, so no half-redacted image can be passed on.
+
 ## 0.1.18
 
 - Images: configurable extra margin around detected faces ("on top" of the detected box), in % of the face size (0–200, default 15):

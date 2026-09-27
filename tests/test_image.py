@@ -199,6 +199,33 @@ class ImageTabTest(unittest.TestCase):
         self.assertEqual(face.region.as_tuple(), (236, 46, 88, 98))
         self.assertTrue(wait_for(lambda: c.cfg.get("image.face_margin") == 60, 2000))
 
+    def test_progress_shown_while_detecting(self):
+        import threading
+        c = self.c
+        gate = threading.Event()
+        slow = FakePlugin()
+        orig = slow.request
+
+        def request(payload, timeout=None):
+            if payload.get("op") == "codes":
+                gate.wait(5)
+            return orig(payload, timeout)
+        slow.request = request
+        c.plugin_client = lambda: slow
+        c.clip.cb.setImage(picture())
+        c.redact_image()
+        view = c.main.image
+        busy = view.canvas.busy
+        self.assertTrue(busy.isVisible())
+        self.assertFalse(view.btn_detect.isEnabled())
+        self.assertFalse(view.btn_to.isEnabled())              # no half-redacted result
+        self.assertTrue(wait_for(lambda: "3/4" in busy.step.text()))
+        gate.set()
+        self.assertTrue(wait_for(lambda: not busy.isVisible()))
+        self.assertTrue(view.btn_to.isEnabled())
+        self.assertEqual(view.btn_detect.text(), view.btn_detect.text().strip())
+        self.assertEqual(len(view.canvas.regions()), 3)
+
     def test_without_plugin_manual_only(self):
         c = self.c
         c.plugin_client = lambda: None

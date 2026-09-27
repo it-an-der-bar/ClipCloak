@@ -9,11 +9,15 @@ keep their size.
 
 from __future__ import annotations
 
+import time
+
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QColor, QImage, QKeySequence, QPainter, QPen, QPixmap, QShortcut
-from PySide6.QtWidgets import (QComboBox, QFileDialog, QGraphicsItem, QGraphicsPixmapItem, QGraphicsRectItem,
-                               QGraphicsScene, QGraphicsView, QHBoxLayout, QLabel, QMenu, QPushButton,
-                               QSpinBox, QSplitter, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QComboBox, QFileDialog, QFrame, QGraphicsItem, QGraphicsPixmapItem,
+                               QGraphicsRectItem, QGraphicsScene, QGraphicsView, QHBoxLayout, QLabel, QMenu,
+                               QProgressBar, QPushButton, QSpinBox, QSplitter, QVBoxLayout, QWidget)
+
+from shiboken6 import isValid
 
 from ..core.imageredact import EFFECTS, Region, with_margin
 from ..i18n import t
@@ -150,6 +154,61 @@ class RegionItem(QGraphicsRectItem):
         painter.fillRect(QRectF(rr.right() - s, rr.bottom() - s, s, s), QBrush(color))
 
 
+class BusyOverlay(QFrame):
+    """Centered box over the image while the plugin analyses it: step, progress bar, seconds."""
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setObjectName("busy")
+        self.setStyleSheet("#busy { background: rgba(20, 20, 20, 215); border-radius: 10px; }"
+                           "#busy QLabel { color: white; background: transparent; }")
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.title = QLabel("<b>" + t("img.busy_title") + "</b>")
+        self.title.setAlignment(Qt.AlignCenter)
+        self.step = QLabel()
+        self.step.setAlignment(Qt.AlignCenter)
+        self.bar = QProgressBar()
+        self.bar.setRange(0, 0)                  # indeterminate
+        self.bar.setTextVisible(False)
+        self.bar.setFixedHeight(8)
+        self.elapsed = QLabel()
+        self.elapsed.setAlignment(Qt.AlignCenter)
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(24, 16, 24, 16)
+        for w in (self.title, self.step, self.bar, self.elapsed):
+            lay.addWidget(w)
+        self._t0 = 0.0
+        self._tick = QTimer(self)
+        self._tick.setInterval(1000)
+        self._tick.timeout.connect(self._update_elapsed)
+        self.hide()
+
+    def start(self, text: str):
+        self._t0 = time.monotonic()
+        self.step.setText(text)
+        self._update_elapsed()
+        self._tick.start()
+        self.show()
+        self.raise_()
+        self.recenter()
+
+    def set_step(self, text: str):
+        self.step.setText(text)
+
+    def stop(self):
+        self._tick.stop()
+        self.hide()
+
+    def _update_elapsed(self):
+        self.elapsed.setText(t("img.busy_elapsed", s=int(time.monotonic() - self._t0)))
+
+    def recenter(self):
+        p = self.parentWidget()
+        self.setFixedWidth(min(420, max(260, p.width() - 40)))
+        self.adjustSize()
+        self.move((p.width() - self.width()) // 2, (p.height() - self.height()) // 2)
+
+
 class ImageCanvas(QGraphicsView):
     region_changed = Signal()
     selection_changed = Signal()
@@ -166,7 +225,13 @@ class ImageCanvas(QGraphicsView):
         self._origin = QPointF()
         self.default_effect = "black"
         self.menu_callback = None
+        self.busy = BusyOverlay(self)
         self.scene().selectionChanged.connect(self.selection_changed.emit)
+
+    def resizeEvent(self, ev):
+        super().resizeEvent(ev)
+        if self.busy.isVisible():
+            self.busy.recenter()
 
     def set_image(self, img: QImage | None):
         self.scene().clear()
@@ -360,7 +425,10 @@ class ImageView(QWidget):
         self.canvas.selection_changed.connect(self._scene_selection)
         self.table.itemSelectionChanged.connect(self._table_selection)
         QShortcut(QKeySequence.Delete, self.canvas, activated=self.delete_selected)
+        if hasattr(controller, "image_progress"):
+            controller.image_progress.connect(self._progress)
         self._syncing = False
+        self._detecting = False
         self._update_buttons()
 
     # ------------------------------------------------------------------ image in
@@ -391,14 +459,31 @@ class ImageView(QWidget):
 
     # ------------------------------------------------------------------ detection
     def detect(self):
-        if self.canvas.image is None:
+        if self.canvas.image is None or self._detecting:
             return
-        self.btn_detect.setEnabled(False)
-        self.info.setText(t("img.detecting"))
+        self._set_detecting(True)
         self.c.detect_image_regions(self.canvas.image, self._detected)
 
+    def _set_detecting(self, on: bool):
+        self._detecting = on
+        self.btn_detect.setText(t("img.detecting_short") if on else t("img.detect"))
+        if on:
+            self.info.setText(t("img.detecting"))
+            self.canvas.busy.start(t("img.step.start"))
+            self.status.emit(t("img.busy_title"))
+        else:
+            self.canvas.busy.stop()
+        self._update_buttons()
+
+    def _progress(self, text: str):
+        if self._detecting:
+            self.canvas.busy.set_step(text)
+            self.info.setText(t("img.detecting") + "\n" + text)
+
     def _detected(self, result):
-        self.btn_detect.setEnabled(self.canvas.image is not None)
+        if not isValid(self.btn_detect):          # tab closed while the plugin was working
+            return
+        self._set_detecting(False)
         regions, message = result
         if regions is not None:
             for src in ("face", "nudity", "text", "code"):
@@ -526,8 +611,11 @@ class ImageView(QWidget):
 
     def _update_buttons(self):
         has = self.canvas.image is not None
-        for b in (self.btn_detect, self.btn_to, self.btn_save, self.btn_fit, self.btn_clear):
+        busy = getattr(self, "_detecting", False)
+        for b in (self.btn_fit, self.btn_clear):
             b.setEnabled(has)
+        for b in (self.btn_detect, self.btn_to, self.btn_save):     # no half-redacted result while detecting
+            b.setEnabled(has and not busy)
         self.btn_delete.setEnabled(bool(self._selected_items()))
 
     def showEvent(self, ev):
