@@ -224,8 +224,13 @@ def plausible_entity(text: str, s: int, e: int, typ: str, tokens: list | None):
         return None                         # ComInterop, IntPtr, Int32, ByRef, CancellationToken
     if _in_code_context(text, s, e):
         return None                         # stack traces, namespaces, method calls
-    if typ != T.PERSON.value and " ".join(lower) in wordlists.PUBLIC_ORGS:
-        return None                         # Microsoft, Google, SAP … are no personal data
+    if typ != T.PERSON.value:
+        parts = [w for x in lower for w in re.split(r"[/.\-]", x) if w]
+        if " ".join(lower) in wordlists.PUBLIC_ORGS or (
+                parts and any(w in wordlists.PUBLIC_ORGS for w in parts)
+                and all(w in wordlists.PUBLIC_ORGS or w in wordlists.PUBLIC_ORG_EXTRA_WORDS
+                        or re.fullmatch(r"v?\d+(\.\d+)*", w) for w in parts)):
+            return None                     # Microsoft, SAP, "Debian GNU/Linux" … are no personal data
     if span.lower() in GENERIC_LABELS:
         return None
     toks = tokens or []

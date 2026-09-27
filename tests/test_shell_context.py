@@ -1,0 +1,67 @@
+"""Shell commands: file paths, package names and OS names are no findings."""
+
+import unittest
+
+from tests import helpers  # noqa: F401
+
+from clipcloak.config import Config, engine_settings
+from clipcloak.core.detectors.external import plausible_entity
+from clipcloak.core.engine import Engine
+from clipcloak.core.vault import Vault
+
+
+def found(text):
+    e = Engine(engine_settings(Config()), Vault("t"))
+    return [(f.type, f.text) for f in e.analyze(text)]
+
+
+class ShellContextTest(unittest.TestCase):
+    def test_file_paths_are_no_kubernetes_refs(self):
+        self.assertEqual(found("sh deploy/compose/start.sh --build"), [])
+        self.assertEqual(found("cat app/values.yaml"), [])
+        self.assertEqual(found("./deploy/acme/run"), [])
+        # real references still count
+        self.assertIn(("IDENTIFIER", "acme"), found("kubectl -n x rollout restart deploy/acme-shop"))
+        self.assertIn(("IDENTIFIER", "acme"), found("deployment.apps/acme-shop restarted"))
+
+    def test_package_names_are_no_domains(self):
+        text = ("sudo apt install -y \\\n  docker-ce \\\n  docker-ce-cli \\\n  containerd.io \\\n"
+                "  docker-buildx-plugin \\\n  docker-compose-plugin")
+        self.assertEqual(found(text), [])
+        self.assertEqual(found("dnf install foo.bar-tools"), [])
+        # after the command, and URLs inside it, domains count again
+        self.assertIn(("DOMAIN", "host.acme.de"), found("apt-get install -y curl && ping host.acme.de"))
+        self.assertIn(("DOMAIN", "git.acme.de"), found("pip install git+https://git.acme.de/x/y.git"))
+
+    def test_os_names_are_no_orgs(self):
+        for name in ("Debian GNU/Linux", "Ubuntu Server", "Red Hat Enterprise Linux", "Rocky Linux 9"):
+            text = f'NAME="{name}"'
+            s = text.index(name)
+            with self.subTest(name=name):
+                self.assertIsNone(plausible_entity(text, s, s + len(name), "ORG", None))
+        text = "Wir haben mit Acme Linux GmbH gesprochen"
+        s = text.index("Acme")
+        self.assertIsNotNone(plausible_entity(text, s, s + len("Acme Linux GmbH"), "ORG", None))
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+
+class HexStringTest(unittest.TestCase):
+    KEY = "75d54631a04f5ebe9e94e43eaaae4e4409204dfce26f3f283134121c56319caa"
+
+    def test_bare_hex_is_a_secret(self):
+        self.assertEqual(found(self.KEY), [("SECRET", self.KEY)])
+        self.assertIn(("SECRET", self.KEY[:32]), found("https://hooks.example.com/hook/" + self.KEY[:32]))
+        e = Engine(engine_settings(Config()), Vault("t"))
+        out = e.process(self.KEY, "pseudonymize").output
+        self.assertRegex(out, r"^[0-9a-f]{64}$")
+        self.assertNotEqual(out, self.KEY)
+        self.assertEqual(e.revert(out).output, self.KEY)
+
+    def test_public_hashes_stay(self):
+        for text in ("image: nginx@sha256:" + self.KEY, "commit " + self.KEY[:40], self.KEY + "  debian-12.iso",
+                     "sha256: " + self.KEY, "0" * 64, "digest: " + self.KEY):
+            with self.subTest(text=text[:20]):
+                self.assertEqual([f for f in found(text) if f[0] == "SECRET"], [])

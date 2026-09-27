@@ -153,6 +153,10 @@ If configured, the user cannot change this setting. Setting: detectors.enabled.t
       <string id="P_detectors_enabled_kv_secrets_Help">Enable or disable this detector.
 
 If configured, the user cannot change this setting. Setting: detectors.enabled.kv-secrets</string>
+      <string id="P_detectors_enabled_hex_strings">Detector: Long hex strings (API keys, tokens, webhook secrets; not digests/commits)</string>
+      <string id="P_detectors_enabled_hex_strings_Help">Enable or disable this detector.
+
+If configured, the user cannot change this setting. Setting: detectors.enabled.hex-strings</string>
       <string id="P_detectors_enabled_entropy">Detector: High-entropy strings (may over-match)</string>
       <string id="P_detectors_enabled_entropy_Help">Enable or disable this detector.
 

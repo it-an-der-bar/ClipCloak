@@ -235,6 +235,39 @@ class KeyValueSecretDetector(Detector):
         return out
 
 
+HEX_RE = re.compile(r"(?<![0-9A-Za-z_\-.])(?:0x)?([0-9a-f]{32,256}|[0-9A-F]{32,256})(?![0-9A-Za-z_\-])")
+# hashes and ids that are no secret: "sha256:<hex>", "commit <hex>", "<hex>  file.iso"
+HEX_PUBLIC_BEFORE = re.compile(
+    r"(?i)(?:\b(?:sha(?:1|224|256|384|512)|md5|blake2b?|digest|etag|integrity|checksum|hash|sha\w*sum|"
+    r"commit|revision|rev|tree|parent|merge|object|objectid|build\s*id|layer|image\s*id|container\s*id)"
+    r"[\s:=\"'@#]{0,4}|@sha256:|\bcommit\s+)$")
+
+
+class HexSecretDetector(Detector):
+    """Long hex strings standing alone: API keys, tokens, webhook secrets, private hashes.
+
+    Known public ids (image digests ``sha256:…``, ``commit …``, ``sha256sum`` output) stay.
+    """
+
+    id = "hex-strings"
+    types = (T.SECRET.value,)
+    priority = 34
+
+    def find(self, text, ctx):
+        out = []
+        for m in HEX_RE.finditer(text):
+            v = m.group(1)
+            if len(set(v.lower())) < 6 or not re.search(r"\d", v) or not re.search(r"[a-fA-F]", v):
+                continue                              # 0000…, ffff…, placeholders
+            if HEX_PUBLIC_BEFORE.search(text[max(0, m.start() - 24):m.start()]):
+                continue
+            after = text[m.end():m.end() + 3]
+            if re.match(r" [ *]\S", after):
+                continue                              # sha256sum / md5sum output: "<hex>  file"
+            out.append(self.mk(m.start(1), m.end(1), T.SECRET.value, text, kind="hex"))
+        return out
+
+
 class EntropyDetector(Detector):
     """Optional: long random-looking strings (off by default)."""
 

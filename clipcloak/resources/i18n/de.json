@@ -43,6 +43,7 @@
  "det.email": "E-Mail-Adressen",
  "det.entropy": "Zufällig wirkende Strings (kann übertreiben)",
  "det.fingerprints": "Schlüssel-/Zertifikats-Kennungen (PublicKeyToken, Thumbprints, Seriennummern, SSH/GPG-Fingerprints)",
+ "det.hex-strings": "Lange Hex-Zeichenketten (API-Keys, Tokens, Webhook-Secrets; keine Digests/Commits)",
  "det.hostname": "Hostnamen (UNC, Shell-Prompts)",
  "det.iban": "IBAN",
  "det.infra-names": "Infrastruktur-Namen (Kubernetes, Helm, ArgoCD, Compose …)",

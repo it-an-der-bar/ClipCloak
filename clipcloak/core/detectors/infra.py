@@ -19,6 +19,7 @@ import re
 
 from .. import wordlists
 from ..entities import EntityType as T
+from . import shellctx
 from .base import Detector
 
 KEYS = {
@@ -38,7 +39,12 @@ NS_RE = re.compile(r"(?:^|\s)(?:-n|--namespace)[ =]([a-z0-9][a-z0-9-]{1,62})(?![
 REF_RE = re.compile(
     r"(?:^|\s)(?:deploy|deployment|deployments|sts|statefulset|statefulsets|ds|daemonset|svc|service|"
     r"services|po|pod|pods|cm|configmap|secret|secrets|ing|ingress|job|cronjob|pvc|ns|namespace|"
-    r"helmrelease|application|app)/([a-z0-9][a-z0-9.-]{1,252})(?![\w-])", re.IGNORECASE)
+    r"helmrelease|application|app)"
+    # optional API group as in kubectl output: deployment.apps/x, helmrelease.helm.toolkit.fluxcd.io/x
+    r"(?:\.(?:apps|batch|extensions|policy|autoscaling|[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:k8s\.io|argoproj\.io|fluxcd\.io)))?"
+    r"/([a-z0-9][a-z0-9.-]{1,252})(?![\w/-])", re.IGNORECASE)
+FILE_NAME = re.compile(r"\.(?:sh|bash|ps1|py|js|ts|go|rb|pl|php|ya?ml|json|toml|ini|conf|cfg|env|txt|md|log|"
+                       r"xml|html?|css|csv|tar|gz|tgz|zip|sql|j2|tpl|tmpl|lock|pem|crt|key|bak|service)$", re.IGNORECASE)
 TRACKING_RE = re.compile(
     r"(?<![\w.-])([a-z0-9][a-z0-9.-]*):[a-z0-9.]*/[A-Za-z]+:([a-z0-9][a-z0-9.-]*)/([a-z0-9][a-z0-9.-]*)")
 PART_RE = re.compile(r"[^\-_.]+")
@@ -70,7 +76,11 @@ class InfraNameDetector(Detector):
             if self._key_ok(m.group("key")):
                 vals.append(m.group("val"))
         vals += [m.group(1) for m in NS_RE.finditer(text)]
-        vals += [m.group(1) for m in REF_RE.finditer(text)]
+        for m in REF_RE.finditer(text):
+            # "sh deploy/compose/start.sh", "cat app/values.yaml": file paths, no kind/name
+            if FILE_NAME.search(m.group(1)) or shellctx.first_word(text, m.start(1)) in shellctx.FILE_COMMANDS:
+                continue
+            vals.append(m.group(1))
         for m in TRACKING_RE.finditer(text):
             vals += [m.group(1), m.group(2), m.group(3)]
         return vals

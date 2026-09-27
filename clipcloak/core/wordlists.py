@@ -140,6 +140,11 @@ cattle.io velero.io external-secrets.io bitnami.com opentelemetry.io keda.sh kyv
 gatekeeper.sh jetstack.io metallb.io nginx.org min.io rook.io ceph.io grafana.com
 elastic.co hashicorp.com rancher.com k3s.io rke2.io vmware.com openshift.io redhat.com
 docker.com docker.io quay.io ghcr.io gcr.io registry.k8s.io mcr.microsoft.com
+containerd.io podman.io buildah.io cri-o.io kubeflow.org etcd.io coredns.io
+debian.org ubuntu.com canonical.com fedoraproject.org centos.org rockylinux.org almalinux.org
+alpinelinux.org archlinux.org opensuse.org suse.com gentoo.org kali.org linuxmint.com
+proxmox.com kernel.org gnu.org freebsd.org openbsd.org python.org pypi.org npmjs.com
+nodejs.org golang.org go.dev rust-lang.org crates.io rubygems.org
 """.split())
 
 # URL parameters that only say where a link came from / who clicked it.
@@ -205,6 +210,15 @@ red hat redhat canonical suse mozilla github gitlab docker kubernetes linux apac
 openai anthropic cloudflare akamai fortinet paloalto palo alto networks checkpoint sophos
 eset kaspersky crowdstrike okta atlassian jira confluence slack zoom teams windows azure
 office outlook exchange sharepoint avalonia dotnet java spring jetbrains visual studio
+gnu debian ubuntu kubuntu xubuntu fedora centos rhel rocky almalinux alpine arch archlinux gentoo
+kali mint opensuse sles freebsd openbsd netbsd raspbian proxmox truenas opnsense pfsense nixos
+manjaro devuan slackware android ios macos unix bookworm bullseye buster trixie sid jammy noble
+focal bionic
+""".split())
+# words that do not make a name private on their own ("Debian GNU/Linux", "Ubuntu Server LTS")
+PUBLIC_ORG_EXTRA_WORDS = set("""
+server desktop edition enterprise linux lts workstation core pro professional home cloud
+community stable testing unstable release version os
 """.split()) | {"red hat", "palo alto networks", "check point", "visual studio", "google cloud",
                 "microsoft azure", "amazon web services", "deutsche telekom"}
 

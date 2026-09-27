@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.20
+
+- New detector **Long hex strings** (on, category secrets): a hex string of 32+ characters standing alone (API keys, tokens, webhook secrets such as `75d54631…c56319caa`) is found and replaced format-preserving (hex stays hex, same length, reversible). Public ids stay: image digests (`@sha256:…`, `digest:`), `commit …`, `sha256sum` output (`<hash>  file`), values after `sha256:`/`md5:`/`checksum`/`etag`, placeholders such as `0000…`.
+
+Fewer false positives in shell commands:
+- File paths are no Kubernetes references: `sh deploy/compose/start.sh`, `cat app/values.yaml`, `./deploy/x/run` no longer turn "compose" etc. into infrastructure names. `kind/name` counts only when it is not followed by `/`, is no file name and the command is no file command (sh, bash, cat, ls, cd, vi, python, git …); `deployment.apps/name` is recognised as well.
+- Package names are no domains: arguments of `apt`/`apt-get`, `dnf`/`yum`, `zypper`, `apk`, `pacman`, `brew`, `snap`, `pip`, `npm`, `choco`, `winget` … install/remove (also across `\` continuations) – `containerd.io` stays. URLs (`pip install git+https://git.acme.de/…`) and anything after `&&`, `;`, `|` are still checked.
+- Operating system names are no organisations: Debian, Ubuntu, Fedora, CentOS, RHEL, Rocky, Alma, Alpine, Arch, openSUSE, Proxmox, FreeBSD … also combined with GNU, Linux, Server, LTS, Enterprise, version numbers (`Debian GNU/Linux 12`, `Red Hat Enterprise Linux`); release code names (bookworm, jammy, noble …).
+- More public domains are never pseudonymised: containerd.io, podman.io, etcd.io, debian.org, ubuntu.com, fedoraproject.org, kernel.org, python.org, pypi.org, npmjs.com, go.dev, crates.io …
+
 ## 0.1.19
 
 - Images: while the plugin analyses an image (e.g. after Ctrl+Alt+I) a box over the image shows what is happening – "Analysing image …", the current step (faces 1/4, nudity 2/4, codes 3/4, text/OCR 4/4), a progress bar and the seconds so far; the button reads "Detecting …" and the status bar says so too.

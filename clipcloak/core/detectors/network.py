@@ -8,6 +8,7 @@ import re
 from .. import wordlists
 from ..entities import EntityType as T
 from ..ipmap import is_netmask
+from . import shellctx
 from .base import Detector, DetectorContext
 
 _OCT = r"(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)"
@@ -129,9 +130,15 @@ class DomainDetector(Detector):
     def find(self, text, ctx):
         tlds = _tlds(ctx)
         known = [d.lower().strip(".") for d in ctx.known_domains if d]
+        pkgs = shellctx.package_spans(text)
         out = []
         for m in DOMAIN_RE.finditer(text):
             host = m.group(1)
+            # "apt install containerd.io": a package name (URLs and user@host still count)
+            if pkgs and shellctx.in_spans(m.start(1), pkgs) and not _in_url_context(text, m.start(1)) \
+                    and text[m.end(1):m.end(1) + 1] not in ("/", ":", "@") \
+                    and text[max(0, m.start(1) - 1):m.start(1)] not in ("@", "/"):
+                continue
             # Kubernetes label/annotation keys and API groups: "argocd.argoproj.io/tracking-id:",
             # "app.kubernetes.io/name=web" – a DNS prefix, not a host
             if LABEL_KEY_AFTER.match(text, m.end()) and not _in_url_context(text, m.start()):

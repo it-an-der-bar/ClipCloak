@@ -10,10 +10,10 @@ from .infra import InfraNameDetector
 from .tracking import TrackingDetector
 from .network import (DomainDetector, EmailDetector, HostnameDetector, IPv4Detector,
                       IPv6Detector, MacDetector)
-from .secrets import EntropyDetector, KeyValueSecretDetector, PemDetector, TokenDetector
+from .secrets import EntropyDetector, HexSecretDetector, KeyValueSecretDetector, PemDetector, TokenDetector
 
 BUILTIN_DETECTORS: list[type[Detector]] = [
-    PemDetector, TokenDetector, KeyValueSecretDetector, EntropyDetector,
+    PemDetector, TokenDetector, KeyValueSecretDetector, HexSecretDetector, EntropyDetector,
     EmailDetector, IPv4Detector, IPv6Detector, MacDetector, DomainDetector,
     HostnameDetector, UserPathDetector, IbanDetector, CardDetector, PhoneDetector,
     SidDetector, InfraNameDetector, FingerprintDetector, TrackingDetector,
