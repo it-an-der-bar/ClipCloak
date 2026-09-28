@@ -8,8 +8,8 @@ sie in einen KI-Chat, ein Ticket oder ein Forum einfügst. Es **schwärzt**, **a
 Antwort kopierst.
 
 ```
-Vorher   jonas.hartmann@contoso.com  srv-dc01.contoso.local  10.88.10.10/24  GW 10.88.10.1  password: S3cr3t!
-Nachher  yara.kirchner@pluwolul.com      srv-dc01.pluwolul.local 10.58.239.119/24 GW 10.58.239.1 password: J0iy9f!
+Vorher   jonas.hartmann@contoso.com    srv-dc01.contoso.local    10.88.10.10/24   GW 10.88.10.1  password: S3cr3t!
+Nachher  selma.pichler@nawidrock.com   srv-dc01.nawidrock.local  10.72.15.100/24  GW 10.72.15.1  password: B1pg3o!
 ```
 
 ## Funktionen

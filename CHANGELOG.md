@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.26
+
+- Removed all real names from the program, the examples and the tests: the sample data now use the fictitious company *Contoso* (`contoso.com`, `CONTOSO\user`) and the person *Jonas Hartmann* (NER self-test, settings "Test", TLD example, README before/after example).
+
 ## 0.1.25
 
 New defaults as shipped (existing settings of a user stay as they are – `config.yaml` only holds what was changed):
