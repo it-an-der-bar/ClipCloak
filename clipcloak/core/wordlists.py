@@ -331,3 +331,42 @@ true false yes no on off null none nil undefined required optional
 redacted [redacted] xxx xxxx xxxxx *** **** ***** ******** your-password
 your_password yourpassword your-token your_token
 """.split())
+
+
+# ------------------------------------------------------------------ dictionaries
+# Built by tools/make_wordlists.py: the most frequent English/German words (wordfreq,
+# CC BY-SA 4.0) and place names made of such words (GeoNames, CC BY 4.0).
+_DICT: dict[str, frozenset] = {}
+
+
+def _load(name: str) -> frozenset:
+    if name not in _DICT:
+        import gzip
+        from ..paths import resource_path
+        try:
+            with gzip.open(resource_path("wordlists", name), "rt", encoding="utf-8") as fh:
+                _DICT[name] = frozenset(fh.read().split("\n"))
+        except OSError:
+            _DICT[name] = frozenset()
+    return _DICT[name]
+
+
+def common_words() -> frozenset:
+    return _load("common.txt.gz")
+
+
+def place_names() -> frozenset:
+    return _load("places.txt.gz")
+
+
+def is_common_word(word: str) -> bool:
+    """``word`` (any case) or its singular is one of the frequent English/German words."""
+    w = word.lower()
+    common = common_words()
+    if w in common:
+        return True
+    if w.endswith("ies") and w[:-3] + "y" in common:
+        return True
+    if w.endswith("es") and w[:-2] in common:
+        return True
+    return w.endswith("s") and w[:-1] in common

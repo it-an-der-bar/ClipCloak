@@ -268,9 +268,39 @@ def plausible_entity(text: str, s: int, e: int, typ: str, tokens: list | None):
         return None                         # "Deine Auswahl", "The …"
     if all(w.isupper() for w in words) and not any(w in LEGAL_FORMS for w in lower):
         return None                         # ACCEPT, ANSWER, VPN …
+    if typ == T.LOCATION.value and _is_place(span):
+        return s, e                         # a known place, whatever the tagger says
+    if typ == T.ORG.value and len(words) >= 2 and _names_place(span):
+        return s, e                         # "Stadtwerke Kassel", "Sparkasse Hannover"
     if toks and "PROPN" not in pos and not any(w in LEGAL_FORMS for w in lower):
         return None                         # nouns/verbs the model mislabelled
+    if not any(w in LEGAL_FORMS for w in lower) and _only_common_words(span):
+        if not (_is_place(span) if typ == T.LOCATION.value else _names_place(span)):
+            return None                     # "Roadmap", "Shell-Kommandos", "Diagnose-Dateien", "Chain"
     return s, e
+
+
+_PARTS = re.compile(r"[A-Za-zÀ-ɏß]+")
+_LINK_WORDS = {"des", "der", "die", "das", "dem", "den", "von", "vom", "und", "für", "im", "in", "am",
+               "the", "of", "and", "for", "on", "at", "to", "a", "an"}
+
+
+def _only_common_words(span: str) -> bool:
+    """Every word (also inside "Release-Binaries") is a frequent English/German word."""
+    parts = [p for p in _PARTS.findall(span) if p.lower() not in _LINK_WORDS]
+    return bool(parts) and bool(wordlists.common_words()) and all(wordlists.is_common_word(p) for p in parts)
+
+
+def _names_place(span: str) -> bool:
+    """An organisation named after its town is specific: "Stadtwerke Kassel"."""
+    places = wordlists.place_names()
+    return any(w.lower() in places for w in _PARTS.findall(span) if w.lower() not in _LINK_WORDS)
+
+
+def _is_place(span: str) -> bool:
+    words = [w.lower() for w in _PARTS.findall(span)]
+    places = wordlists.place_names()
+    return " ".join(words) in places or all(w in places for w in words if w not in _LINK_WORDS)
 
 
 class NerDetector(Detector):

@@ -1,0 +1,11 @@
+common.txt.gz  – the 120,000 most frequent English and German words, lower case.
+                 Derived from wordfreq 3.1.1 (Robyn Speer), https://github.com/rspeer/wordfreq
+                 Data license: Creative Commons Attribution-ShareAlike 4.0
+                 (https://creativecommons.org/licenses/by-sa/4.0/); this derived list is shared under
+                 the same license.
+places.txt.gz  – place names made only of such words (cities with 15,000+ inhabitants worldwide and
+                 1,000+ in Germany/Austria/Switzerland, countries, German states).
+                 Derived from GeoNames (https://www.geonames.org/) via geonamescache 3.0.2,
+                 license: Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/).
+
+Rebuild: python tools/make_wordlists.py <wordfreq wheel> <geonamescache wheel>

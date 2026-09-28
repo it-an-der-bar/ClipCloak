@@ -76,3 +76,34 @@ class IpNeverSkippedTest(unittest.TestCase):
         self.assertEqual([(f.type, f.text) for f in e.analyze("- " + real)], [("IPV4", real)])
         # even an address that equals an earlier surrogate is still found
         self.assertEqual([f.text for f in e.analyze("ip " + outs[1])], [outs[1]])
+
+
+class CommonNounTest(unittest.TestCase):
+    """NER labels ordinary (often English) nouns in German text as ORG/LOCATION."""
+
+    def check(self, text, name, typ):
+        s = text.index(name)
+        return plausible_entity(text, s, s + len(name), typ, None)
+
+    def test_common_nouns_dropped(self):
+        text = ("Siehe Roadmap. Meldungen über die Security Advisories. Plugins und Shell-Kommandos, "
+                "Dependencies, Release-Binaries, Attestations, Diagnostic-Bundles, Diagnose-Dateien, "
+                "die Chain und die Shell des Containers.")
+        for name, typ in (("Roadmap", "LOCATION"), ("Security Advisories", "ORG"), ("Plugins", "LOCATION"),
+                          ("Shell-Kommandos", "LOCATION"), ("Dependencies", "ORG"),
+                          ("Release-Binaries", "LOCATION"), ("Attestations", "ORG"),
+                          ("Diagnostic-Bundles", "LOCATION"), ("Diagnose-Dateien", "LOCATION"),
+                          ("Chain", "LOCATION"), ("Shell des Containers", "ORG")):
+            with self.subTest(name=name):
+                self.assertIsNone(self.check(text, name, typ))
+
+    def test_real_names_kept(self):
+        text = ("Treffen in München und Kassel, Büro in Musterhausen bei Contoso. "
+                "Die Stadtwerke Kassel und die Acme Maschinenbau GmbH, Sparkasse Hannover, "
+                "Northwind Traders in Boston, Frankfurt am Main, Essen.")
+        for name, typ in (("München", "LOCATION"), ("Kassel", "LOCATION"), ("Musterhausen", "LOCATION"),
+                          ("Contoso", "ORG"), ("Stadtwerke Kassel", "ORG"), ("Acme Maschinenbau GmbH", "ORG"),
+                          ("Sparkasse Hannover", "ORG"), ("Northwind Traders", "ORG"),
+                          ("Boston", "LOCATION"), ("Frankfurt am Main", "LOCATION"), ("Essen", "LOCATION")):
+            with self.subTest(name=name):
+                self.assertIsNotNone(self.check(text, name, typ))

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.24
+
+- NER: **far fewer false positives on ordinary nouns.** The German model labels capitalised nouns and English loanwords in German text as places or organisations ("Roadmap", "Plugins", "Shell-Kommandos", "Dependencies", "Release-Binaries", "Attestations", "Diagnose-Dateien", "Chain", "Security Advisories", "Shell des Containers"). An ORG/LOCATION made only of frequent English/German words (also in hyphenated compounds and plurals) is dropped now.
+  - Kept: known places (München, Kassel, Essen, Frankfurt am Main, Boston … – GeoNames: cities with 15,000+ inhabitants, in DE/AT/CH from 1,000), organisations with a legal form (… GmbH, AG, Inc.) or named after a place ("Stadtwerke Kassel", "Sparkasse Hannover"), and every name that is no common word (Contoso, Musterhausen, Northwind …). Known places are now also kept when the tagger marks them as nouns.
+  - Word lists: the 120,000 most frequent English and German words (wordfreq, CC BY-SA 4.0) and place names (GeoNames, CC BY 4.0) in `resources/wordlists` (≈ 700 KB), built by `tools/make_wordlists.py`.
+  - Measured on a German security policy with English terms: 11 of 11 false findings gone; persons, companies and places in the same text are still found.
+
 ## 0.1.23
 
 - Windows portable download is now just **two EXEs**: `clipcloak-vX.Y.Z-windows-x86_64-portable.zip` holds `clipcloak.exe` and `clipcloak-ner.exe` (single-file builds) plus README/license – no `_internal` folders any more. They unpack themselves into `%TEMP%` at start (a bit slower, the NER plugin noticeably); where AppLocker/endpoint protection block `%TEMP%`, use the MSI. The MSI keeps the folder builds (fast start, nothing in `%TEMP%`).

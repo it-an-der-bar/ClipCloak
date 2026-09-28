@@ -294,4 +294,5 @@ benennt Paket, Startskripte, CI-Variablen und Doku in einem Schritt um.
 ## Lizenz
 
 GPL-3.0-only, siehe [LICENSE](LICENSE). Qt for Python (PySide6) wird unter der LGPL-3.0 genutzt.
+Wortlisten für die Namensprüfung (`clipcloak/resources/wordlists`): abgeleitet aus wordfreq (CC BY-SA 4.0) und GeoNames (CC BY 4.0), siehe dort `SOURCES.txt`.
 Plugin: spaCy und seine Modelle, das YuNet-Gesichtsmodell und ONNX Runtime stehen unter der MIT-Lizenz; OpenCV, RapidOCR und die PP-OCR-Modelle unter Apache-2.0. NudeNet liefert den AGPL-3.0-Lizenztext mit (die Paket-Metadaten nennen MIT); Abschnitt 13 der GPL-3.0 erlaubt die Kombination mit diesem GPL-3.0-Programm.
