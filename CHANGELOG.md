@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.25
+
+New defaults as shipped (existing settings of a user stay as they are – `config.yaml` only holds what was changed):
+- Watcher **on**, mode *by category* (was *off*).
+- Per category: tracking in links *always change*; secrets and keys, bank and card data *inform* (were *always change*); people, organisations/places, network, infrastructure names, key/certificate identifiers *inform*; custom terms *nothing* (was *inform*).
+- Detector *infrastructure names* **off** by default (can be switched on in Settings › Detectors).
+- Images: extra margin around faces 20 % (was 15 %).
+
 ## 0.1.24
 
 - NER: **far fewer false positives on ordinary nouns.** The German model labels capitalised nouns and English loanwords in German text as places or organisations ("Roadmap", "Plugins", "Shell-Kommandos", "Dependencies", "Release-Binaries", "Attestations", "Diagnose-Dateien", "Chain", "Security Advisories", "Shell des Containers"). An ORG/LOCATION made only of frequent English/German words (also in hyphenated compounds and plurals) is dropped now.

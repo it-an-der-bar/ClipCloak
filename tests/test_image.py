@@ -92,7 +92,7 @@ class RegionMappingTest(unittest.TestCase):
         self.assertEqual(r50.base, (100, 100, 50, 60))
         s = ImageSettings.from_config({"face_margin": 80, "nudity_margin": "x"})
         self.assertEqual((s.face_margin, s.nudity_margin), (80, 0))
-        self.assertEqual(ImageSettings.from_config({}).face_margin, 15)
+        self.assertEqual(ImageSettings.from_config({}).face_margin, 20)
         self.assertEqual(ImageSettings.from_config({"face_margin": 999}).face_margin, 200)
 
     def test_face_margin_and_clamping(self):

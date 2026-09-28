@@ -73,7 +73,7 @@ class PolicyTest(unittest.TestCase):
         self.assertEqual(again.get("llm.timeout"), 30)
         # without the policy the user's own values come back
         free = Config.load(path, system=SystemConfig())
-        self.assertEqual(free.get("watcher.mode"), "off")
+        self.assertEqual(free.get("watcher.mode"), DEFAULTS["watcher"]["mode"])
         self.assertEqual(free.get("lists.known_domains"), ["mine.local"])
         self.assertEqual(free.get("llm.base_url"), DEFAULTS["llm"]["base_url"])
 

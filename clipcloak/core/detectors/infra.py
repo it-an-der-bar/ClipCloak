@@ -57,6 +57,7 @@ SKIP_VALUES = {"true", "false", "yes", "no", "on", "off", "null", "none", "alway
 class InfraNameDetector(Detector):
     id = "infra-names"
     types = (T.IDENTIFIER.value,)
+    default_enabled = False
     priority = 35
 
     def _keep(self, ctx) -> set[str]:

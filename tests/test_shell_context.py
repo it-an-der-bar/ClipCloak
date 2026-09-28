@@ -11,7 +11,9 @@ from clipcloak.core.vault import Vault
 
 
 def found(text):
-    e = Engine(engine_settings(Config()), Vault("t"))
+    cfg = Config()
+    cfg.set("detectors.enabled.infra-names", True)
+    e = Engine(engine_settings(cfg), Vault("t"))
     return [(f.type, f.text) for f in e.analyze(text)]
 
 

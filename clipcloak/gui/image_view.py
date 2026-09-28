@@ -354,10 +354,10 @@ class ImageView(QWidget):
         self.face_margin.setToolTip(t("img.face_margin_tip"))
         cfg = getattr(controller, "cfg", None)
         if cfg is not None:
-            self.face_margin.setValue(int(cfg.get("image.face_margin", 15) or 0))
+            self.face_margin.setValue(int(cfg.get("image.face_margin", 20) or 0))
             self.face_margin.setEnabled(not cfg.is_locked("image.face_margin"))
         else:
-            self.face_margin.setValue(15)
+            self.face_margin.setValue(20)
         self._save_margin = QTimer(self)
         self._save_margin.setSingleShot(True)
         self._save_margin.setInterval(600)
@@ -623,7 +623,7 @@ class ImageView(QWidget):
         cfg = getattr(self.c, "cfg", None)
         if cfg is not None and not self._save_margin.isActive():      # changed in the settings meanwhile
             self.face_margin.blockSignals(True)
-            self.face_margin.setValue(int(cfg.get("image.face_margin", 15) or 0))
+            self.face_margin.setValue(int(cfg.get("image.face_margin", 20) or 0))
             self.face_margin.blockSignals(False)
             self.face_margin.setEnabled(not cfg.is_locked("image.face_margin"))
         self.canvas.fit()

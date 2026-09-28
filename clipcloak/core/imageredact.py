@@ -40,7 +40,7 @@ class ImageSettings:
     skip_types: set = field(default_factory=set)
     nudity: bool = True
     nudity_effect: str = "black"
-    face_margin: int = 15         # extra margin around faces, % of the larger side of the detected box
+    face_margin: int = 20         # extra margin around faces, % of the larger side of the detected box
     nudity_margin: int = 12
 
     @classmethod
@@ -51,7 +51,7 @@ class ImageSettings:
                    eff("face_effect", "mosaic"), eff("text_effect", "black"), eff("code_effect", "black"),
                    int(d.get("padding", 3) or 0), set(),
                    bool(d.get("nudity", True)), eff("nudity_effect", "black"),
-                   _pct(d.get("face_margin", 15)), _pct(d.get("nudity_margin", 12)))
+                   _pct(d.get("face_margin", 20)), _pct(d.get("nudity_margin", 12)))
 
 
 def _pct(v) -> int:

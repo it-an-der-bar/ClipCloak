@@ -134,6 +134,7 @@ class GuiTest(unittest.TestCase):
     def test_watcher_critical(self):
         c = self.c
         c.set_watch_mode("critical")
+        c.cfg.set("watcher.categories.secrets", "auto")
         c.clip.write("token glpat_abcdefghijklmnopqrst1234", None)
         c._on_clip_changed()
         self.assertTrue(wait_for(lambda: "abcdefghijklmnopqrst1234" not in (c.clip.read().text or "")))

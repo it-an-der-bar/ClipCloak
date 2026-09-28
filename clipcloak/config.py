@@ -47,7 +47,7 @@ DEFAULTS: dict = {
         "toggle_watcher": "",
     },
     "watcher": {
-        "mode": "off",               # off | notify (all ask) | critical (per category) | always (all auto)
+        "mode": "critical",          # off | notify (all ask) | critical (per category) | always (all auto)
         "action": "pseudonymize",    # what automatic changes do
         # per category: auto = always change, ask = popup, ignore = nothing (see entities.CATEGORIES)
         "categories": dict(DEFAULT_CATEGORY_RULES),
@@ -65,7 +65,7 @@ DEFAULTS: dict = {
         "text_effect": "black",       # black is the only safe choice for text
         "code_effect": "black",
         "padding": 3,
-        "face_margin": 15,            # extra margin around faces, % of the face size (0-200)
+        "face_margin": 20,            # extra margin around faces, % of the face size (0-200)
         "nudity_margin": 12,          # the same for nudity
         "watch": True,                # watcher offers "Redact image" for images
     },

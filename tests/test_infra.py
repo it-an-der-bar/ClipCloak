@@ -37,6 +37,7 @@ kubectl get pods -l app.kubernetes.io/name=shop
 
 def engine(**lists) -> Engine:
     cfg = Config()
+    cfg.set("detectors.enabled.infra-names", True)       # off by default
     for k, v in lists.items():
         cfg.set("lists." + k, v)
     return Engine(engine_settings(cfg), Vault("t"))
