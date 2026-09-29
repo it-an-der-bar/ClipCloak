@@ -11,8 +11,8 @@ clipcloak/resources/wordlists/common.txt.gz
     Data: wordfreq (Robyn Speer), CC BY-SA 4.0 – https://github.com/rspeer/wordfreq
 clipcloak/resources/wordlists/places.txt.gz
     place names (whole names, words joined by a space) made only of common words (München,
-    Berlin, Essen, Halle, Kassel, "bad tölz" …), so such a LOCATION is kept. Cities with 15,000+ inhabitants worldwide and 1,000+ in DE/AT/CH,
-    countries, German states.
+    Berlin, Essen, Halle, Kassel, "bad tölz" …), so such a LOCATION is kept. Cities with 15,000+
+    inhabitants worldwide and 1,000+ in DE/AT/CH, countries, German states.
     Data: GeoNames via geonamescache, CC BY 4.0 – https://www.geonames.org/
 """
 

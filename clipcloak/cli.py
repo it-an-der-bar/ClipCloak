@@ -13,8 +13,9 @@ import sys
 from . import __version__, paths
 from .meta import APP_DISPLAY_NAME, APP_NAME, APP_ORG
 
-ACTION_CHOICES = ["pseudonymize", "anonymize", "redact", "revert", "process", "workbench", "process_file", "redact_image", "screenshot",
-                  "toggle_watcher", "show", "history", "mappings", "settings", "restart", "quit"]
+ACTION_CHOICES = ["pseudonymize", "anonymize", "redact", "revert", "process", "workbench", "process_file",
+                  "redact_image", "screenshot", "toggle_watcher", "show", "history", "mappings", "settings",
+                  "restart", "quit"]
 HEADLESS = ("process", "revert", "analyze", "projects")
 
 
@@ -36,13 +37,17 @@ def _fix_std_streams(headless: bool) -> None:
 
 
 def setup_logging(verbose: bool) -> None:
+    if os.name == "posix":
+        os.umask(0o077)       # everything the program writes (log, rotated logs, ui.ini …) is owner-only
     root = logging.getLogger()
     root.setLevel(logging.DEBUG if verbose else logging.INFO)
     fmt = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
     try:
-        d = paths.data_dir()
-        d.mkdir(parents=True, exist_ok=True)
-        fh = logging.handlers.RotatingFileHandler(d / f"{APP_NAME}.log", maxBytes=1_000_000,
+        d = paths.private_dir(paths.data_dir())
+        logfile = d / f"{APP_NAME}.log"
+        if os.name == "posix" and not logfile.exists():
+            os.close(os.open(logfile, os.O_WRONLY | os.O_CREAT, 0o600))
+        fh = logging.handlers.RotatingFileHandler(logfile, maxBytes=1_000_000,
                                                   backupCount=2, encoding="utf-8")
         fh.setFormatter(fmt)
         root.addHandler(fh)
@@ -168,7 +173,8 @@ def headless(args) -> int:
         print("warning:", w, file=sys.stderr)
     if prj is not None:
         if prj.store_history and res.changed:
-            h = History(int(cfg.get("general.history_size", 200)), bool(cfg.get("general.history_store_originals", True)))
+            h = History(int(cfg.get("general.history_size", 200)),
+                        bool(cfg.get("general.history_store_originals", True)))
             h.load_list(prj.history)
             h.add(res, "cli", prj.name)
             prj.history = h.to_list()

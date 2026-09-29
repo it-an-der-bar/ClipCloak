@@ -49,3 +49,40 @@ def resource_path(*parts: str) -> Path:
     if base:
         return Path(base) / __package__ / "resources" / Path(*parts)
     return Path(__file__).resolve().parent / "resources" / Path(*parts)
+
+
+def private_dir(d: Path) -> Path:
+    """Create ``d`` (and parents) readable for the owner only (0700 on POSIX)."""
+    d = Path(d)
+    d.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if os.name == "posix":
+        try:
+            os.chmod(d, 0o700)
+        except OSError:
+            pass
+    return d
+
+
+def write_private(path: Path, data: str | bytes) -> None:
+    """Write atomically; the file is created with mode 0600 from the start (no readable window)."""
+    path = Path(path)
+    private_dir(path.parent)
+    tmp = path.with_name(path.name + ".tmp")
+    raw = data.encode("utf-8") if isinstance(data, str) else data
+    try:
+        tmp.unlink()
+    except OSError:
+        pass
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0), 0o600)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(raw)
+            fh.flush()
+            os.fsync(fh.fileno())
+    except BaseException:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
+    os.replace(tmp, path)

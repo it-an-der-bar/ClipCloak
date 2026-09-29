@@ -40,6 +40,30 @@ class LLMError(Exception):
     pass
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Redirects are refused: urllib would forward the Authorization header to the new host."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise urllib.error.HTTPError(req.full_url, code, f"redirect to {urlparse(newurl).netloc or newurl} "
+                                     "refused – enter the final URL as base URL", headers, fp)
+
+
+def _is_loopback(host: str) -> bool:
+    import ipaddress
+    h = (host or "").strip("[]").lower()
+    if h in ("localhost", "localhost.localdomain") or h.endswith(".localhost"):
+        return True
+    try:
+        return ipaddress.ip_address(h).is_loopback
+    except ValueError:
+        return False
+
+
+def _status_text(exc: urllib.error.HTTPError) -> str:
+    """"HTTP 422 Unprocessable Entity" – never the body: error bodies often echo the request text."""
+    return f"HTTP {exc.code} {getattr(exc, 'reason', '') or ''}".strip()
+
+
 @dataclass
 class LLMSettings:
     base_url: str = "http://localhost:11434/v1"
@@ -100,6 +124,21 @@ class LLMClient:
             return ssl.create_default_context(cafile=self.s.ca_bundle)
         return ssl.create_default_context()
 
+    def _open(self, req, timeout):
+        """No redirects; a local endpoint never goes through a proxy from the environment."""
+        u = urlparse(req.full_url)
+        if u.scheme not in ("http", "https"):
+            raise LLMError(f"unsupported URL scheme '{u.scheme}:' – use http:// or https://")
+        host = u.hostname or ""
+        plain = u.scheme == "http" and self.s.api_key and not _is_loopback(host)
+        if plain and not getattr(self, "_warned_http", False):
+            self._warned_http = True
+            event("log.llm_plain_http", logging_level_warning(), host=host)
+        handlers = [_NoRedirect(), urllib.request.HTTPSHandler(context=self._ctx())]
+        if _is_loopback(host):
+            handlers.append(urllib.request.ProxyHandler({}))
+        return urllib.request.build_opener(*handlers).open(req, timeout=timeout)
+
     def _host(self) -> str:
         try:
             return urlparse(self.s.base_url).netloc or self.s.base_url
@@ -133,15 +172,18 @@ class LLMClient:
         headers = {"Content-Type": "application/json"}
         if self.s.api_key:
             headers["Authorization"] = "Bearer " + self.s.api_key
-        req = urllib.request.Request(url, json.dumps(payload).encode("utf-8"), headers, method="POST")
+        # scheme checked in _open (http/https only)
+        req = urllib.request.Request(url, json.dumps(payload).encode("utf-8"), headers, method="POST")  # noqa: S310
         try:
-            with urllib.request.urlopen(req, timeout=timeout or self.s.timeout, context=self._ctx()) as resp:
+            with self._open(req, timeout or self.s.timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            body = exc.read().decode("utf-8", "replace")[:300]
+            body = exc.read().decode("utf-8", "replace")[:2000] if exc.fp is not None else ""
             if json_mode and exc.code in (400, 422) and "response_format" in body:
                 return self._chat(messages, model, False, max_tokens, timeout)
-            raise LLMError(f"HTTP {exc.code}: {body}") from exc
+            if body:
+                detail("log.llm_error_body", body=body[:300])     # Log tab only, never the log file
+            raise LLMError(_status_text(exc)) from exc
         except (urllib.error.URLError, OSError, ValueError) as exc:
             raise LLMError(str(exc)) from exc
         try:
@@ -154,13 +196,17 @@ class LLMClient:
         headers = {}
         if self.s.api_key:
             headers["Authorization"] = "Bearer " + self.s.api_key
-        req = urllib.request.Request(url, headers=headers)
+        req = urllib.request.Request(url, headers=headers)  # noqa: S310 - scheme checked in _open
         event("log.llm_request", purpose=_p("models"), model="-", host=self._host(),
               timeout=int(self.s.timeout))
         t0 = time.monotonic()
         try:
-            with urllib.request.urlopen(req, timeout=self.s.timeout, context=self._ctx()) as resp:
+            with self._open(req, self.s.timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            event("log.llm_fail", logging_level_warning(), purpose=_p("models"),
+                  ms=int((time.monotonic() - t0) * 1000), err=_status_text(exc))
+            raise LLMError(_status_text(exc)) from exc
         except (urllib.error.URLError, OSError, ValueError) as exc:
             event("log.llm_fail", logging_level_warning(), purpose=_p("models"),
                   ms=int((time.monotonic() - t0) * 1000), err=str(exc))

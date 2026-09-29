@@ -135,7 +135,7 @@ class GuiTest(unittest.TestCase):
         c = self.c
         c.set_watch_mode("critical")
         c.cfg.set("watcher.categories.secrets", "auto")
-        c.clip.write("token glpat_abcdefghijklmnopqrst1234", None)
+        c.clip.write("token " + helpers.GLPAT, None)
         c._on_clip_changed()
         self.assertTrue(wait_for(lambda: "abcdefghijklmnopqrst1234" not in (c.clip.read().text or "")))
         self.assertTrue(c.clip.read().text.startswith("token glpat-"))
@@ -263,7 +263,7 @@ class GuiTest(unittest.TestCase):
         before = w.history.split.sizes()
         w.history.table.setColumnWidth(0, 222)
         w.save_state()
-        self.assertTrue((self.tmp and os.path.exists(os.path.join(self.tmp, "ui.ini"))))
+        self.assertTrue(self.tmp and os.path.exists(os.path.join(self.tmp, "ui.ini")))
         c2 = Controller(app, Config(os.path.join(self.tmp, "config.yaml")))
         try:
             c2.show_main()
@@ -335,7 +335,7 @@ class GuiTest(unittest.TestCase):
             d.llm_vision.setCurrentText("llava")
             data = d._collect()
             self.assertEqual((data["llm"]["model"], data["llm"]["vision_model"]), ("qwen", "llava"))
-            self.assertTrue(data["llm"]["enabled"])
+            self.assertFalse(data["llm"].get("enabled", False))    # a successful test does not switch it on
             d.deleteLater()
         finally:
             srv.shutdown()
@@ -448,3 +448,32 @@ class GuiTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SensitiveClipboardTest(unittest.TestCase):
+    def test_revert_output_is_kept_out_of_clipboard_history(self):
+        from clipcloak.gui.app import Controller
+        from clipcloak.platform.clipboard import SENSITIVE_FORMATS
+        tmp = tempfile.mkdtemp()
+        cfg = Config(os.path.join(tmp, "config.yaml"))
+        cfg.set("hotkeys", {k: "" for k in cfg.get("hotkeys")})
+        c = Controller(app, cfg)
+        c.store = ProjectStore(os.path.join(tmp, "projects"))
+        try:
+            c.clip.write("Mail jonas.hartmann@contoso.com", None)
+            c.run_action("pseudonymize", "hotkey")
+            self.assertTrue(wait_for(lambda: "contoso" not in (c.clip.read().text or "")))
+            md = c.clip.cb.mimeData()
+            self.assertFalse(md.hasFormat("x-kde-passwordManagerHint"))     # surrogates may go to the history
+            c.run_action("revert", "hotkey")
+            self.assertTrue(wait_for(lambda: "contoso" in (c.clip.read().text or "")))
+            md = c.clip.cb.mimeData()
+            fmts = set(md.formats())
+            for fmt, _data in SENSITIVE_FORMATS:
+                if not fmt.startswith("application/x-qt-windows-mime"):
+                    self.assertIn(fmt, fmts)
+        finally:
+            c.shutdown()
+            if c.main is not None:
+                c.main.deleteLater()
+            spin(50)

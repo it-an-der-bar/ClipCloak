@@ -40,7 +40,7 @@ images = [png_bytes(s) for s in sizes]
 header = struct.pack("<HHH", 0, 1, len(sizes))
 offset = 6 + 16 * len(sizes)
 entries = b""
-for s, data in zip(sizes, images):
+for s, data in zip(sizes, images, strict=True):
     entries += struct.pack("<BBBBHHII", s % 256, s % 256, 0, 0, 1, 32, len(data), offset)
     offset += len(data)
 (res / "icon.ico").write_bytes(header + entries + b"".join(images))

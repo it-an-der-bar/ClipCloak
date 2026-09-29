@@ -1,6 +1,7 @@
 # Builds on a version tag (e.g. v0.1.0) the Linux and Windows packages (program +
 # NER plugin; Windows also as MSI) and publishes them as GitLab release.
 # Intermediate pushes only run the test job.
+# The same builds for GitHub: .github/workflows/ (ci.yml, release.yml) – both are kept in sync.
 
 stages: [test, build, package, release]
 
@@ -25,8 +26,9 @@ test:
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends $QT_DEBS
     - python -m pip install --upgrade pip
-    - pip install -r requirements.txt
+    - pip install -r requirements.txt ruff
   script:
+    - ruff check .
     # GUI tests run headless; the X11 hotkey test skips itself without a display.
     - QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -p "test_*.py" -v
   rules:
@@ -154,7 +156,7 @@ package:linux:
 # ---------------------------------------------------------------- Release
 release:
   stage: release
-  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  image: registry.gitlab.com/gitlab-org/release-cli:v0.18.0
   needs:
     - job: package:linux
       artifacts: false

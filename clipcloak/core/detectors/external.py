@@ -37,35 +37,33 @@ def occurrences(text: str, needle: str) -> list[tuple[int, int]]:
 
 
 def find_ner_helper(configured: str = "") -> list[str] | None:
-    """Command line to start the NER helper, or ``None`` if unavailable."""
+    """Command line to start the NER helper, or ``None`` if unavailable.
+
+    Only fixed places are searched – next to the program (``<app>-ner[.exe]`` or
+    ``ner\\<app>-ner.exe`` of the Windows installer), then PATH on Linux/macOS. No wildcard
+    names and no PATH search on Windows (it would include the current directory), so a
+    file dropped into the download folder is never started by accident.
+    """
+    win = sys.platform == "win32"
     if configured:
         p = Path(configured).expanduser()
-        if p.is_file():
-            return [str(p)]
-        found = shutil.which(configured)
-        if found:
-            return [found]
-        return None
-    exe = NER_HELPER_NAME + (".exe" if sys.platform == "win32" else "")
-    candidates = []
-    if getattr(sys, "frozen", False):
-        candidates.append(Path(sys.executable).resolve().parent / exe)
-    candidates.append(Path(sys.argv[0]).resolve().parent / exe)
-    # Windows installer / ZIP: the NER helper is a folder build of its own in "ner\"
-    candidates += [c.parent / "ner" / exe for c in list(candidates)]
-    for c in candidates:
+        if p.is_absolute():
+            return [str(p)] if p.is_file() else None
+        # a relative path would depend on the current directory: only a bare name, looked up in PATH
+        bare = "/" not in configured and "\\" not in configured
+        found = shutil.which(configured) if bare and not win else None
+        return [found] if found else None
+    exe = NER_HELPER_NAME + (".exe" if win else "")
+    frozen = getattr(sys, "frozen", False)
+    base = Path(sys.executable).resolve().parent if frozen else Path(sys.argv[0]).resolve().parent
+    for c in (base / exe, base / "ner" / exe):
         if c.is_file():
             return [str(c)]
-    # release downloads carry version/platform in the name: <app>-ner-v1.2.3-linux-x86_64
-    for d in {c.parent for c in candidates}:
-        hits = sorted(p for p in d.glob(NER_HELPER_NAME + "-*")
-                      if p.is_file() and (sys.platform != "win32" or p.suffix.lower() == ".exe"))
-        if hits:
-            return [str(hits[-1])]
-    found = shutil.which(NER_HELPER_NAME)
-    if found:
-        return [found]
-    if not getattr(sys, "frozen", False):
+    if not win:
+        found = shutil.which(NER_HELPER_NAME)
+        if found:
+            return [found]
+    if not frozen:
         try:
             import importlib.util
             if importlib.util.find_spec("spacy") is not None:
@@ -119,7 +117,7 @@ class NerClient:
                     line = self._q.get(timeout=timeout)
                 except queue.Empty:
                     self.close()
-                    raise TimeoutError("NER helper timeout")
+                    raise TimeoutError("NER helper timeout") from None
                 if line is None:
                     self.proc = None
                     raise RuntimeError("NER helper exited")
@@ -217,6 +215,8 @@ def plausible_entity(text: str, s: int, e: int, typ: str, tokens: list | None):
     if not words:
         return None
     lower = [w.lower().strip(".") for w in words]
+    if all(w in LEGAL_FORMS or w in ("co", "&", "mbh") for w in lower):
+        return None                         # "GmbH & Co.": only the legal form, the name is the company detector's
     if any(w in CODE_WORDS for w in lower):
         return None
     if any(_CAMEL.search(w) and not _NAME_PREFIX.match(w) for w in words) \
@@ -241,7 +241,7 @@ def plausible_entity(text: str, s: int, e: int, typ: str, tokens: list | None):
         # a person needs first and last name: leading run of capitalised proper nouns
         if toks:
             run = []
-            for t, p, st in zip(toks, pos, stop):
+            for t, p, st in zip(toks, pos, stop, strict=True):
                 w = text[int(t["s"]):int(t["e"])]
                 if p == "PROPN" and not st and _title(w) and w.lower() not in STOP_WORDS:
                     run.append(t)

@@ -231,3 +231,76 @@ class DpapiTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SystemFileTrustTest(unittest.TestCase):
+    """Machine-wide policy files count only when only administrators can change them."""
+
+    def test_permission_check(self):
+        import os
+        from clipcloak.policy import _read_yaml, trusted_system_file
+        d = Path(tempfile.mkdtemp())
+        p = d / "policy.yaml"
+        p.write_text("llm:\n  enabled: true\n", "utf-8")
+        if sys.platform == "win32":
+            import subprocess
+            from clipcloak.platform.winsec import admin_only_writable, is_admin_sid, security_info
+            owner, aces = security_info(p)
+            self.assertTrue(owner.startswith("S-1-"))
+            self.assertTrue(aces)
+            self.assertTrue(is_admin_sid("S-1-5-32-544"))
+            self.assertFalse(is_admin_sid("S-1-1-0"))                       # Everyone
+            before = admin_only_writable(p)
+            subprocess.run(["icacls", str(p), "/grant", "*S-1-1-0:(W)"], check=True, capture_output=True)
+            self.assertFalse(admin_only_writable(p))                        # everyone may write: never
+            self.assertFalse(trusted_system_file(p))
+            self.assertIsInstance(before, bool)
+            return
+        is_root = os.geteuid() == 0
+        os.chmod(d, 0o755)
+        os.chmod(p, 0o644)
+        self.assertEqual(trusted_system_file(p), is_root)
+        os.chmod(p, 0o666)                               # writable by everyone: never trusted
+        self.assertFalse(trusted_system_file(p))
+        os.chmod(p, 0o644)
+        os.chmod(d, 0o777)                               # folder writable by everyone: file can be replaced
+        self.assertFalse(trusted_system_file(p))
+        self.assertEqual(_read_yaml(p, check_owner=True), {})
+        self.assertEqual(_read_yaml(p), {"llm": {"enabled": True}})
+
+    def test_missing_file_is_untrusted(self):
+        from clipcloak.policy import trusted_system_file
+        self.assertFalse(trusted_system_file(Path(tempfile.mkdtemp()) / "nope.yaml"))
+
+
+class SealedApiKeyTest(unittest.TestCase):
+    def test_api_key_sealed_on_disk(self):
+        from clipcloak.core import osprotect
+        from clipcloak.policy import SystemConfig
+        old = osprotect._cached
+        osprotect._cached = FakeProtector()
+        try:
+            path = Path(tempfile.mkdtemp()) / "config.yaml"
+            path.write_text("llm:\n  api_key: sk-secret-123\n", "utf-8")     # written by an older version
+            cfg = Config.load(path, system=SystemConfig())
+            self.assertEqual(cfg.get("llm.api_key"), "sk-secret-123")
+            cfg.set("llm.timeout", 30)
+            cfg.save()
+            raw = path.read_text("utf-8")
+            self.assertNotIn("sk-secret-123", raw)
+            bak = path.with_name(path.name + ".bak")
+            self.assertFalse(bak.exists() and "sk-secret-123" in bak.read_text("utf-8"))
+            self.assertIn("sealed:", raw)
+            again = Config.load(path, system=SystemConfig())
+            self.assertEqual(again.get("llm.api_key"), "sk-secret-123")
+            again.save()                                   # stays sealed, no double sealing
+            self.assertEqual(Config.load(path, system=SystemConfig()).get("llm.api_key"), "sk-secret-123")
+            osprotect._cached = None                       # no protector here: not usable, no crash …
+            blind = Config.load(path, system=SystemConfig())
+            self.assertEqual(blind.get("llm.api_key"), "")
+            blind.set("llm.timeout", 30)
+            blind.save()                                   # … and not lost on the next save
+            osprotect._cached = FakeProtector()
+            self.assertEqual(Config.load(path, system=SystemConfig()).get("llm.api_key"), "sk-secret-123")
+        finally:
+            osprotect._cached = old

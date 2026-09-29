@@ -209,6 +209,10 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_detectors_enabled_sid_Help">Diese Erkennung ein- oder ausschalten.
 
 Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: detectors.enabled.sid</string>
+      <string id="P_detectors_enabled_company">Erkennung: Firmennamen mit Rechtsform (… GmbH, AG, GmbH &amp; Co. KG, Ltd., Inc. …)</string>
+      <string id="P_detectors_enabled_company_Help">Diese Erkennung ein- oder ausschalten.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: detectors.enabled.company</string>
       <string id="P_detectors_enabled_infra_names">Erkennung: Infrastruktur-Namen (Kubernetes, Helm, ArgoCD, Compose …)</string>
       <string id="P_detectors_enabled_infra_names_Help">Diese Erkennung ein- oder ausschalten.
 

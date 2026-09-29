@@ -4,20 +4,30 @@ from __future__ import annotations
 
 import html as htmllib
 import re
-from typing import Callable
+from collections.abc import Callable
 
 from .entities import Result
 
 TOKEN_RE = re.compile(
     r"<!--.*?-->|<!\[CDATA\[.*?\]\]>|<![^>]*>|<\?.*?\?>|</?[A-Za-z][^<>]*>", re.S)
 TAG_NAME_RE = re.compile(r"</?\s*([A-Za-z][A-Za-z0-9:-]*)")
-ATTR_RE = re.compile(r"(\b(?:href|title|alt|src|value|data-[\w-]+)\s*=\s*)(\"[^\"]*\"|'[^']*')", re.I)
+# every attribute value is processed (quoted or not) except pure formatting
+ATTR_RE = re.compile(r"(\s)([A-Za-z_:][\w:.-]*)(\s*=\s*)(\"[^\"]*\"|'[^']*'|[^\s\"'=<>`]+)")
+FORMAT_ATTRS = set("""
+style class width height align valign border cellpadding cellspacing colspan rowspan lang dir face
+size color bgcolor type rel target span start nowrap frame rules scope charset xmlns
+""".split())
 BLOCK_TAGS = set("""
 p div br li ul ol tr td th table h1 h2 h3 h4 h5 h6 pre blockquote section article header
 footer hr dd dt dl tbody thead tfoot title body html head option caption figure nav main
 aside address center form fieldset legend
 """.split())
 SKIP_TAGS = {"script", "style"}
+# dropped from the output: comments (Office puts whole XML blocks with author names into
+# <!--[if …]> comments), CDATA, processing instructions and scripts – they are not shown but would
+# carry data along. Comments inside <style> are kept: Word wraps its CSS in them.
+STYLE_BLOCK_RE = re.compile(r"(<style\b[^>]*>.*?</style\s*>)", re.S | re.I)
+HIDDEN_RE = re.compile(r"<!--.*?-->|<!\[CDATA\[.*?\]\]>|<\?.*?\?>|<script\b[^>]*>.*?</script\s*>", re.S | re.I)
 
 
 def process_html(markup: str, fn: Callable[[str], Result]) -> str:
@@ -26,6 +36,8 @@ def process_html(markup: str, fn: Callable[[str], Result]) -> str:
     Text nodes are concatenated (block elements become newlines) so that
     entities split across inline tags are still found.
     """
+    markup = "".join(part if i % 2 else HIDDEN_RE.sub("", part)
+                     for i, part in enumerate(STYLE_BLOCK_RE.split(markup)))
     segments: list[list] = []   # [kind, raw, name]
     pos = 0
     for m in TOKEN_RE.finditer(markup):
@@ -63,14 +75,14 @@ def process_html(markup: str, fn: Callable[[str], Result]) -> str:
     edits: dict[int, list[tuple[int, int, str]]] = {}
     for rep in res.replacements:
         first = True
-        for seg_i, s, e, u in text_map:
+        for seg_i, s, e, _u in text_map:
             if e <= rep.in_start or s >= rep.in_end:
                 continue
             ls = max(rep.in_start, s) - s
             le = min(rep.in_end, e) - s
             edits.setdefault(seg_i, []).append((ls, le, rep.replacement if first else ""))
             first = False
-    for seg_i, s, e, u in text_map:
+    for seg_i, _s, _e, u in text_map:
         ed = edits.get(seg_i)
         if not ed:
             continue
@@ -89,12 +101,17 @@ def process_html(markup: str, fn: Callable[[str], Result]) -> str:
             continue
 
         def repl(m):
-            quoted = m.group(2)
-            q, val = quoted[0], quoted[1:-1]
+            if m.group(2).lower() in FORMAT_ATTRS:
+                return m.group(0)
+            raw = m.group(4)
+            quoted = raw[:1] in ("\"", "'")
+            val = raw[1:-1] if quoted else raw
+            if val.lstrip().lower().startswith("data:"):
+                return m.group(0)                 # embedded image/file: text detectors would only corrupt it
             r = fn(htmllib.unescape(val))
             if not r.changed:
                 return m.group(0)
-            return m.group(1) + q + htmllib.escape(r.output, quote=True) + q
+            return m.group(1) + m.group(2) + m.group(3) + '"' + htmllib.escape(r.output, quote=True) + '"'
 
         seg[1] = ATTR_RE.sub(repl, seg[1])
     return "".join(seg[1] for seg in segments)

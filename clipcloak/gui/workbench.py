@@ -10,8 +10,8 @@ from PySide6.QtWidgets import (QCheckBox, QFileDialog, QHBoxLayout, QLabel, QMen
 from ..core.entities import Result
 from ..core.files import read_text_file, suggest_output_path, write_text_file
 from ..i18n import t
-from .widgets import (autosize, fill_replacements, group_by, replacements_table, highlighted_html, is_dark, item, make_table, mono_font,
-                      track_table, type_color)
+from .widgets import (autosize, fill_replacements, group_by, highlighted_html, is_dark, item, make_table,
+                      mono_font, replacements_table, track_table, type_color)
 
 MODES = ["pseudonymize", "anonymize", "redact", "revert"]
 LARGE_TEXT = 200_000   # above this, no colour highlighting (keeps the UI responsive)
@@ -212,7 +212,7 @@ class Workbench(QWidget):
     def to_clipboard(self):
         text = self.output.toPlainText()
         if text:
-            self.c.write_clipboard(text, None)
+            self.c.write_clipboard(text, None, sensitive=getattr(self, "_last_mode", "") == "revert")
             self.status.setText(t("wb.copied"))
 
     def analyze(self):
@@ -319,16 +319,20 @@ class Workbench(QWidget):
                                                               for r in res.replacements], dark))
         fill_replacements(self.reps, res.replacements, dark)
         self.c.record(res, "workbench")
+        self._last_mode = res.mode
         msg = t("wb.n_replaced", n=len(res.replacements))
         if self.auto_copy.isChecked() and res.output:
-            self.c.write_clipboard(res.output, None)
+            self.c.write_clipboard(res.output, None, sensitive=res.mode == "revert")
             msg += " – " + t("wb.copied")
         self.status.setText(msg)
 
     def llm_check(self):
-        text = self.output.toPlainText() or self.input.toPlainText()
-        if text:
-            self.c.llm_verify(text, show=True)
+        # only the processed result goes to the LLM – never the unprocessed input
+        text = self.output.toPlainText()
+        if not text:
+            self.status.setText(t("wb.llm_check_first"))
+            return
+        self.c.llm_verify(text, show=True)
 
     def _findings_menu(self, pos):
         rows = sorted({i.row() for i in self.findings.selectedItems()})

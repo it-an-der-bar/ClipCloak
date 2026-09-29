@@ -42,7 +42,14 @@ class ConfigTest(unittest.TestCase):
         again = Config.load(p)
         self.assertEqual((again.get("llm.base_url"), again.get("llm.api_key"), again.get("llm.model")),
                          ("http://llm.lab:8000/v1", "sk-abc", "qwen"))
-        self.assertTrue(p.with_name("config.yaml.bak").exists())
+        bak = p.with_name("config.yaml.bak")
+        self.assertFalse(bak.exists() and "sk-abc" in bak.read_text("utf-8"))   # no extra copy of the key
+        q = Path(tempfile.mkdtemp()) / "config.yaml"
+        q.write_text("general:\n  mode: redact\n", "utf-8")
+        c2 = Config.load(q)
+        c2.set("general.mode", "anonymize")
+        c2.save()
+        self.assertTrue(q.with_name("config.yaml.bak").exists())               # otherwise the backup is kept
 
     def test_engine_settings(self):
         cfg = Config(data={"lists": {"custom_terms": [{"term": "Contoso", "replacement": "Contoso"}],

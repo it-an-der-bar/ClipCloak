@@ -20,7 +20,7 @@ PALETTE_DARK = ["#7a4a12", "#0b5345", "#16456e", "#4a3780", "#7d2626", "#1f5d2c"
 
 
 def type_color(typ: str, dark: bool = False) -> str:
-    idx = int(hashlib.md5(typ.encode()).hexdigest(), 16) % len(PALETTE)
+    idx = int(hashlib.md5(typ.encode(), usedforsecurity=False).hexdigest(), 16) % len(PALETTE)
     return (PALETTE_DARK if dark else PALETTE)[idx]
 
 

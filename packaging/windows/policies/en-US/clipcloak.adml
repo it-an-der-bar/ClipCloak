@@ -209,6 +209,10 @@ If configured, the user cannot change this setting. Setting: detectors.enabled.p
       <string id="P_detectors_enabled_sid_Help">Enable or disable this detector.
 
 If configured, the user cannot change this setting. Setting: detectors.enabled.sid</string>
+      <string id="P_detectors_enabled_company">Detector: Company names with a legal form (… GmbH, AG, GmbH &amp; Co. KG, Ltd., Inc. …)</string>
+      <string id="P_detectors_enabled_company_Help">Enable or disable this detector.
+
+If configured, the user cannot change this setting. Setting: detectors.enabled.company</string>
       <string id="P_detectors_enabled_infra_names">Detector: Infrastructure names (Kubernetes, Helm, ArgoCD, Compose …)</string>
       <string id="P_detectors_enabled_infra_names_Help">Enable or disable this detector.
 

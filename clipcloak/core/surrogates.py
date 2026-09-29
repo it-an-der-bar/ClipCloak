@@ -300,6 +300,11 @@ class SurrogateFactory:
         changed = False
         for i, tok in enumerate(tokens):
             core = tok.strip(".,()").lower()
+            if tok and tok[0].isdigit():
+                # "18/3 GmbH", "1&1": digits become other digits (keyed, the same every time)
+                out[i] = randomize_chars(tok, self._rng("org-num", tok, attempt))
+                changed = True
+                continue
             if not tok or not tok[0].isalpha():
                 continue
             if core in wordlists.LEGAL_FORMS or core in ORG_GENERIC or len(core) <= 2:

@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.1.27
+
+Security review before the public release, and GitHub builds.
+
+- New detector **Company names with a legal form** (on, category organisations): the name before GmbH, AG, KG, GmbH & Co. KG, UG (haftungsbeschränkt), e.K., e.V., Ltd., Inc., Corp., S.A., B.V., Sp. z o.o. … is found without a language model – also invented names and names with digits ("18/3 GmbH", "Kölpertechnis GmbH", "Sadisches Blankloppen GmbH & Co. KG", "Bank für Sozialwirtschaft AG", "1&1 Versatel GmbH"). Articles/prepositions, lead words ("Firma", "Kunde:"), punctuation and line breaks end the name; ambiguous short forms (AG, SE, KG, SAS …) need a clear name ("5 KG Mehl", "die AG tagt" are no company); well-known public companies stay. Digits in the name get other digits (`18/3 GmbH` → `32/8 GmbH`). The NER plugin no longer reports a bare legal form ("GmbH & Co.") as organisation.
+- **Machine-wide policy files are only read when only administrators can change them.** Before, any local user could put a `policy.yaml` into `%ProgramData%\clipcloak` and enforce settings for everyone (e.g. an LLM endpoint of his own). Now owner and write permissions of the file and its folder are checked (Windows: SYSTEM, TrustedInstaller, Administrators or a member; Linux: root, not writable by others); the MSI creates the folder with an ACL that only lets administrators write.
+- **Linux: projects are encrypted with the desktop keyring** (Secret Service: GNOME Keyring, KWallet, KeePassXC) like with DPAPI on Windows – before they were readable JSON (0600). Existing plain projects are converted when opened. Without a keyring nothing changes ("NOT encrypted", passphrase possible); the keyring is tried again if it starts after the program.
+- LLM API key in `config.yaml` sealed with the account (DPAPI / keyring). No backup copy with a plain key is kept.
+- The clipboard watcher never sends text to the LLM detector (only explicit actions do). The workbench LLM check sends only the result, never the unprocessed input. A successful connection test no longer switches LLM features on.
+- LLM client: redirects are refused (the API key would go to another host), only http/https, local endpoints bypass proxies from the environment, a warning for an API key over plain http to a remote host; error responses (which often echo the request text) are no longer written to the log file.
+- HTML clipboard: comments (Office metadata such as the author), CDATA, processing instructions and scripts are dropped; *all* attribute values are processed (also unquoted ones, `aria-label`, `id`, `srcset` …), except pure formatting and embedded `data:` images.
+- History with *keep original text* off: revert results, LLM-check warnings and entries loaded from a project are masked too; switching the option off also masks existing entries and saves the project at once.
+- Restored originals are copied with the flags that keep them out of the Windows clipboard history and cloud clipboard and are marked as password for KDE Klipper.
+- NER helper: only fixed paths next to the program are started (no wildcard names, no search of the current directory/PATH on Windows; a configured helper path must be absolute).
+- Files are written with mode 0600 from the start (config, projects, log; umask 077), data folders 0700; the IPC socket lives in `$XDG_RUNTIME_DIR` on Linux.
+- Passphrase projects: scrypt N = 2^17 (OWASP); existing files keep their parameters.
+- Code signing: the certificate password is no longer passed on the command line.
+- Code quality: `ruff` (pyflakes, pycodestyle, bugbear, pyupgrade, bandit rules) is clean and runs in CI.
+- **GitHub Actions** (`.github/workflows/ci.yml`, `release.yml`) next to GitLab CI: lint and tests on every push, on a version tag the same packages (MSI, portable ZIP, tar.gz, policies ZIP) as GitHub release assets. Test data use no token-shaped literals (secret scanners would block the push). `SECURITY.md` added.
+- Test data no longer point to a real region (phone area code, towns).
+
 ## 0.1.26
 
 - Removed all real names from the program, the examples and the tests: the sample data now use the fictitious company *Contoso* (`contoso.com`, `CONTOSO\user`) and the person *Jonas Hartmann* (NER self-test, settings "Test", TLD example, README before/after example).

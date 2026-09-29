@@ -44,7 +44,8 @@ REF_RE = re.compile(
     r"(?:\.(?:apps|batch|extensions|policy|autoscaling|[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:k8s\.io|argoproj\.io|fluxcd\.io)))?"
     r"/([a-z0-9][a-z0-9.-]{1,252})(?![\w/-])", re.IGNORECASE)
 FILE_NAME = re.compile(r"\.(?:sh|bash|ps1|py|js|ts|go|rb|pl|php|ya?ml|json|toml|ini|conf|cfg|env|txt|md|log|"
-                       r"xml|html?|css|csv|tar|gz|tgz|zip|sql|j2|tpl|tmpl|lock|pem|crt|key|bak|service)$", re.IGNORECASE)
+                       r"xml|html?|css|csv|tar|gz|tgz|zip|sql|j2|tpl|tmpl|lock|pem|crt|key|bak|service)$",
+                       re.IGNORECASE)
 TRACKING_RE = re.compile(
     r"(?<![\w.-])([a-z0-9][a-z0-9.-]*):[a-z0-9.]*/[A-Za-z]+:([a-z0-9][a-z0-9.-]*)/([a-z0-9][a-z0-9.-]*)")
 PART_RE = re.compile(r"[^\-_.]+")

@@ -5,6 +5,7 @@ from __future__ import annotations
 from .base import Detector, DetectorContext
 from .identity import (CardDetector, CustomTermDetector, IbanDetector, PhoneDetector,
                        SidDetector, UserPathDetector)
+from .company import CompanyDetector
 from .fingerprints import FingerprintDetector
 from .infra import InfraNameDetector
 from .tracking import TrackingDetector
@@ -16,7 +17,7 @@ BUILTIN_DETECTORS: list[type[Detector]] = [
     PemDetector, TokenDetector, KeyValueSecretDetector, HexSecretDetector, EntropyDetector,
     EmailDetector, IPv4Detector, IPv6Detector, MacDetector, DomainDetector,
     HostnameDetector, UserPathDetector, IbanDetector, CardDetector, PhoneDetector,
-    SidDetector, InfraNameDetector, FingerprintDetector, TrackingDetector,
+    SidDetector, CompanyDetector, InfraNameDetector, FingerprintDetector, TrackingDetector,
     CustomTermDetector,
 ]
 

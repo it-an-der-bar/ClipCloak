@@ -87,7 +87,8 @@ def span_box(line: dict, s: int, e: int) -> dict:
         x1 = max(w["x"] + w["w"] for w in hit)
         y1 = max(w["y"] + w["h"] for w in hit)
         # a word that is only partly covered (e.g. "IP10.88.10.10") is covered completely
-        return {"x": x0, "y": min(y0, line["y"]), "w": x1 - x0, "h": max(y1, line["y"] + line["h"]) - min(y0, line["y"])}
+        top = min(y0, line["y"])
+        return {"x": x0, "y": top, "w": x1 - x0, "h": max(y1, line["y"] + line["h"]) - top}
     n = max(1, len(line.get("text") or ""))
     x0 = line["x"] + line["w"] * s / n
     x1 = line["x"] + line["w"] * e / n

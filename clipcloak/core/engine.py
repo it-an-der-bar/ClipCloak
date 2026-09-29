@@ -25,7 +25,8 @@ _B_R = r"(?![A-Za-z0-9_À-ɏ])"
 
 @dataclass
 class EngineSettings:
-    enabled_detectors: set = field(default_factory=lambda: {d.id for d in builtin_detectors() if d.default_enabled} | {"learned-names"})
+    enabled_detectors: set = field(
+        default_factory=lambda: {d.id for d in builtin_detectors() if d.default_enabled} | {"learned-names"})
     disabled_types: set = field(default_factory=set)
     redact_template: str = "[REDACTED]"
     anonymize_style: str = "realistic"          # realistic | placeholder
@@ -77,7 +78,9 @@ class Engine:
             self._rebuild()
 
     # ------------------------------------------------------------ analysis
-    def analyze(self, text: str, warnings: list[str] | None = None) -> list[Finding]:
+    def analyze(self, text: str, warnings: list[str] | None = None,
+                skip: set | frozenset = frozenset()) -> list[Finding]:
+        """``skip``: detector ids not to run (the watcher never sends text to the LLM detector)."""
         s = self.settings
         if len(text) > s.max_chars:
             if warnings is not None:
@@ -85,7 +88,7 @@ class Engine:
             return []
         found: list[Finding] = []
         for det in self.detectors:
-            if det.id not in s.enabled_detectors:
+            if det.id not in s.enabled_detectors or det.id in skip:
                 continue
             try:
                 found.extend(det.find(text, s.context))
@@ -225,7 +228,8 @@ class Engine:
         if a:
             pats["ci"] = re.compile(_B_L + "(?:" + a + ")" + _B_R, re.IGNORECASE)
         tokens: dict[str, tuple[str, str]] = {}
-        for name, typ in (("words", "WORD"), ("users", T.USERNAME.value), ("first", T.PERSON.value), ("last", T.PERSON.value)):
+        for name, typ in (("words", "WORD"), ("users", T.USERNAME.value),
+                          ("first", T.PERSON.value), ("last", T.PERSON.value)):
             for orig, sur in v.maps[name].fwd.items():
                 tokens.setdefault(sur, (typ, orig, name))
         a = alt(tokens.keys())

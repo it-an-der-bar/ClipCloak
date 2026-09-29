@@ -44,6 +44,7 @@ After   selma.pichler@nawidrock.com   srv-dc01.nawidrock.local  10.72.15.100/24 
     - URL credentials, `curl -u`, `mysql -p`, `--password`, `ConvertTo-SecureString`
     - high-entropy strings (optional)
   - infrastructure names (optional, off by default – Settings › Detectors): values of `name`, `namespace`, `instance`, `release`, `app` …, `-n`/`--namespace`, `deploy/<name>`, ArgoCD tracking ids. Only the customer-specific parts are replaced (`kunde-mueller-prod` → `kunde-kabaukack-prod`); generic words (front, scheduler, prod …) and product names (bunkerweb, nginx, redis …) stay, and the same word gets the same pseudonym everywhere, also in domains. Kubernetes label/annotation keys such as `argocd.argoproj.io/tracking-id:` are never touched.
+  - company names with a legal form (GmbH, AG, GmbH & Co. KG, UG, e.K., e.V., Ltd., Inc. …), also invented names and names with digits (`18/3 GmbH`) – without a language model
   - **origin marks in links** – removed in every mode, not pseudonymised: `utm_*`, click ids (`fbclid`, `gclid`, `msclkid` …), newsletter recipient ids (`mc_eid`, `_hsenc`, `mkt_tok` …), share ids (`si` on YouTube/Spotify, `igsh`, X `s`/`t`, TikTok, LinkedIn …), Amazon `/ref=…`, text fragments `#:~:text=…`. Redirect wrappers (Outlook Safe Links – they contain the recipient's address –, Google `/url`, Facebook `l.php`, LinkedIn, Slack, YouTube, Steam, DuckDuckGo, Proofpoint URL Defense) are replaced by the real target. Own parameters: Settings › Lists › Tracking parameters.
   - long hex strings standing alone (32+ characters: API keys, tokens, webhook secrets) – format-preserving; image digests (`@sha256:…`), `commit …` and `sha256sum` output stay.
   - key and certificate identifiers (optional, off by default – Settings › Detection): .NET `PublicKeyToken=…` of own assemblies, certificate thumbprints and serial numbers, SSH host key fingerprints (`SHA256:…`, `MD5:…`), GPG fingerprints/key ids. Not secret, but they identify a vendor or server. Microsoft/.NET framework tokens (`7cec85d7bea7798e`, `b77a5c561934e089` …) identify nobody and are never reported. Replacements keep the format (hex stays hex, separators stay).
@@ -59,7 +60,7 @@ After   selma.pichler@nawidrock.com   srv-dc01.nawidrock.local  10.72.15.100/24 
 - **Workbench** with live highlighting, a findings table and right-click actions (allowlist or custom term). Any marked text can be set to *always replace* or *never replace* with a right click in the input.
 - **History** with a side-by-side diff of every action.
 - **Mapping overview**: what was replaced by what, with filter and CSV export.
-- **Pseudonyms are persisted, encrypted.** They are stored in the project *Standard* by default, so reverting still works after a restart. On Windows every project file is encrypted with the user's Windows account (DPAPI, no passphrase needed); a project passphrase (AES-256-GCM, scrypt) can be added. Further projects (e.g. per customer) can be created, each with its own terms and known domains. *RAM only* has to be chosen explicitly and is marked as lost on exit.
+- **Pseudonyms are persisted, encrypted.** They are stored in the project *Standard* by default, so reverting still works after a restart. Every project file is encrypted with the user's account – on Windows with DPAPI, on Linux with a key in the desktop keyring (Secret Service: GNOME Keyring, KWallet, KeePassXC), no passphrase needed; a project passphrase (AES-256-GCM, scrypt) can be added. Further projects (e.g. per customer) can be created, each with its own terms and known domains. *RAM only* has to be chosen explicitly and is marked as lost on exit.
 - **Central management.** MSI for silent installation (GPO, ESET PROTECT, baramundi, Intune …), ADMX templates for Group Policy, machine-wide default and policy files. Enforced settings are locked in the UI.
 - **HTML clipboard content** (Outlook, Teams, browser) is processed together with the text. RTF is dropped, so no unprocessed copy remains.
 - **UI** in English and German.
@@ -260,13 +261,17 @@ At start the Log tab shows which central settings were loaded, and names unknown
 - The session mapping and the history live only in RAM. Projects write mappings, including original values and secrets, to disk:
   - Windows: always encrypted (AES-256-GCM). The key is protected by DPAPI and bound to the user's Windows account, so other users, disk copies or backups cannot read the file. Older plain project files are converted when they are opened. (Can be switched off under Settings › General; not recommended.)
   - With a project passphrase (all systems) the key comes from the passphrase (scrypt) instead; this also protects against other programs running under the same account.
-  - Linux without passphrase: readable JSON with mode 0600 – the project bar shows "NOT encrypted".
+  - Linux: encrypted the same way (AES-256-GCM); the key lies in the desktop keyring (Secret Service), which the login unlocks. Without a keyring (headless, no Secret Service): readable JSON with mode 0600 – the project bar then shows "NOT encrypted"; set a passphrase there.
   - The project *name* stays readable in the file.
-- LLM tokens set by policy are stored in the registry/policy file and can be read by the users.
+- The LLM API key in `config.yaml` is sealed with the account (DPAPI / keyring) where available. LLM tokens set by policy are stored in the registry/policy file and can be read by the users.
+- Machine-wide `policy.yaml`/`defaults.yaml` are only read when an administrator owns them (Windows: SYSTEM or Administrators; Linux: root, not writable by others). The MSI creates `%ProgramData%\clipcloak` so that only administrators can write there.
+- Files the program writes (config, projects, log) are readable by the user only (0600/0700 on Linux).
+- Restored originals (revert) are copied with the flags that keep them out of the Windows clipboard history/cloud clipboard and are marked as password for KDE Klipper.
+- No telemetry, no update check, no network access unless an LLM endpoint is configured and used. The clipboard watcher never sends anything to the LLM – only explicit actions do.
 - Anonymised values are never written to a mapping file. For placeholders only keyed hashes are kept in RAM.
 - Clipboard contents are never written to the log.
 - *History: keep original text* can be switched off. The history then shows only masked originals.
-- The LLM check only sends the already processed text. Screenshot → text sends the image. The LLM detector sends the original text, so only enable it for an endpoint you control.
+- The LLM check only sends the already processed text (in the workbench: only the result, never the input). Screenshot → text sends the image. The LLM detector sends the original text, so only enable it for an endpoint you control.
 
 ## Development
 
@@ -279,10 +284,13 @@ QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -p "test_*.py" -v
 
 To use the plugin from source, run `pip install -r requirements-ner.txt` and
 `pip install --no-deps -r requirements-ner-nodeps.txt`. It is then used
-automatically via `python -m clipcloak.ner_helper`. To build binaries, see `.gitlab-ci.yml`;
-`python tools/package_release.py vX.Y.Z --dist dist` bundles them into the ZIP and tar.gz.
-The CI runs tests on every push and builds and releases on version tags `vX.Y.Z`, which must
-match `clipcloak/__init__.py`.
+automatically via `python -m clipcloak.ner_helper`.
+
+Builds run in two CI systems with the same steps: GitHub Actions (`.github/workflows/ci.yml`, `release.yml` –
+release assets on GitHub) and GitLab CI (`.gitlab-ci.yml` – GitLab package registry). Both lint (`ruff check .`)
+and test on every push and build and release on version tags `vX.Y.Z`, which must match
+`clipcloak/__init__.py`. `python tools/package_release.py linux|windows|policies vX.Y.Z --dist dist`
+bundles the builds into the tar.gz/ZIP files.
 
 ### Renaming
 

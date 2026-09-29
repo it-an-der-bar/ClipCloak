@@ -218,7 +218,11 @@ class Controller(QObject):
     # ================================================================= config
     def apply_config(self, initial: bool = False):
         cfg = self.cfg
-        self.history.store_originals = bool(cfg.get("general.history_store_originals", True))
+        keep = bool(cfg.get("general.history_store_originals", True))
+        was = self.history.store_originals
+        self.history.set_store_originals(keep)
+        if was and not keep and getattr(self, "project", None) is not None:
+            self._save_project_now()            # the project file must not keep the originals either
         self.history.set_maxlen(int(cfg.get("general.history_size", 200)))
         self._apply_engine_settings()
         # clipboard backend
@@ -271,7 +275,8 @@ class Controller(QObject):
         if self._ner_det is not None:
             self.engine.add_detector(self._ner_det)
         if self.cfg.get("llm.enabled") and self.cfg.get("llm.detect"):
-            self.engine.add_detector(LlmDetector(self._llm_client(), self.cfg.get("llm.detect_types") or ["PERSON", "ORG"]))
+            types = self.cfg.get("llm.detect_types") or ["PERSON", "ORG"]
+            self.engine.add_detector(LlmDetector(self._llm_client(), types))
 
     def apply_settings(self, data: dict, project_update: dict | None = None):
         old_lang = self.cfg.get("general.language")
@@ -351,10 +356,15 @@ class Controller(QObject):
             html = strip_cf_html(content.html)
         engine = self.engine
 
+        skip = {"llm"} if source == "watcher" else set()     # automatic runs never go to the LLM
+
         def run(s):
-            if types is None:
+            if mode == "revert":
+                return engine.revert(s)
+            if types is None and not skip:
                 return engine.process(s, mode)
-            return engine.process(s, mode, findings=[f for f in engine.analyze(s) if f.type in types])
+            found = engine.analyze(s, skip=skip)
+            return engine.process(s, mode, findings=[f for f in found if types is None or f.type in types])
 
         def job():
             res = run(text)
@@ -370,7 +380,7 @@ class Controller(QObject):
                 self.notify(t("msg.clip_changed"), error=True)
                 return
             if res.changed:
-                self.write_clipboard(res.output, html_out)
+                self.write_clipboard(res.output, html_out, sensitive=res.mode == "revert")
             self.record(res, source)
             if after is not None:
                 after(res)                # it reports the result itself (one popup, no extra toast)
@@ -425,9 +435,9 @@ class Controller(QObject):
 
         self.submit(job, done, label=t("job.file", mode=t("mode." + mode), name=os.path.basename(path)))
 
-    def write_clipboard(self, text: str, html: str | None):
+    def write_clipboard(self, text: str, html: str | None, sensitive: bool = False):
         self._own.append(text_hash(text))
-        self.clip.write(text, html)
+        self.clip.write(text, html, sensitive=sensitive)
 
     def record(self, res: Result, source: str):
         if not res.changed:
@@ -535,7 +545,8 @@ class Controller(QObject):
         offer_revert = bool(self.cfg.get("watcher.offer_revert", True))
 
         def job():
-            findings = engine.analyze(text)
+            # every copy passes here: never send it to an LLM (that runs only on explicit actions)
+            findings = engine.analyze(text, skip={"llm"})
             if offer_revert:
                 looks, reverted, real = engine.surrogate_hint(text, findings)
                 if looks:
@@ -678,7 +689,9 @@ class Controller(QObject):
                 return
             lines = [f"• {it['text']} ({it['type']})" for it in items[:15]]
             if self.history.entries and result is not None:
-                self.history.entries[0].warnings.append(t("llm.verify_warning", items=", ".join(i["text"] for i in items)))
+                self.history.add_warning(self.history.entries[0],
+                                         t("llm.verify_warning", items=", ".join(i["text"] for i in items)),
+                                         sensitive=True)
                 self.history_changed.emit()
             from .popup import Popup
             actions = [("add", t("llm.add_terms")), ("details", t("popup.details"))]
@@ -900,6 +913,8 @@ class Controller(QObject):
             return
         if self.project.store_history:
             self.project.history = self.history.to_list()
+        if self.store.protector is None and not self.project.passphrase:
+            self.store.protector = self._protector()     # keyring started after us (login autostart)
         try:
             self.store.save(self.project)
         except OSError as exc:

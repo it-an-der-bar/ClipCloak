@@ -119,12 +119,14 @@ class HistoryView(QWidget):
             self.diff.right_label.setText(t("diff.after"))
         self.diff.show_diff(e.input, e.output, e.replacements)
         fill_replacements(self.reps, e.replacements, is_dark(self))
-        self.warn.setText("\n".join(e.warnings))
+        self.warn.setText("\n".join(e.all_warnings()))
 
     def _copy(self, original: bool):
         e = self.c.history.get(self._current_id())
         if e:
-            self.c.write_clipboard(e.input if original else e.output, None)
+            # the originals: the input of a pseudonymisation or the output of a revert
+            sensitive = original != (e.action == "revert")
+            self.c.write_clipboard(e.input if original else e.output, None, sensitive=sensitive)
 
     def _to_workbench(self):
         e = self.c.history.get(self._current_id())

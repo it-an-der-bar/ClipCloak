@@ -196,7 +196,8 @@ eff = {"choices": ["black", "mosaic", "blur"],
        "labels": lambda v, lang: EFFECT_LABELS[v][0 if lang == "en" else 1]}
 P += [
     ("image.faces", "bool", "image", "Detect faces", "Gesichter erkennen",
-     "Detect faces in images (plugin, YuNet model, local).", "Gesichter in Bildern erkennen (Plugin, YuNet-Modell, lokal).", {}),
+     "Detect faces in images (plugin, YuNet model, local).",
+     "Gesichter in Bildern erkennen (Plugin, YuNet-Modell, lokal).", {}),
     ("image.face_effect", "enum", "image", "Effect for faces", "Effekt für Gesichter",
      "How detected faces are hidden.", "Wie erkannte Gesichter verdeckt werden.", eff),
     ("image.nudity", "bool", "image", "Detect nudity", "Nacktheit erkennen",
@@ -221,7 +222,8 @@ P += [
     ("image.nudity_margin", "decimal", "image", "Extra margin around nudity (%)", "Zusätzlicher Rand um Nacktheit (%)",
      "Area added around detected nudity, in % of its size (0-200).",
      "Bereich, der um erkannte Nacktheit ergänzt wird, in % ihrer Größe (0-200).", {"min": 0, "max": 200}),
-    ("image.watch", "bool", "image", "Offer image redaction for copied images", "Bei kopierten Bildern Schwärzen anbieten",
+    ("image.watch", "bool", "image", "Offer image redaction for copied images",
+     "Bei kopierten Bildern Schwärzen anbieten",
      "The clipboard watcher shows a popup \"Redact image\" when an image is copied.",
      "Die Überwachung zeigt beim Kopieren eines Bildes ein Popup \"Bild schwärzen\".", {}),
 ]

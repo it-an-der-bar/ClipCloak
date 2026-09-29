@@ -150,8 +150,33 @@ def coerce(dotted: str, value, defaults: dict):
 
 
 # ------------------------------------------------------------------ sources
-def _read_yaml(path: Path) -> dict:
+def trusted_system_file(path: Path) -> bool:
+    """Only an administrator may be able to change the machine-wide files.
+
+    Windows: owner and everyone who may write, delete or re-permission the file *and* its folder
+    are SYSTEM, TrustedInstaller, Administrators or a member of it (a file a normal user put into
+    ProgramData fails). Linux/macOS: file and folder owned by root, not writable by group/others.
+    """
+    try:
+        if sys.platform == "win32":
+            from .platform.winsec import admin_only_writable
+            return admin_only_writable(path) and admin_only_writable(path.parent)
+        for p in (path, path.parent):
+            st = p.stat()
+            if st.st_uid != 0 or st.st_mode & 0o022:
+                return False
+        return True
+    except (OSError, AttributeError, ValueError) as exc:
+        log.error("cannot check the permissions of %s: %s", path, exc)
+        return False
+
+
+def _read_yaml(path: Path, check_owner: bool = False) -> dict:
     if not path.is_file():
+        return {}
+    if check_owner and not trusted_system_file(path):
+        log.error("ignored %s: it (or its folder) can be changed by non-administrators – "
+                  "only administrators may be able to write policy files", path)
         return {}
     try:
         data = yaml.safe_load(path.read_text("utf-8")) or {}
@@ -226,8 +251,12 @@ class SystemConfig:
     def load(cls, app_defaults: dict, directory: Path | None = None, registry: bool = True) -> "SystemConfig":
         sc = cls()
         d = Path(directory) if directory else system_dir()
-        layers_defaults = [(str(d / "defaults.yaml"), flatten(_read_yaml(d / "defaults.yaml"), "", app_defaults))]
-        layers_policy = [(str(d / "policy.yaml"), flatten(_read_yaml(d / "policy.yaml"), "", app_defaults))]
+        # the real system folder must be admin-owned; an explicit folder (tests, CLIPCLOAK_SYSTEM_DIR
+        # set by the user himself) is taken as it is
+        check = directory is None and not os.environ.get(APP_NAME.upper().replace("-", "_") + "_SYSTEM_DIR")
+        layers_defaults = [(str(d / "defaults.yaml"),
+                            flatten(_read_yaml(d / "defaults.yaml", check), "", app_defaults))]
+        layers_policy = [(str(d / "policy.yaml"), flatten(_read_yaml(d / "policy.yaml", check), "", app_defaults))]
         if registry:
             layers_defaults.append(("HKLM\\" + REG_BASE + "\\Recommended",
                                     _read_registry("HKEY_LOCAL_MACHINE", REG_BASE + "\\Recommended")))

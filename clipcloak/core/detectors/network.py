@@ -163,21 +163,22 @@ class DomainDetector(Detector):
             return False
         # consistent casing: tld lowercase, or everything uppercase
         if tld != tl:
-            if not (tld.isupper() and all(l.upper() == l for l in labels)):
+            if not (tld.isupper() and all(lab.upper() == lab for lab in labels)):
                 return False
-        if any(re.search(r"[a-z][A-Z]", l) for l in labels):
+        if any(re.search(r"[a-z][A-Z]", lab) for lab in labels):
             return False  # camelCase identifiers
         url_ctx = _in_url_context(text, m.start())
         if tl in wordlists.FILE_EXT_TLDS and not url_ctx:
             return False
         if tl in wordlists.CODEY_TLDS and not url_ctx:
             first = labels[0].lower()
-            middle = [l.lower() for l in labels[1:-1]]
-            if first in wordlists.CODE_RECEIVERS and (len(labels) == 2 or any(x in wordlists.CODE_RECEIVERS for x in middle)):
+            middle = [lab.lower() for lab in labels[1:-1]]
+            receivers = wordlists.CODE_RECEIVERS
+            if first in receivers and (len(labels) == 2 or any(x in receivers for x in middle)):
                 return False
             if after == "=" or text[m.end():m.end() + 2] in (" =", "+="):
                 return False
-        if all(l.isdigit() for l in labels[:-1]):
+        if all(lab.isdigit() for lab in labels[:-1]):
             return False
         return True
 

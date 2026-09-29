@@ -1,0 +1,190 @@
+# Release build on a version tag (v1.2.3) – the same packages as the GitLab pipeline
+# (.gitlab-ci.yml), published as GitHub release assets instead of the GitLab package registry:
+#   clipcloak-vX.Y.Z-windows-x86_64.msi            installer (folder builds, program + NER plugin)
+#   clipcloak-vX.Y.Z-windows-x86_64-portable.zip   clipcloak.exe + clipcloak-ner.exe (single files)
+#   clipcloak-vX.Y.Z-linux-x86_64.tar.gz           program + NER plugin (single files)
+#   clipcloak-vX.Y.Z-linux-x86_64                  Linux program only
+#   clipcloak-vX.Y.Z-policies.zip                  ADMX/ADML + example policy files
+# Optional code signing: repository secrets SIGN_PFX_BASE64 / SIGN_PFX_PASSWORD
+# (see tools/sign_windows.ps1); without them the files are not signed.
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+env:
+  APP_NAME: clipcloak
+  TAG: ${{ github.ref_name }}
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    # Debian 12 like the GitLab build: the binaries need glibc >= 2.36
+    container: python:3.12-slim-bookworm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: System libraries
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends binutils libglib2.0-0 libegl1 libgl1 libfontconfig1 \
+            libx11-6 libx11-xcb1 libxkbcommon0 libxkbcommon-x11-0 libdbus-1-3 libgssapi-krb5-2 libbrotli1 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
+            libxcb-shape0 libxcb-xinerama0 libxcb-xkb1
+      - run: python tools/check_version.py "$TAG"
+      - name: Program
+        run: |
+          python -m venv /opt/app
+          /opt/app/bin/pip install -r requirements.txt pyinstaller
+          /opt/app/bin/pyinstaller --noconfirm --clean --onefile --windowed --name "$APP_NAME" \
+            --add-data "$APP_NAME/resources:$APP_NAME/resources" --exclude-module tkinter run_clipcloak.py
+          mv "dist/$APP_NAME" "dist/$APP_NAME-$TAG-linux-x86_64"
+          "dist/$APP_NAME-$TAG-linux-x86_64" --version
+      - name: NER plugin
+        run: |
+          python -m venv /opt/ner
+          /opt/ner/bin/pip install -r requirements-ner.txt pyinstaller
+          /opt/ner/bin/pip install --no-deps -r requirements-ner-nodeps.txt
+          /opt/ner/bin/python tools/strip_debug.py
+          /opt/ner/bin/pyinstaller --noconfirm --clean --onefile --console --name "$APP_NAME-ner" \
+            --collect-all de_core_news_sm --collect-all en_core_web_sm --collect-all rapidocr_onnxruntime \
+            --collect-all nudenet --add-data "$APP_NAME/plugin_data:$APP_NAME/plugin_data" \
+            --exclude-module spacy.tests --exclude-module pytest --exclude-module tkinter run_clipcloak_ner.py
+          "dist/$APP_NAME-ner" --selftest
+          mv "dist/$APP_NAME-ner" "dist/$APP_NAME-ner-$TAG-linux-x86_64"
+      - name: Packages
+        run: |
+          python tools/package_release.py linux "$TAG" --dist dist
+          python tools/package_release.py policies "$TAG" --dist dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            dist/${{ env.APP_NAME }}-${{ env.TAG }}-linux-x86_64.tar.gz
+            dist/${{ env.APP_NAME }}-${{ env.TAG }}-linux-x86_64
+            dist/${{ env.APP_NAME }}-${{ env.TAG }}-policies.zip
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      WIX_VERSION: "5.0.2"      # WiX 6+ needs an EULA/OSMF acceptance, 5.0.2 does not
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build environments
+        run: |
+          python -m venv .venv-app
+          .\.venv-app\Scripts\python -m pip install --upgrade pip
+          .\.venv-app\Scripts\python -m pip install -r requirements.txt pyinstaller
+          python -m venv .venv-ner
+          .\.venv-ner\Scripts\python -m pip install --upgrade pip
+          .\.venv-ner\Scripts\python -m pip install -r requirements-ner.txt pyinstaller
+          .\.venv-ner\Scripts\python -m pip install --no-deps -r requirements-ner-nodeps.txt
+          dotnet tool install wix --version $env:WIX_VERSION --tool-path .wixtool
+          .\.wixtool\wix.exe extension add WixToolset.UI.wixext/$env:WIX_VERSION
+      - name: Version and Windows tests
+        run: |
+          .\.venv-app\Scripts\python tools/check_version.py "$env:TAG"
+          $env:QT_QPA_PLATFORM = "offscreen"
+          .\.venv-app\Scripts\python -m unittest tests.test_policy tests.test_projects -v
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Folder builds (MSI)
+        run: |
+          .\.venv-app\Scripts\python -m PyInstaller --noconfirm --clean --onedir --windowed --name "$env:APP_NAME" `
+            --icon "$env:APP_NAME/resources/icon.ico" `
+            --add-data "$env:APP_NAME/resources;$env:APP_NAME/resources" --exclude-module tkinter run_clipcloak.py
+          .\.venv-ner\Scripts\python -m PyInstaller --noconfirm --clean --onedir --console --name "$env:APP_NAME-ner" `
+            --icon "$env:APP_NAME/resources/icon.ico" `
+            --collect-all de_core_news_sm --collect-all en_core_web_sm --collect-all rapidocr_onnxruntime --collect-all nudenet `
+            --add-data "$env:APP_NAME/plugin_data;$env:APP_NAME/plugin_data" `
+            --exclude-module spacy.tests --exclude-module pytest --exclude-module tkinter run_clipcloak_ner.py
+          & "dist\$env:APP_NAME-ner\$env:APP_NAME-ner.exe" --selftest
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      # the signing secrets are only visible to the signing steps (not to pip or PyInstaller)
+      - name: Sign folder builds
+        env:
+          SIGN_PFX_BASE64: ${{ secrets.SIGN_PFX_BASE64 }}
+          SIGN_PFX_PASSWORD: ${{ secrets.SIGN_PFX_PASSWORD }}
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File tools\sign_windows.ps1 `
+            "dist\$env:APP_NAME\$env:APP_NAME.exe" "dist\$env:APP_NAME-ner\$env:APP_NAME-ner.exe"
+      - name: MSI
+        run: |
+          $ver = (.\.venv-app\Scripts\python -c "import clipcloak; print(clipcloak.__version__)").Trim()
+          $msi = "dist\$env:APP_NAME-$env:TAG-windows-x86_64.msi"
+          .\.venv-app\Scripts\python tools/make_license_rtf.py dist\license.rtf
+          .\.wixtool\wix.exe build packaging\windows\clipcloak.wxs -arch x64 -ext WixToolset.UI.wixext -d "Version=$ver" `
+            -d "AppDir=$PWD\dist\$env:APP_NAME" -d "NerDir=$PWD\dist\$env:APP_NAME-ner" `
+            -d "Icon=$PWD\$env:APP_NAME\resources\icon.ico" -d "LicenseRtf=$PWD\dist\license.rtf" -o $msi
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Sign MSI
+        env:
+          SIGN_PFX_BASE64: ${{ secrets.SIGN_PFX_BASE64 }}
+          SIGN_PFX_PASSWORD: ${{ secrets.SIGN_PFX_PASSWORD }}
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools\sign_windows.ps1 "dist\$env:APP_NAME-$env:TAG-windows-x86_64.msi"
+      - name: Portable single-file builds
+        run: |
+          .\.venv-app\Scripts\python -m PyInstaller --noconfirm --clean --onefile --windowed --name "$env:APP_NAME" `
+            --distpath dist-portable --workpath build-portable --icon "$env:APP_NAME/resources/icon.ico" `
+            --add-data "$env:APP_NAME/resources;$env:APP_NAME/resources" --exclude-module tkinter run_clipcloak.py
+          .\.venv-ner\Scripts\python -m PyInstaller --noconfirm --clean --onefile --console --name "$env:APP_NAME-ner" `
+            --distpath dist-portable --workpath build-portable --icon "$env:APP_NAME/resources/icon.ico" `
+            --collect-all de_core_news_sm --collect-all en_core_web_sm --collect-all rapidocr_onnxruntime --collect-all nudenet `
+            --add-data "$env:APP_NAME/plugin_data;$env:APP_NAME/plugin_data" `
+            --exclude-module spacy.tests --exclude-module pytest --exclude-module tkinter run_clipcloak_ner.py
+          & "dist-portable\$env:APP_NAME-ner.exe" --selftest
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Sign portable builds
+        env:
+          SIGN_PFX_BASE64: ${{ secrets.SIGN_PFX_BASE64 }}
+          SIGN_PFX_PASSWORD: ${{ secrets.SIGN_PFX_PASSWORD }}
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File tools\sign_windows.ps1 `
+            "dist-portable\$env:APP_NAME.exe" "dist-portable\$env:APP_NAME-ner.exe"
+      - name: Portable ZIP
+        run: |
+          .\.venv-app\Scripts\python tools/package_release.py windows "$env:TAG" `
+            --app "dist-portable\$env:APP_NAME.exe" --ner "dist-portable\$env:APP_NAME-ner.exe" --dist dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/${{ env.APP_NAME }}-${{ env.TAG }}-windows-x86_64.msi
+            dist/${{ env.APP_NAME }}-${{ env.TAG }}-windows-x86_64-portable.zip
+          if-no-files-found: error
+
+  release:
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - name: Release notes from CHANGELOG.md
+        run: |
+          ver="${TAG#v}"
+          awk -v v="## $ver" '$0==v{f=1;next} /^## /{if(f)exit} f' CHANGELOG.md > notes.md
+          printf '\n---\nWindows: MSI for managed installation (`msiexec /i … /qn`) or the portable ZIP. Linux: tar.gz. Group Policy templates: policies ZIP. See README.\n' >> notes.md
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$TAG" assets/* --title "$APP_NAME $TAG" --notes-file notes.md --verify-tag

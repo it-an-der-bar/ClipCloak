@@ -44,6 +44,7 @@ Nachher  selma.pichler@nawidrock.com   srv-dc01.nawidrock.local  10.72.15.100/24
     - URL-Credentials, `curl -u`, `mysql -p`, `--password`, `ConvertTo-SecureString`
     - zufällig wirkende Strings (optional)
   - Infrastruktur-Namen (optional, standardmäßig aus – Einstellungen › Erkennung): Werte von `name`, `namespace`, `instance`, `release`, `app` …, `-n`/`--namespace`, `deploy/<name>`, ArgoCD-Tracking-IDs. Ersetzt werden nur die kundenspezifischen Teile (`kunde-mueller-prod` → `kunde-kabaukack-prod`); allgemeine Wörter (front, scheduler, prod …) und Produktnamen (bunkerweb, nginx, redis …) bleiben, und dasselbe Wort bekommt überall dasselbe Pseudonym, auch in Domains. Kubernetes-Label-/Annotation-Keys wie `argocd.argoproj.io/tracking-id:` werden nie angefasst.
+  - Firmennamen mit Rechtsform (GmbH, AG, GmbH & Co. KG, UG, e.K., e.V., Ltd., Inc. …), auch erfundene Namen und Namen mit Ziffern (`18/3 GmbH`) – ohne Sprachmodell
   - **Ursprungsnachweise in Links** – werden in jedem Modus entfernt, nicht pseudonymisiert: `utm_*`, Klick-IDs (`fbclid`, `gclid`, `msclkid` …), Newsletter-Empfänger-IDs (`mc_eid`, `_hsenc`, `mkt_tok` …), Share-IDs (`si` bei YouTube/Spotify, `igsh`, X `s`/`t`, TikTok, LinkedIn …), Amazon `/ref=…`, Textfragmente `#:~:text=…`. Umleitungen (Outlook Safe Links – enthalten die Adresse des Empfängers –, Google `/url`, Facebook `l.php`, LinkedIn, Slack, YouTube, Steam, DuckDuckGo, Proofpoint URL Defense) werden durch das echte Ziel ersetzt. Eigene Parameter: Einstellungen › Listen › Tracking-Parameter.
   - lange Hex-Zeichenketten, die für sich stehen (ab 32 Zeichen: API-Keys, Tokens, Webhook-Secrets) – formatgleich ersetzt; Image-Digests (`@sha256:…`), `commit …` und `sha256sum`-Ausgaben bleiben.
   - Schlüssel- und Zertifikats-Kennungen (optional, standardmäßig aus – Einstellungen › Erkennung): .NET-`PublicKeyToken=…` eigener Assemblies, Zertifikats-Thumbprints und Seriennummern, SSH-Host-Key-Fingerprints (`SHA256:…`, `MD5:…`), GPG-Fingerprints/Key-IDs. Nicht geheim, identifizieren aber Hersteller oder Server. Microsoft-/.NET-Framework-Tokens (`7cec85d7bea7798e`, `b77a5c561934e089` …) identifizieren niemanden und werden nie gemeldet. Ersetzt wird formatgleich (Hex bleibt Hex, Trennzeichen bleiben).
@@ -59,7 +60,7 @@ Nachher  selma.pichler@nawidrock.com   srv-dc01.nawidrock.local  10.72.15.100/24
 - **Werkbank** mit Live-Markierung, Fundtabelle und Rechtsklick-Aktionen (Ausnahme oder eigener Begriff). Beliebigen markierten Text in der Eingabe per Rechtsklick auf *immer ersetzen* oder *nie ersetzen* setzen.
 - **Verlauf** mit Vorher/Nachher-Diff jeder Aktion.
 - **Zuordnungsübersicht**: was wurde wodurch ersetzt, mit Filter und CSV-Export.
-- **Pseudonyme werden verschlüsselt gespeichert.** Standardmäßig landen sie im Projekt *Standard*, damit das Zurückübersetzen auch nach einem Neustart klappt. Unter Windows ist jede Projektdatei mit dem Windows-Konto des Benutzers verschlüsselt (DPAPI, ohne Passphrase); zusätzlich ist eine Projekt-Passphrase möglich (AES-256-GCM, scrypt). Weitere Projekte (z. B. pro Kunde) lassen sich anlegen, jedes mit eigenen Begriffen und bekannten Domains. *Nur RAM* muss man ausdrücklich wählen; es ist als "geht beim Beenden verloren" gekennzeichnet.
+- **Pseudonyme werden verschlüsselt gespeichert.** Standardmäßig landen sie im Projekt *Standard*, damit das Zurückübersetzen auch nach einem Neustart klappt. Jede Projektdatei ist mit dem Konto des Benutzers verschlüsselt – unter Windows per DPAPI, unter Linux mit einem Schlüssel im Schlüsselbund des Desktops (Secret Service: GNOME Keyring, KWallet, KeePassXC), ohne Passphrase; zusätzlich ist eine Projekt-Passphrase möglich (AES-256-GCM, scrypt). Weitere Projekte (z. B. pro Kunde) lassen sich anlegen, jedes mit eigenen Begriffen und bekannten Domains. *Nur RAM* muss man ausdrücklich wählen; es ist als "geht beim Beenden verloren" gekennzeichnet.
 - **Zentrale Verwaltung.** MSI für die stille Installation (GPO, ESET PROTECT, baramundi, Intune …), ADMX-Vorlagen für Gruppenrichtlinien, maschinenweite Standard- und Richtliniendateien. Vorgegebene Einstellungen sind in der Oberfläche gesperrt.
 - **HTML-Inhalte der Zwischenablage** (Outlook, Teams, Browser) werden mitverarbeitet. RTF wird verworfen, damit keine unbearbeitete Kopie übrig bleibt.
 - **Oberfläche** auf Deutsch und Englisch.
@@ -263,13 +264,17 @@ Schlüssel oder ungültige Werte.
 - Sitzungs-Zuordnungen und Verlauf liegen nur im RAM. Projekte speichern die Zuordnungen samt Originalwerten und Secrets auf der Platte:
   - Windows: immer verschlüsselt (AES-256-GCM). Den Schlüssel schützt DPAPI, gebunden an das Windows-Konto des Benutzers; andere Benutzer, Plattenkopien oder Backups können die Datei nicht lesen. Ältere unverschlüsselte Projektdateien werden beim Öffnen umgestellt. (Abschaltbar unter Einstellungen › Allgemein; nicht empfohlen.)
   - Mit Projekt-Passphrase (alle Systeme) kommt der Schlüssel stattdessen aus der Passphrase (scrypt); das schützt auch vor anderen Programmen unter demselben Konto.
-  - Linux ohne Passphrase: lesbares JSON mit Rechten 0600 – die Projektleiste zeigt "NICHT verschlüsselt".
+  - Linux: genauso verschlüsselt (AES-256-GCM); der Schlüssel liegt im Schlüsselbund des Desktops (Secret Service), den die Anmeldung entsperrt. Ohne Schlüsselbund (headless, kein Secret Service): lesbares JSON mit Rechten 0600 – die Projektleiste zeigt dann "NICHT verschlüsselt"; dort eine Passphrase setzen.
   - Der Projekt*name* bleibt in der Datei lesbar.
-- Per Richtlinie gesetzte LLM-Token liegen in der Registry bzw. Richtliniendatei und sind für die Benutzer lesbar.
+- Der LLM-API-Key in `config.yaml` wird, wo möglich, mit dem Konto versiegelt (DPAPI / Schlüsselbund). Per Richtlinie gesetzte LLM-Token liegen in der Registry bzw. Richtliniendatei und sind für die Benutzer lesbar.
+- Rechnerweite `policy.yaml`/`defaults.yaml` werden nur gelesen, wenn sie einem Administrator gehören (Windows: SYSTEM oder Administratoren; Linux: root, für andere nicht beschreibbar). Das MSI legt `%ProgramData%\clipcloak` so an, dass nur Administratoren dort schreiben dürfen.
+- Dateien des Programms (Konfiguration, Projekte, Log) sind nur für den Benutzer lesbar (unter Linux 0600/0700).
+- Zurückübersetzte Originale werden mit den Kennzeichen kopiert, die sie aus dem Windows-Zwischenablageverlauf/der Cloud-Zwischenablage heraushalten, und für KDE Klipper als Passwort markiert.
+- Keine Telemetrie, keine Update-Prüfung, kein Netzwerkzugriff, solange kein LLM-Endpunkt eingerichtet und genutzt wird. Die Überwachung schickt nie etwas an das LLM – das tun nur ausdrückliche Aktionen.
 - Anonymisierte Werte werden nie in eine Zuordnungsdatei geschrieben. Für Platzhalter werden nur schlüsselabhängige Hashes im RAM gehalten.
 - Inhalte der Zwischenablage landen nie im Log.
 - *Originaltext im Verlauf behalten* lässt sich abschalten. Der Verlauf zeigt die Originale dann nur maskiert.
-- Die LLM-Prüfung sendet nur den bereits verarbeiteten Text. Screenshot → Text sendet das Bild. Der LLM-Erkenner sendet den Originaltext; aktiviere ihn daher nur für einen Endpunkt unter deiner Kontrolle.
+- Die LLM-Prüfung sendet nur den bereits verarbeiteten Text (in der Werkbank nur das Ergebnis, nie die Eingabe). Screenshot → Text sendet das Bild. Der LLM-Erkenner sendet den Originaltext; aktiviere ihn daher nur für einen Endpunkt unter deiner Kontrolle.
 
 ## Entwicklung
 
@@ -282,9 +287,13 @@ QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -p "test_*.py" -v
 
 Für das Plugin aus dem Quellcode `pip install -r requirements-ner.txt` und
 `pip install --no-deps -r requirements-ner-nodeps.txt` ausführen; es wird dann
-automatisch über `python -m clipcloak.ner_helper` genutzt. Zum Bauen der Binaries siehe
-`.gitlab-ci.yml`; `python tools/package_release.py vX.Y.Z --dist dist` packt sie in ZIP und tar.gz. Die CI testet bei jedem Push und baut und veröffentlicht bei Tags `vX.Y.Z`, die
-zur Version in `clipcloak/__init__.py` passen müssen.
+automatisch über `python -m clipcloak.ner_helper` genutzt.
+
+Gebaut wird in zwei CI-Systemen mit denselben Schritten: GitHub Actions (`.github/workflows/ci.yml`, `release.yml` –
+Release-Assets auf GitHub) und GitLab CI (`.gitlab-ci.yml` – GitLab-Paketregistry). Beide prüfen (`ruff check .`)
+und testen bei jedem Push und bauen und veröffentlichen bei Tags `vX.Y.Z`, die zur Version in
+`clipcloak/__init__.py` passen müssen. `python tools/package_release.py linux|windows|policies vX.Y.Z --dist dist`
+packt die Builds in die tar.gz-/ZIP-Dateien.
 
 ### Umbenennen
 

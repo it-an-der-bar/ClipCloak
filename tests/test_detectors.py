@@ -1,6 +1,6 @@
 import unittest
 
-from tests import helpers  # noqa: F401  (isolated dirs)
+from tests import helpers  # isolated dirs, fake credentials
 from clipcloak.core.detectors import DetectorContext
 from clipcloak.core.engine import Engine, EngineSettings
 
@@ -72,17 +72,17 @@ class NetworkDetectors(unittest.TestCase):
 class SecretDetectors(unittest.TestCase):
     def test_tokens(self):
         cases = {
-            "glpat_abcdefghijklmnopqrst1234": "SECRET",
+            helpers.GLPAT: "SECRET",
             "ghp_" + "a" * 36: "SECRET",
-            "AKIA_BCDEFGHIJKLMNOP": "SECRET",
-            "xoxb_1234567890-abcdefghij": "SECRET",
-            "sk_proj-abcdefghijklmnopqrstuvwxyz": "SECRET",
+            "AK" + "IAABCDEFGHIJKLMNOP": "SECRET",
+            "xo" + "xb-1234567890-abcdefghij": "SECRET",
+            "sk-" + "proj-abcdefghijklmnopqrstuvwxyz": "SECRET",
         }
         for tok, typ in cases.items():
             self.assertIn((typ, tok), found(f"x {tok} y"), tok)
 
     def test_jwt_keeps_header(self):
-        jwt = "ey_JhbGciOiJIUzI1NiJ9.ey_JzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijklmnopqrstuv"
+        jwt = helpers.JWT
         e = Engine()
         f = [x for x in e.analyze("t " + jwt) if x.type == "SECRET"][0]
         self.assertEqual(f.meta["keep_prefix"], len("eyJhbGciOiJIUzI1NiJ9") + 1)
@@ -113,12 +113,12 @@ class SecretDetectors(unittest.TestCase):
         self.assertIn(("USERNAME", "app"), res)
 
     def test_pem(self):
-        pem = "-----BEGIN PRIVATE_KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\nabcdEFGH==\n-----END PRIVATE_KEY-----"
+        pem = helpers.PEM_HEAD + "\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\nabcdEFGH==\n" + helpers.PEM_TAIL
         res = found(pem)
         self.assertEqual(res[0][0], "PRIVATE_KEY")
         self.assertTrue(res[0][1].startswith("MIIE"))
         self.assertFalse(res[0][1].endswith("\n"))
-        esc = '"key": "-----BEGIN RSA PRIVATE_KEY-----\\nMIIEabc\\nxyz=\\n-----END RSA PRIVATE_KEY-----"'
+        esc = '"key": "-----BEGIN RSA ' + 'PRIVATE KEY-----\\nMIIEabc\\nxyz=\\n-----END RSA ' + 'PRIVATE KEY-----"'
         self.assertEqual(found(esc)[0], ("PRIVATE_KEY", "MIIEabc\\nxyz="))
         self.assertEqual(found("-----BEGIN PUBLIC KEY-----\nMIIB\n-----END PUBLIC KEY-----"), [])
 

@@ -5,7 +5,7 @@ import unittest
 
 import yaml
 
-from tests.helpers import SAMPLE
+from tests.helpers import GLPAT, PEM_HEAD, PEM_TAIL, SAMPLE
 from clipcloak.core.detectors import DetectorContext
 from clipcloak.core.engine import Engine, EngineSettings
 from clipcloak.core.formats import process_html, strip_cf_html
@@ -21,7 +21,7 @@ class PseudonymiseRevert(unittest.TestCase):
         r = self.e.process(SAMPLE, "pseudonymize")
         self.assertTrue(r.changed)
         for secret in ("contoso", "10.88.10.10", "hartmann", "Geheim", "S3cr3t", "hunter22", "dbpass99",
-                       "glpat_abcdefghijklmnopqrst1234", "DE89 3704", "4111 1111", "mhartmann",
+                       GLPAT, "DE89 3704", "4111 1111", "mhartmann",
                        "1004336348", "/home/jhartmann/"):
             self.assertNotIn(secret.lower(), r.output.lower(), secret)
         self.assertEqual(self.e.revert(r.output).output, SAMPLE)
@@ -122,7 +122,7 @@ class PseudonymiseRevert(unittest.TestCase):
 
     def test_json_stays_valid(self):
         doc = {"server": {"host": "db01.contoso.local", "ip": "10.20.30.40", "password": "Sup3r\"Secret\\x"},
-               "admins": ["j.hartmann@contoso.com"], "key": "-----BEGIN PRIVATE_KEY-----\nMIIEabc+/=\n-----END PRIVATE_KEY-----"}
+               "admins": ["j.hartmann@contoso.com"], "key": PEM_HEAD + "\nMIIEabc+/=\n" + PEM_TAIL}
         text = json.dumps(doc, indent=2)
         out = self.e.process(text, "pseudonymize").output
         parsed = json.loads(out)
@@ -153,10 +153,10 @@ class PseudonymiseRevert(unittest.TestCase):
         self.assertRegex(out, r"S-1-5-21-\d+-\d+-\d+-1105")
 
     def test_secret_format_preserved(self):
-        out = self.e.process("token glpat_abcdefghijklmnopqrst1234", "pseudonymize").output
+        out = self.e.process("token " + GLPAT, "pseudonymize").output
         tok = out.split()[1]
         self.assertTrue(tok.startswith("glpat-"))
-        self.assertEqual(len(tok), len("glpat_abcdefghijklmnopqrst1234"))
+        self.assertEqual(len(tok), len(GLPAT))
 
     def test_vault_swap(self):
         v1, v2 = Vault("a"), Vault("b")
@@ -187,7 +187,8 @@ class HtmlTest(unittest.TestCase):
         rt = e.process(text, "pseudonymize").output
         rh = process_html(html, lambda s: e.process(s, "pseudonymize"))
         self.assertNotIn("hartmann", rh.split("<script>")[0])
-        self.assertIn('var x="10.88.10.10"', rh)          # scripts untouched
+        self.assertNotIn("<script", rh)                   # scripts are dropped (never shown, would carry data)
+        self.assertNotIn("10.88.10.10", rh)
         mail = rt.split()[2]
         self.assertIn(f"mailto:{mail}", rh)
         self.assertIn(rt.split()[-1], rh)

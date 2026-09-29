@@ -20,7 +20,7 @@ from .vault import Vault
 
 FORMAT = "clipboard-vault-project"
 VERSION = 1
-SCRYPT_N, SCRYPT_R, SCRYPT_P = 2 ** 15, 8, 1
+SCRYPT_N, SCRYPT_R, SCRYPT_P = 2 ** 17, 8, 1        # OWASP minimum; older files keep their stored n
 
 
 class ProjectError(Exception):
@@ -67,6 +67,10 @@ class Project:
                    d.get("created", time.time()), passphrase)
 
 
+def _b64(b: bytes) -> str:
+    return base64.b64encode(b).decode()
+
+
 def _derive(passphrase: str, salt: bytes, n: int, r: int, p: int) -> bytes:
     from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
     return Scrypt(salt=salt, length=32, n=n, r=r, p=p).derive(passphrase.encode("utf-8"))
@@ -77,10 +81,9 @@ def encrypt_payload(payload: dict, passphrase: str) -> dict:
     salt, nonce = os.urandom(16), os.urandom(12)
     key = _derive(passphrase, salt, SCRYPT_N, SCRYPT_R, SCRYPT_P)
     ct = AESGCM(key).encrypt(nonce, json.dumps(payload).encode("utf-8"), FORMAT.encode())
-    b64 = lambda b: base64.b64encode(b).decode()
     return {"format": FORMAT, "version": VERSION, "encrypted": True,
-            "kdf": {"name": "scrypt", "salt": b64(salt), "n": SCRYPT_N, "r": SCRYPT_R, "p": SCRYPT_P},
-            "cipher": "AES-256-GCM", "nonce": b64(nonce), "ciphertext": b64(ct)}
+            "kdf": {"name": "scrypt", "salt": _b64(salt), "n": SCRYPT_N, "r": SCRYPT_R, "p": SCRYPT_P},
+            "cipher": "AES-256-GCM", "nonce": _b64(nonce), "ciphertext": _b64(ct)}
 
 
 def encrypt_payload_os(payload: dict, prot) -> dict:
@@ -88,10 +91,9 @@ def encrypt_payload_os(payload: dict, prot) -> dict:
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     key, nonce = os.urandom(32), os.urandom(12)
     ct = AESGCM(key).encrypt(nonce, json.dumps(payload).encode("utf-8"), FORMAT.encode())
-    b64 = lambda b: base64.b64encode(b).decode()
     return {"format": FORMAT, "version": VERSION, "encrypted": True,
-            "kdf": {"name": prot.name, "wrapped_key": b64(prot.protect(key))},
-            "cipher": "AES-256-GCM", "nonce": b64(nonce), "ciphertext": b64(ct)}
+            "kdf": {"name": prot.name, "wrapped_key": _b64(prot.protect(key))},
+            "cipher": "AES-256-GCM", "nonce": _b64(nonce), "ciphertext": _b64(ct)}
 
 
 def doc_protection(doc: dict) -> str:
@@ -200,7 +202,6 @@ class ProjectStore:
         return prj
 
     def save(self, prj: Project) -> Path:
-        self.dir.mkdir(parents=True, exist_ok=True)
         payload = prj.payload()
         if prj.passphrase:
             doc = encrypt_payload(payload, prj.passphrase)
@@ -214,13 +215,8 @@ class ProjectStore:
             doc = {"format": FORMAT, "version": VERSION, "encrypted": False, "name": prj.name, "data": payload}
             prj.protection = "none"
         p = self.path_for(prj.name)
-        tmp = p.with_suffix(".tmp")
-        tmp.write_text(json.dumps(doc, ensure_ascii=False, indent=1), "utf-8")
-        try:
-            os.chmod(tmp, 0o600)
-        except OSError:
-            pass
-        os.replace(tmp, p)
+        from ..paths import write_private
+        write_private(p, json.dumps(doc, ensure_ascii=False, indent=1))
         return p
 
     def delete(self, name: str) -> None:

@@ -14,6 +14,7 @@ dependencies = [
     "PySide6-Essentials>=6.9,<7",
     "PyYAML>=6.0",
     "cryptography>=42",
+    "secretstorage>=3.3; sys_platform == 'linux'",
 ]
 
 [project.urls]
@@ -32,4 +33,24 @@ version = {attr = "clipcloak.__version__"}
 include = ["clipcloak*"]
 
 [tool.setuptools.package-data]
-clipcloak = ["resources/*", "resources/i18n/*"]
+clipcloak = ["resources/*", "resources/i18n/*", "resources/wordlists/*", "plugin_data/*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["build", "dist", "dist-portable", "build-portable"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "S"]
+ignore = [
+    "S311",   # random.Random is seeded from a keyed HMAC on purpose: repeatable surrogates, not secrets
+    "S603",   # subprocesses are started with argument lists, never through a shell
+    "S607",   # wl-copy / wl-paste / xdotool are looked up in PATH on purpose
+    "S101",   # asserts in tests
+    "UP037",  # quoted annotations are kept for readability
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S104", "S105", "S106", "S108", "S103", "E501"]
+"clipcloak/core/entities.py" = ["S105"]   # "SECRET" is an entity type name
+"tools/*" = ["S310"]                      # CI upload to the package registry (https only)

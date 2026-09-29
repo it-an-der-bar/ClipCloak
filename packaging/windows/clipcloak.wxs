@@ -64,6 +64,19 @@
       </Directory>
     </StandardDirectory>
 
+    <!-- %ProgramData%\clipcloak for policy.yaml / defaults.yaml: only administrators and SYSTEM
+         may write (ProgramData lets every user create files, which would let one user enforce
+         settings for all). Protected ACL: SYSTEM + Administrators full, Users read. -->
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="POLICYFOLDER" Name="clipcloak">
+        <Component Id="PolicyFolder" Guid="3C0E6B52-7B7D-4B0B-9C87-5D2E1A0F4E61">
+          <CreateFolder>
+            <PermissionEx Sddl="O:BAG:SYD:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200a9;;;BU)" />
+          </CreateFolder>
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
     <StandardDirectory Id="ProgramMenuFolder">
       <Component Id="StartMenuShortcut" Guid="F04D7A70-518B-43A7-A442-8AE535B6D55C">
         <Shortcut Id="StartMenuShortcut" Name="ClipCloak"
@@ -96,6 +109,7 @@
              Description="The program and its start menu entry.">
       <ComponentGroupRef Id="AppFiles" />
       <ComponentRef Id="InstallInfo" />
+      <ComponentRef Id="PolicyFolder" />
       <ComponentRef Id="StartMenuShortcut" />
     </Feature>
 

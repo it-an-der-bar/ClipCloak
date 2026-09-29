@@ -59,7 +59,8 @@ KV_PATTERNS = [
     re.compile(r"(?<![\w.-])" + _KEY + r"=\"(?P<val>[^\"\n]{1,512})\""),
     # YAML / env / ini / connection strings: key: value, KEY=value, key = 'value'
     re.compile(r"(?m)(?<![\w.\-\"'])" + _KEY +
-               r"[ \t]*(?:=|:(?=[ \t]))[ \t]*(?:(?P<q>[\"'])(?P<val>[^\"'\n]{1,512})(?P=q)|(?P<val2>[^\s\"'#,;&]{1,512}))"),
+               r"[ \t]*(?:=|:(?=[ \t]))[ \t]*"
+               r"(?:(?P<q>[\"'])(?P<val>[^\"'\n]{1,512})(?P=q)|(?P<val2>[^\s\"'#,;&]{1,512}))"),
 ]
 
 SECRET_WORDS = {
@@ -113,7 +114,7 @@ def is_secret_key(key: str) -> bool:
     joined = "".join(words)
     if joined in SECRET_WORDS:
         return True
-    return any((a, b) in SECRET_PAIRS for a, b in zip(words, words[1:]))
+    return any((a, b) in SECRET_PAIRS for a, b in zip(words, words[1:], strict=False))
 
 
 def _balanced_len(val: str) -> int:

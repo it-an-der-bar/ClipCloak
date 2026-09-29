@@ -24,6 +24,10 @@ class HistoryEntry:
     replacements: list[Replacement] = field(default_factory=list)
     project: str = ""
     warnings: list[str] = field(default_factory=list)
+    sensitive_warnings: list[str] = field(default_factory=list)   # name original values (LLM check)
+
+    def all_warnings(self) -> list[str]:
+        return self.warnings + self.sensitive_warnings
 
     def counts(self) -> dict[str, int]:
         c: dict[str, int] = {}
@@ -35,14 +39,15 @@ class HistoryEntry:
         return {"id": self.id, "timestamp": self.timestamp, "action": self.action,
                 "source": self.source, "input": self.input, "output": self.output,
                 "replacements": [r.to_dict() for r in self.replacements],
-                "project": self.project, "warnings": self.warnings}
+                "project": self.project, "warnings": self.warnings,
+                "sensitive_warnings": self.sensitive_warnings}
 
     @classmethod
     def from_dict(cls, d: dict) -> "HistoryEntry":
         return cls(next(_ids), d.get("timestamp", time.time()), d.get("action", ""),
                    d.get("source", ""), d.get("input", ""), d.get("output", ""),
                    [Replacement.from_dict(r) for r in d.get("replacements", [])],
-                   d.get("project", ""), d.get("warnings", []))
+                   d.get("project", ""), d.get("warnings", []), d.get("sensitive_warnings", []))
 
 
 class History:
@@ -58,20 +63,31 @@ class History:
 
     def add(self, result: Result, source: str, project: str = "") -> HistoryEntry:
         with self.lock:
-            inp = result.input
-            reps = result.replacements
-            if not self.store_originals and result.mode != "revert":
-                # keep the layout of the input but blank the detected values
-                inp = _mask(result)
-                reps = [Replacement(r.in_start, r.in_end, r.out_start, r.out_end, r.type,
-                                    "•" * (r.in_end - r.in_start), r.replacement, r.detector)
-                        for r in reps]
-            e = HistoryEntry(next(_ids), time.time(), result.mode, source, inp, result.output,
-                             list(reps), project, list(result.warnings))
+            e = HistoryEntry(next(_ids), time.time(), result.mode, source, result.input, result.output,
+                             list(result.replacements), project, list(result.warnings))
+            if not self.store_originals:
+                _mask_entry(e)
             self.entries.appendleft(e)
         for cb in list(self.listeners):
             cb(e)
         return e
+
+    def set_store_originals(self, on: bool) -> None:
+        """Switching it off also blanks the originals in the entries kept so far."""
+        with self.lock:
+            self.store_originals = on
+            if not on:
+                for e in self.entries:
+                    _mask_entry(e)
+        for cb in list(self.listeners):
+            cb(None)
+
+    def add_warning(self, entry: HistoryEntry, text: str, sensitive: bool = False) -> None:
+        """``sensitive``: the warning names original values – dropped without store_originals."""
+        if sensitive and not self.store_originals:
+            return
+        with self.lock:
+            (entry.sensitive_warnings if sensitive else entry.warnings).append(text)
 
     def remove(self, entry_id: int) -> None:
         with self.lock:
@@ -99,17 +115,36 @@ class History:
         with self.lock:
             self.entries.clear()
             for d in items[: self.entries.maxlen]:
-                self.entries.append(HistoryEntry.from_dict(d))
+                e = HistoryEntry.from_dict(d)
+                if not self.store_originals:
+                    _mask_entry(e)          # entries saved while the setting was still on
+                self.entries.append(e)
         for cb in list(self.listeners):
             cb(None)
 
 
-def _mask(result: Result) -> str:
-    text = result.input
+def _blank(text: str, spans) -> str:
     out, pos = [], 0
-    for r in sorted(result.replacements, key=lambda r: r.in_start):
-        out.append(text[pos:r.in_start])
-        out.append("•" * (r.in_end - r.in_start))
-        pos = r.in_end
+    for s, e in sorted(spans):
+        if s < pos:
+            continue
+        out.append(text[pos:s])
+        out.append("•" * (e - s))
+        pos = e
     out.append(text[pos:])
     return "".join(out)
+
+
+def _mask_entry(e: HistoryEntry) -> None:
+    """Blank the original values, keep the layout. Pseudonymise/anonymise/redact: the originals
+    are in the input; revert: they are in the output (the restored values)."""
+    e.sensitive_warnings = []
+    if e.action == "revert":
+        e.output = _blank(e.output, [(r.out_start, r.out_end) for r in e.replacements])
+        e.replacements = [Replacement(r.in_start, r.in_end, r.out_start, r.out_end, r.type, r.original,
+                                      "•" * max(1, len(r.replacement)), r.detector) for r in e.replacements]
+    else:
+        e.input = _blank(e.input, [(r.in_start, r.in_end) for r in e.replacements])
+        e.replacements = [Replacement(r.in_start, r.in_end, r.out_start, r.out_end, r.type,
+                                      "•" * max(1, r.in_end - r.in_start), r.replacement, r.detector)
+                          for r in e.replacements]

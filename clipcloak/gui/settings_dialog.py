@@ -230,7 +230,8 @@ class SettingsDialog(QDialog):
         f.addRow(t("settings.history_size"), self._spin("general.history_size", 1, 10000))
         f.addRow("", self._check("general.history_store_originals", t("settings.history_originals")))
         f.addRow(QLabel("<b>" + t("settings.processing") + "</b>"))
-        f.addRow(t("settings.anon_style"), self._combo("processing.anonymize_style", ["realistic", "placeholder"], "anonstyle."))
+        f.addRow(t("settings.anon_style"),
+                 self._combo("processing.anonymize_style", ["realistic", "placeholder"], "anonstyle."))
         f.addRow(t("settings.placeholder_template"), self._line("processing.placeholder_template"))
         f.addRow(t("settings.redact_template"), self._line("processing.redact_template"))
         f.addRow("", self._check("processing.skip_known_surrogates", t("settings.skip_known")))
@@ -284,7 +285,8 @@ class SettingsDialog(QDialog):
     def _watcher(self):
         w = QWidget()
         f = QFormLayout(w)
-        f.addRow(t("settings.watch_mode"), self._combo("watcher.mode", ["off", "notify", "critical", "always"], "watch."))
+        f.addRow(t("settings.watch_mode"),
+                 self._combo("watcher.mode", ["off", "notify", "critical", "always"], "watch."))
         f.addRow(t("settings.watch_action"), self._combo("watcher.action", MODE_CHOICES, "mode."))
         f.addRow("", self._check("watcher.offer_revert", t("settings.offer_revert")))
         f.addRow(t("settings.popup_timeout"), self._spin("watcher.popup_timeout", 0, 600))
@@ -693,8 +695,6 @@ class SettingsDialog(QDialog):
         self._fill_models(models)
         if not self.llm_model.currentText() and models:
             self.llm_model.setCurrentIndex(1)
-        if self.w["llm.enabled"].isEnabled():
-            self.w["llm.enabled"].setChecked(True)
 
     def _fill_models(self, models):
         for combo in (self.llm_model, self.llm_vision):

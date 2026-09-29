@@ -238,7 +238,10 @@ class Config:
                 if not isinstance(data, dict):
                     data = {}
             except (OSError, yaml.YAMLError) as exc:
-                log.error("cannot read config %s: %s", path, exc)
+                # no str(exc) in the log file: a YAML error quotes the line (API key, custom term)
+                mark = getattr(exc, "problem_mark", None)
+                where = f" (line {mark.line + 1}, column {mark.column + 1})" if mark is not None else ""
+                log.error("cannot read config %s: %s%s", path, type(exc).__name__, where)
                 import time
                 backup = path.with_name(f"{path.stem}.broken-{time.strftime('%Y%m%d-%H%M%S')}.yaml")
                 try:
@@ -248,7 +251,10 @@ class Config:
                 cfg = cls(path, {}, system)
                 cfg.load_error = f"{exc}" + (f"\n→ {backup}" if backup else "")
                 return cfg
-        return cls(path, data, system)
+        unreadable = _unseal_secrets(data)
+        cfg = cls(path, data, system)
+        cfg._sealed_keep = unreadable        # written back unchanged until the user enters a new value
+        return cfg
 
     def user_data(self) -> dict:
         """What goes into config.yaml: the user's own choices only."""
@@ -277,19 +283,25 @@ class Config:
         if not self.path:
             return
         self._user = self.user_data()
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(yaml.safe_dump(self._user, allow_unicode=True, sort_keys=False), "utf-8")
+        from .paths import write_private
+        bak = self.path.with_name(self.path.name + ".bak")
         if self.path.exists():
-            try:   # keep the previous version as config.yaml.bak
-                os.replace(self.path, self.path.with_name(self.path.name + ".bak"))
+            try:   # keep the previous version as config.yaml.bak (same mode 0600) …
+                if _has_plain_secret(self.path):
+                    self.path.unlink()      # … but not one with an unsealed API key
+                    bak.unlink(missing_ok=True)
+                else:
+                    os.replace(self.path, bak)
             except OSError:
                 pass
-        try:
-            os.chmod(tmp, 0o600)   # holds the LLM API key
-        except OSError:
-            pass
-        os.replace(tmp, self.path)
+        # holds the LLM API key and the custom terms: owner-only from the first byte; the API key
+        # itself is sealed with the account (DPAPI / keyring) where available
+        out = _seal_secrets(copy.deepcopy(self._user))
+        from .policy import get_dotted, set_dotted
+        for k, sealed in (getattr(self, "_sealed_keep", None) or {}).items():
+            if not get_dotted(out, k, ""):
+                set_dotted(out, k, sealed)
+        write_private(self.path, yaml.safe_dump(out, allow_unicode=True, sort_keys=False))
 
     # dotted access -------------------------------------------------------
     def get(self, dotted: str, default=None):
@@ -364,3 +376,62 @@ def engine_settings(cfg: Config, project_terms: list | None = None,
         surrogate=sur,
         context=ctx,
     )
+
+
+# ------------------------------------------------------------------ secrets in config.yaml
+SECRET_KEYS = ("llm.api_key",)
+SEALED_PREFIX = "sealed:"
+
+
+def _seal_secrets(data: dict) -> dict:
+    from .policy import get_dotted, set_dotted
+    for k in SECRET_KEYS:
+        v = get_dotted(data, k, None)
+        if not isinstance(v, str) or not v or v.startswith(SEALED_PREFIX):
+            continue
+        try:
+            from .core.osprotect import protector
+            prot = protector()
+            if prot is None:
+                continue
+            import base64
+            set_dotted(data, k, f"{SEALED_PREFIX}{prot.name}:" + base64.b64encode(prot.protect(v.encode())).decode())
+        except Exception as exc:                 # noqa: BLE001 - keep it readable rather than lose it
+            log.warning("cannot seal %s: %s", k, type(exc).__name__)
+    return data
+
+
+def _unseal_secrets(data: dict) -> dict:
+    """Decrypt in place; returns {key: sealed value} for those that cannot be opened here."""
+    from .policy import get_dotted, set_dotted
+    failed = {}
+    for k in SECRET_KEYS:
+        v = get_dotted(data, k, None)
+        if not isinstance(v, str) or not v.startswith(SEALED_PREFIX):
+            continue
+        name, _, b64 = v[len(SEALED_PREFIX):].partition(":")
+        try:
+            from .core.osprotect import protector
+            prot = protector()
+            if prot is None or prot.name != name:
+                raise OSError(f"'{name}' not available")
+            import base64
+            set_dotted(data, k, prot.unprotect(base64.b64decode(b64)).decode())
+        except Exception as exc:                 # noqa: BLE001
+            log.error("cannot unseal %s (%s) – enter it again", k, type(exc).__name__)
+            failed[k] = v
+            set_dotted(data, k, "")
+    return failed
+
+
+def _has_plain_secret(path: Path) -> bool:
+    try:
+        data = yaml.safe_load(path.read_text("utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return False
+    from .policy import get_dotted
+    for k in SECRET_KEYS:
+        v = get_dotted(data, k, None) if isinstance(data, dict) else None
+        if isinstance(v, str) and v and not v.startswith(SEALED_PREFIX):
+            return True
+    return False

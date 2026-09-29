@@ -21,9 +21,21 @@ if (-not $signtool) { throw "signtool.exe not found - install the Windows SDK on
 $ts = if ($env:SIGN_TIMESTAMP_URL) { $env:SIGN_TIMESTAMP_URL } else { "http://timestamp.digicert.com" }
 $pfx = Join-Path $env:TEMP ("codesign-" + [guid]::NewGuid().ToString() + ".pfx")
 [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGN_PFX_BASE64))
+$cert = $null
+$imported = @()
 try {
-    & $signtool.FullName sign /fd SHA256 /f $pfx /p $env:SIGN_PFX_PASSWORD /tr $ts /td SHA256 $Files
+    # import into the user's certificate store and sign by thumbprint: the password never
+    # appears on a command line (process list, logs)
+    $pw = ConvertTo-SecureString -String $env:SIGN_PFX_PASSWORD -AsPlainText -Force
+    $imported = @(Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pw)
+    $cert = $imported | Where-Object { $_.HasPrivateKey } | Select-Object -First 1
+    if (-not $cert) { throw "no certificate with private key in SIGN_PFX_BASE64" }
+    Remove-Item $pfx -Force -ErrorAction SilentlyContinue
+    & $signtool.FullName sign /fd SHA256 /sha1 $cert.Thumbprint /s My /tr $ts /td SHA256 $Files
     if ($LASTEXITCODE -ne 0) { throw "signtool failed ($LASTEXITCODE)" }
 } finally {
     Remove-Item $pfx -Force -ErrorAction SilentlyContinue
+    foreach ($c in $imported) {
+        Remove-Item ("Cert:\CurrentUser\My\" + $c.Thumbprint) -DeleteKey -ErrorAction SilentlyContinue
+    }
 }

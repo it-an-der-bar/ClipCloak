@@ -132,7 +132,7 @@ class IPMapper:
                 values = list(range(256))
             shuffled = values[:]
             rng.shuffle(shuffled)
-            fwd = dict(zip(values, shuffled))
+            fwd = dict(zip(values, shuffled, strict=True))
             inv = {b: a for a, b in fwd.items()}
             t = (fwd, inv)
             if len(self._low4) > 50_000:

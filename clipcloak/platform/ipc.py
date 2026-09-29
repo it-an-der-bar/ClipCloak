@@ -5,6 +5,8 @@ from __future__ import annotations
 import getpass
 import hashlib
 import json
+import os
+import sys
 
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
@@ -17,7 +19,13 @@ def server_name() -> str:
         user = getpass.getuser()
     except Exception:  # pragma: no cover
         user = "user"
-    return APP_ID + "-" + hashlib.sha1(user.encode()).hexdigest()[:10]
+    name = APP_ID + "-" + hashlib.sha1(user.encode(), usedforsecurity=False).hexdigest()[:10]
+    # Linux: the socket goes into the per-user runtime folder (0700) instead of /tmp, so no
+    # other account can take the name first
+    runtime = os.environ.get("XDG_RUNTIME_DIR")
+    if sys.platform.startswith("linux") and runtime and os.path.isdir(runtime):
+        return os.path.join(runtime, name)
+    return name
 
 
 def send_command(command: dict, timeout_ms: int = 1500) -> bool:

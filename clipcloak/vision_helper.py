@@ -129,7 +129,7 @@ def ocr(data: bytes) -> list[dict]:
         line = dict(_quad_box(quad), text=str(text), score=round(float(score), 3), words=[])
         words = []
         if len(r) > 4 and r[3] and r[4]:
-            for wbox, wtext in zip(r[3], r[4]):
+            for wbox, wtext in zip(r[3], r[4], strict=False):
                 try:
                     words.append(dict(_quad_box(wbox), text=str(wtext)))
                 except (TypeError, ValueError, IndexError):
@@ -203,7 +203,7 @@ def codes(data: bytes) -> list[dict]:
         qr = cv2.QRCodeDetector()
         ok, texts, pts, _ = qr.detectAndDecodeMulti(img)
         if ok and pts is not None:
-            for t, p in zip(texts, pts):
+            for t, p in zip(texts, pts, strict=False):
                 add([p], "QR_CODE", t)
     except cv2.error:
         pass
@@ -212,7 +212,7 @@ def codes(data: bytes) -> list[dict]:
         res = bd.detectAndDecodeWithType(img)
         ok, infos, _types, pts = res if len(res) == 4 else (res[0], res[1], None, res[-1])
         if ok and pts is not None:
-            for t, p in zip(infos, pts):
+            for t, p in zip(infos, pts, strict=False):
                 add([p], "BARCODE", t)
     except (cv2.error, AttributeError):
         pass

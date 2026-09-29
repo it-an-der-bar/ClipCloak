@@ -43,7 +43,7 @@ class ClipboardBackend(QObject):
     def read(self) -> ClipContent:  # pragma: no cover
         raise NotImplementedError
 
-    def write(self, text: str, html: str | None = None) -> None:  # pragma: no cover
+    def write(self, text: str, html: str | None = None, sensitive: bool = False) -> None:  # pragma: no cover
         raise NotImplementedError
 
     def write_image(self, img: QImage) -> None:  # pragma: no cover
@@ -71,6 +71,16 @@ def _png_bytes(img: QImage) -> bytes | None:
     img.save(buf, "PNG")
     buf.close()
     return bytes(ba.data())
+
+
+# formats telling clipboard managers not to keep the content
+_WIN = 'application/x-qt-windows-mime;value="{}"'
+SENSITIVE_FORMATS = [
+    (_WIN.format("ExcludeClipboardContentFromMonitorProcessing"), b"\x00\x00\x00\x00"),
+    (_WIN.format("CanIncludeInClipboardHistory"), b"\x00\x00\x00\x00"),     # DWORD 0
+    (_WIN.format("CanUploadToCloudClipboard"), b"\x00\x00\x00\x00"),
+    ("x-kde-passwordManagerHint", b"secret"),
+]
 
 
 class QtClipboard(ClipboardBackend):
@@ -108,14 +118,20 @@ class QtClipboard(ClipboardBackend):
             c.image_png = _png_bytes(self.cb.image())
         return c
 
-    def write(self, text: str, html: str | None = None) -> None:
-        if not html:
+    def write(self, text: str, html: str | None = None, sensitive: bool = False) -> None:
+        """``sensitive``: restored originals – kept out of the Windows clipboard history and cloud
+        clipboard and marked as password for KDE Klipper and similar history tools."""
+        if not html and not sensitive:
             self.cb.setText(text)          # QMimeData created on the C++ side
             self._last_text = None
             return
         md = QMimeData()
         md.setText(text)
-        md.setHtml(html)
+        if html:
+            md.setHtml(html)
+        if sensitive:
+            for fmt, data in SENSITIVE_FORMATS:
+                md.setData(fmt, QByteArray(data))
         self.cb.setMimeData(md)
         self._last_text = text
 
@@ -187,7 +203,7 @@ class WlClipboard(ClipboardBackend):
             c.image_png = self._run(["wl-paste", "--type", "image/png"], timeout=5)
         return c
 
-    def write(self, text: str, html: str | None = None) -> None:
+    def write(self, text: str, html: str | None = None, sensitive: bool = False) -> None:
         # wl-copy offers exactly one MIME type per call; plain text is what every
         # target accepts, so formatted HTML is not offered on this backend.
         try:
