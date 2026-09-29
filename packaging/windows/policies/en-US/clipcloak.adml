@@ -157,6 +157,10 @@ If configured, the user cannot change this setting. Setting: detectors.enabled.p
       <string id="P_detectors_enabled_tokens_Help">Enable or disable this detector.
 
 If configured, the user cannot change this setting. Setting: detectors.enabled.tokens</string>
+      <string id="P_detectors_enabled_gitleaks">Detector: Credential formats of ≈ 220 cloud and SaaS providers (gitleaks rule set)</string>
+      <string id="P_detectors_enabled_gitleaks_Help">Enable or disable this detector.
+
+If configured, the user cannot change this setting. Setting: detectors.enabled.gitleaks</string>
       <string id="P_detectors_enabled_kv_secrets">Detector: Passwords/secrets in configs, URLs, CLI</string>
       <string id="P_detectors_enabled_kv_secrets_Help">Enable or disable this detector.
 
@@ -165,7 +169,11 @@ If configured, the user cannot change this setting. Setting: detectors.enabled.k
       <string id="P_detectors_enabled_hex_strings_Help">Enable or disable this detector.
 
 If configured, the user cannot change this setting. Setting: detectors.enabled.hex-strings</string>
-      <string id="P_detectors_enabled_entropy">Detector: High-entropy strings (may over-match)</string>
+      <string id="P_detectors_enabled_random_tokens">Detector: Random tokens of unknown formats (30+ characters, password copied alone)</string>
+      <string id="P_detectors_enabled_random_tokens_Help">Enable or disable this detector.
+
+If configured, the user cannot change this setting. Setting: detectors.enabled.random-tokens</string>
+      <string id="P_detectors_enabled_entropy">Detector: High-entropy strings from 24 characters (aggressive, may over-match)</string>
       <string id="P_detectors_enabled_entropy_Help">Enable or disable this detector.
 
 If configured, the user cannot change this setting. Setting: detectors.enabled.entropy</string>

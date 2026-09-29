@@ -43,7 +43,7 @@ GOLD = [
 
 
 # the only names in the repository texts (examples, attribution) and the example cities
-ALLOWED = {("PERSON", "Jörg Michael"), ("PERSON", "Jonas Hartmann"), ("PERSON", "Max Mustermann"),
+ALLOWED = {("PERSON", "Jörg Michael"), ("PERSON", "Zachary Rice"), ("PERSON", "Jonas Hartmann"), ("PERSON", "Max Mustermann"),
            ("ORG", "Sozialwirtschaft AG"), ("ORG", "18/3 GmbH"), ("LOCATION", "München"), ("LOCATION", "Essen"),
            ("LOCATION", "Frankfurt"), ("LOCATION", "Boston")}
 

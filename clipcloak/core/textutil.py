@@ -83,6 +83,10 @@ def randomize_chars(value: str, rng: random.Random, keep_prefix: int = 0,
     if hex_mode is None:
         core = value[keep_prefix:]
         hex_mode = bool(core) and all(c in string.hexdigits for c in core) and len(core) >= 8
+    core = value[keep_prefix:]
+    # hex keeps its case: "1CA25AC6…" stays upper case, also where a digit is replaced by a letter
+    hex_pool = "0123456789ABCDEF" if any(c in "ABCDEF" for c in core) and not any(c in "abcdef" for c in core) \
+        else "0123456789abcdef"
     out = list(value[:keep_prefix])
     i = keep_prefix
     n = len(value)
@@ -93,8 +97,7 @@ def randomize_chars(value: str, rng: random.Random, keep_prefix: int = 0,
             i += 2
             continue
         if hex_mode and c in string.hexdigits:
-            pool = "0123456789abcdef" if not c.isupper() else "0123456789ABCDEF"
-            out.append(rng.choice(pool))
+            out.append(rng.choice(hex_pool))
         elif c in _UPPER:
             out.append(rng.choice(_UPPER))
         elif c in _LOWER:

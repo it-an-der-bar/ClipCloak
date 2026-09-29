@@ -228,9 +228,9 @@ def plausible_entity(text: str, s: int, e: int, typ: str, tokens: list | None):
         parts = [w for x in lower for w in re.split(r"[/.\-]", x) if w]
         if " ".join(lower) in wordlists.PUBLIC_ORGS or (
                 parts and any(w in wordlists.PUBLIC_ORGS for w in parts)
-                and all(w in wordlists.PUBLIC_ORGS or w in wordlists.PUBLIC_ORG_EXTRA_WORDS
+                and all(w in wordlists.PUBLIC_ORGS or w in wordlists.PUBLIC_ORG_EXTRA_WORDS or w == "sas"
                         or re.fullmatch(r"v?\d+(\.\d+)*", w) for w in parts)):
-            return None                     # Microsoft, SAP, "Debian GNU/Linux" … are no personal data
+            return None                     # Microsoft, SAP, "Debian GNU/Linux", "Azure SAS" are no personal data
     if span.lower() in GENERIC_LABELS:
         return None
     toks = tokens or []
@@ -317,6 +317,7 @@ url uri api apis http https dns tls ssl ssh vpn cli gui sdk ide json yaml xml ht
 stdout stdin stderr saml ldap smtp imap ftp sftp tcp udp ip ipv4 ipv6 dhcp nat vlan wlan lan wan usb pdf csv
 exe msi dll gpu cpu linter install
 ram ssd hdd os kernel plugin plugins server client cluster container docker image repo git ci cd devops
+jwt token tokens
 """.split())
 _PARTS = re.compile(r"[A-Za-zÀ-ɏß]+")
 _LINK_WORDS = {"des", "der", "die", "das", "dem", "den", "von", "vom", "und", "für", "im", "in", "am",

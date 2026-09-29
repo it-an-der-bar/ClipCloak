@@ -196,12 +196,13 @@ class GuiTest(unittest.TestCase):
         from clipcloak.core import b64
         secret = "user: admin\npassword: Geheim123\nhost: 10.88.10.10\n"
         enc = b64.encode(secret)
-        c.set_watch_mode("always")                   # would change everything at once
+        c.set_watch_mode("critical")                 # shipped default: secrets ask
         c.clip.write(enc, None)
         c._watch_check()
         self.assertTrue(wait_for(lambda: c._popup is not None))
         self.assertIn("b64decode", c._popup.buttons)
         self.assertIn("b64pseudo", c._popup.buttons)     # the decoded text holds a password and an IP
+        self.assertIn("pseudonymize", c._popup.buttons)  # the base64 itself is a secret (it holds one)
         from PySide6.QtWidgets import QLabel
         texts = " ".join(lab.text() for lab in c._popup.findChildren(QLabel))
         self.assertIn("IPV4", texts)

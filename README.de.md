@@ -38,11 +38,13 @@ Nachher  selma.pichler@nawidrock.com   srv-dc01.nawidrock.local  10.72.15.100/24
   - IPv4/IPv6-Adressen und Netze, MAC-Adressen, E-Mail-Adressen, Domains/FQDNs (mit Heuristiken gegen Code wie `logger.info` oder `user.name`), UNC-Hosts und Shell-Prompts (`user@host:~$`)
   - Benutzernamen in `C:\Users\…`, `/home/…` und `DOMAIN\user`, Windows-SIDs, IBANs, Kreditkarten, Telefonnummern
   - Secrets:
-    - Token-Formate: GitLab, GitHub, AWS, Slack, OpenAI/Anthropic, Stripe, npm, PyPI, Docker, Vault, HF, JWT, Azure SAS
-    - PEM-Private-Keys und -Zertifikate
-    - Zugangsdaten als Schlüssel/Wert in JSON, YAML, `.env`, INI, XML und Connection-Strings
-    - URL-Credentials, `curl -u`, `mysql -p`, `--password`, `ConvertTo-SecureString`
-    - zufällig wirkende Strings (optional)
+    - Token-Formate: GitLab, GitHub, AWS, Slack, OpenAI/Anthropic, Stripe, npm, PyPI, Docker, Vault, HF, JWT, Azure SAS, k3s/RKE2, Rancher, Telegram … dazu die ≈ 220 Cloud- und SaaS-Formate des [gitleaks](https://github.com/gitleaks/gitleaks)-Regelsatzes
+    - Zufalls-Tokens unbekannter Formate (ab 30 Zeichen Base62/Base64, mit oder ohne Präfix wie `abc_`) und ein allein kopiertes Passwort oder Token (ab 16 Zeichen, mit Sonderzeichen ab 10)
+    - PEM-Private-Keys und -Zertifikate, auch Base64-kodiert (kubeconfig `client-key-data`)
+    - Zugangsdaten als Schlüssel/Wert in JSON, YAML, `.env`, INI, XML und Connection-Strings; Base64-Werte, die welche enthalten (`auth` in Dockers `config.json`, Kubernetes-Secrets)
+    - URL-Credentials, `curl -u`, `mysql -p`, `--password`/`-Password`, `ConvertTo-SecureString`, `sshpass`, `net user`, SQL `IDENTIFIED BY`/`PASSWORD '…'`, redis `requirepass`/`-a`, `ldapsearch -w`, `openssl … pass:`, `smbclient -U user%pass`, `xfreerdp /p:`, `plink -pw`, `-u … -p …`, Cisco `password 7`/`secret 5`
+    - Passwort-Hashes (`$6$…`, `$2y$…`, `$apr1$…`, yescrypt, Cisco Typ 8/9)
+    - zufällig wirkende Strings ab 24 Zeichen (optional, aggressiv)
   - Infrastruktur-Namen (optional, standardmäßig aus – Einstellungen › Erkennung): Werte von `name`, `namespace`, `instance`, `release`, `app` …, `-n`/`--namespace`, `deploy/<name>`, ArgoCD-Tracking-IDs. Ersetzt werden nur die kundenspezifischen Teile (`kunde-mueller-prod` → `kunde-kabaukack-prod`); allgemeine Wörter (front, scheduler, prod …) und Produktnamen (bunkerweb, nginx, redis …) bleiben, und dasselbe Wort bekommt überall dasselbe Pseudonym, auch in Domains. Kubernetes-Label-/Annotation-Keys wie `argocd.argoproj.io/tracking-id:` werden nie angefasst.
   - Firmennamen mit Rechtsform (GmbH, AG, GmbH & Co. KG, UG, e.K., e.V., Ltd., Inc. …), auch erfundene Namen und Namen mit Ziffern (`18/3 GmbH`) – ohne Sprachmodell
   - **Ursprungsnachweise in Links** – werden in jedem Modus entfernt, nicht pseudonymisiert: `utm_*`, Klick-IDs (`fbclid`, `gclid`, `msclkid` …), Newsletter-Empfänger-IDs (`mc_eid`, `_hsenc`, `mkt_tok` …), Share-IDs (`si` bei YouTube/Spotify, `igsh`, X `s`/`t`, TikTok, LinkedIn …), Amazon `/ref=…`, Textfragmente `#:~:text=…`. Umleitungen (Outlook Safe Links – enthalten die Adresse des Empfängers –, Google `/url`, Facebook `l.php`, LinkedIn, Slack, YouTube, Steam, DuckDuckGo, Proofpoint URL Defense) werden durch das echte Ziel ersetzt. Eigene Parameter: Einstellungen › Listen › Tracking-Parameter.
@@ -314,4 +316,5 @@ benennt Paket, Startskripte, CI-Variablen und Doku in einem Schritt um.
 
 GPL-3.0-only, siehe [LICENSE](LICENSE). Qt for Python (PySide6) wird unter der LGPL-3.0 genutzt.
 Wortlisten für die Namensprüfung (`clipcloak/resources/wordlists`): abgeleitet aus wordfreq (CC BY-SA 4.0), GeoNames (CC BY 4.0) und nam_dict von Jörg Michael (GNU FDL 1.2+), siehe dort `SOURCES.txt`.
+Zugangsdaten-Formate (`clipcloak/resources/secret_rules.json`): umgewandelt aus dem gitleaks-Regelsatz, Copyright (c) 2019 Zachary Rice, MIT-Lizenz (`secret_rules.LICENSE.txt`); neu erzeugen mit `tools/make_secret_rules.py`.
 Plugin: spaCy und seine Modelle, das YuNet-Gesichtsmodell und ONNX Runtime stehen unter der MIT-Lizenz; OpenCV, RapidOCR und die PP-OCR-Modelle unter Apache-2.0. NudeNet liefert den AGPL-3.0-Lizenztext mit (die Paket-Metadaten nennen MIT); Abschnitt 13 der GPL-3.0 erlaubt die Kombination mit diesem GPL-3.0-Programm.

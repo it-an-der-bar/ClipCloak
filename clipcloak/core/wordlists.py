@@ -330,6 +330,8 @@ PLACEHOLDER_SECRETS = set("""
 true false yes no on off null none nil undefined required optional
 redacted [redacted] xxx xxxx xxxxx *** **** ***** ******** your-password
 your_password yourpassword your-token your_token
+changeme change-me change_me changeit secret password passwort token dummy example sample placeholder
+todo tbd test foo bar baz qux hunter2 value
 """.split())
 
 

@@ -122,10 +122,21 @@ class SecretDetectors(unittest.TestCase):
         self.assertEqual(found(esc)[0], ("PRIVATE_KEY", "MIIEabc\\nxyz="))
         self.assertEqual(found("-----BEGIN PUBLIC KEY-----\nMIIB\n-----END PUBLIC KEY-----"), [])
 
-    def test_entropy_optional(self):
+    def test_random_tokens(self):
+        # 30 random characters: found without any key (random-tokens, on by default)
         s = "Zx8Kq2Lm9Pw4Rt7Vy1Bn5Cd3Fg6Hj0"
-        self.assertNotIn("SECRET", types_of(f"value {s}"))
-        self.assertIn(("SECRET", s), found(f"value {s}", entropy=True))
+        self.assertIn(("SECRET", s), found(f"value {s}"))
+        # 20: only with the optional entropy detector (object ids, request ids have this length)
+        s = "Zx8Kq2Lm9Pw4Rt7Vy1Bn"
+        self.assertNotIn("SECRET", types_of(f"value {s} ok"))
+        self.assertIn(("SECRET", s + "5Cd3"), found(f"value {s}5Cd3 ok", entropy=True))
+        # unknown prefix + 32 random bytes, URL-safe base64 (the case that started tests/secret_corpus.py)
+        import base64
+        import random
+        rnd = random.Random(7)
+        tok = "vbk_" + base64.urlsafe_b64encode(bytes(rnd.randrange(256) for _ in range(32))).decode().rstrip("=")
+        self.assertIn(("SECRET", tok), found(tok))
+        self.assertIn(("SECRET", tok), found(f"siehe {tok} im Ticket"))
 
 
 class IdentityDetectors(unittest.TestCase):

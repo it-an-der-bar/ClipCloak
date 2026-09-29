@@ -38,11 +38,13 @@ After   selma.pichler@nawidrock.com   srv-dc01.nawidrock.local  10.72.15.100/24 
   - IPv4/IPv6 addresses and networks, MAC addresses, e-mail addresses, domains/FQDNs (with heuristics against code such as `logger.info` or `user.name`), UNC host names and shell prompts (`user@host:~$`)
   - user names in `C:\Users\…`, `/home/…` and `DOMAIN\user`, Windows SIDs, IBANs, credit cards, phone numbers
   - secrets:
-    - token formats: GitLab, GitHub, AWS, Slack, OpenAI/Anthropic, Stripe, npm, PyPI, Docker, Vault, HF, JWT, Azure SAS
-    - PEM private keys and certificates
-    - key/value credentials in JSON, YAML, `.env`, INI, XML and connection strings
-    - URL credentials, `curl -u`, `mysql -p`, `--password`, `ConvertTo-SecureString`
-    - high-entropy strings (optional)
+    - token formats: GitLab, GitHub, AWS, Slack, OpenAI/Anthropic, Stripe, npm, PyPI, Docker, Vault, HF, JWT, Azure SAS, k3s/RKE2, Rancher, Telegram … plus the ≈ 220 cloud and SaaS formats of the [gitleaks](https://github.com/gitleaks/gitleaks) rule set
+    - random tokens of unknown formats (30+ characters of base62/base64, with or without a prefix such as `abc_`), and a password or token copied alone (from 16 characters, with symbols from 10)
+    - PEM private keys and certificates, also base64-encoded (kubeconfig `client-key-data`)
+    - key/value credentials in JSON, YAML, `.env`, INI, XML and connection strings; base64 values that contain one (`auth` in Docker's `config.json`, Kubernetes secrets)
+    - URL credentials, `curl -u`, `mysql -p`, `--password`/`-Password`, `ConvertTo-SecureString`, `sshpass`, `net user`, SQL `IDENTIFIED BY`/`PASSWORD '…'`, redis `requirepass`/`-a`, `ldapsearch -w`, `openssl … pass:`, `smbclient -U user%pass`, `xfreerdp /p:`, `plink -pw`, `-u … -p …`, Cisco `password 7`/`secret 5`
+    - password hashes (`$6$…`, `$2y$…`, `$apr1$…`, yescrypt, Cisco type 8/9)
+    - high-entropy strings from 24 characters (optional, aggressive)
   - infrastructure names (optional, off by default – Settings › Detectors): values of `name`, `namespace`, `instance`, `release`, `app` …, `-n`/`--namespace`, `deploy/<name>`, ArgoCD tracking ids. Only the customer-specific parts are replaced (`kunde-mueller-prod` → `kunde-kabaukack-prod`); generic words (front, scheduler, prod …) and product names (bunkerweb, nginx, redis …) stay, and the same word gets the same pseudonym everywhere, also in domains. Kubernetes label/annotation keys such as `argocd.argoproj.io/tracking-id:` are never touched.
   - company names with a legal form (GmbH, AG, GmbH & Co. KG, UG, e.K., e.V., Ltd., Inc. …), also invented names and names with digits (`18/3 GmbH`) – without a language model
   - **origin marks in links** – removed in every mode, not pseudonymised: `utm_*`, click ids (`fbclid`, `gclid`, `msclkid` …), newsletter recipient ids (`mc_eid`, `_hsenc`, `mkt_tok` …), share ids (`si` on YouTube/Spotify, `igsh`, X `s`/`t`, TikTok, LinkedIn …), Amazon `/ref=…`, text fragments `#:~:text=…`. Redirect wrappers (Outlook Safe Links – they contain the recipient's address –, Google `/url`, Facebook `l.php`, LinkedIn, Slack, YouTube, Steam, DuckDuckGo, Proofpoint URL Defense) are replaced by the real target. Own parameters: Settings › Lists › Tracking parameters.
@@ -311,4 +313,5 @@ renames the package, entry scripts, CI variables and documentation in one go.
 
 GPL-3.0-only, see [LICENSE](LICENSE). Qt for Python (PySide6) is used under the LGPL-3.0.
 Word lists for the name check (`clipcloak/resources/wordlists`): derived from wordfreq (CC BY-SA 4.0), GeoNames (CC BY 4.0) and nam_dict by Jörg Michael (GNU FDL 1.2+), see `SOURCES.txt` there.
+Credential formats (`clipcloak/resources/secret_rules.json`): converted from the gitleaks rule set, Copyright (c) 2019 Zachary Rice, MIT license (`secret_rules.LICENSE.txt`); rebuild with `tools/make_secret_rules.py`.
 Plugin: spaCy and its models, the YuNet face model and ONNX Runtime are MIT-licensed; OpenCV, RapidOCR and the PP-OCR models are Apache-2.0-licensed. NudeNet ships the AGPL-3.0 license text (its package metadata says MIT); GPL-3.0 section 13 allows combining it with this GPL-3.0 program.
