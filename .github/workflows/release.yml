@@ -12,6 +12,8 @@ name: Release
 on:
   push:
     tags: ["v*.*.*"]
+  # run again by hand for an existing tag: Actions › Release › Run workflow › "Use workflow from: Tags › vX.Y.Z"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -187,4 +189,10 @@ jobs:
       - name: GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$TAG" assets/* --title "$APP_NAME $TAG" --notes-file notes.md --verify-tag
+        # a second run for the same tag replaces the assets of the existing release
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" assets/* --clobber
+          else
+            gh release create "$TAG" assets/* --title "$APP_NAME $TAG" --notes-file notes.md --verify-tag
+          fi

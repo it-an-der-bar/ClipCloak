@@ -260,6 +260,8 @@ Schlüssel oder ungültige Werte.
 
 ## Sicherheitshinweise
 
+Die letzte Sicherheitsprüfung mit allen Befunden und ihrem Stand: [docs/SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md).
+
 - Die Erkennung ist heuristisch. Prüfe das Ergebnis (Werkbank/Diff), bevor du Sensibles teilst. Für Namen ohne festes Format helfen eigene Begriffe, bekannte Domains, das NER-Plugin oder die LLM-Prüfung.
 - Sitzungs-Zuordnungen und Verlauf liegen nur im RAM. Projekte speichern die Zuordnungen samt Originalwerten und Secrets auf der Platte:
   - Windows: immer verschlüsselt (AES-256-GCM). Den Schlüssel schützt DPAPI, gebunden an das Windows-Konto des Benutzers; andere Benutzer, Plattenkopien oder Backups können die Datei nicht lesen. Ältere unverschlüsselte Projektdateien werden beim Öffnen umgestellt. (Abschaltbar unter Einstellungen › Allgemein; nicht empfohlen.)
@@ -303,5 +305,5 @@ benennt Paket, Startskripte, CI-Variablen und Doku in einem Schritt um.
 ## Lizenz
 
 GPL-3.0-only, siehe [LICENSE](LICENSE). Qt for Python (PySide6) wird unter der LGPL-3.0 genutzt.
-Wortlisten für die Namensprüfung (`clipcloak/resources/wordlists`): abgeleitet aus wordfreq (CC BY-SA 4.0) und GeoNames (CC BY 4.0), siehe dort `SOURCES.txt`.
+Wortlisten für die Namensprüfung (`clipcloak/resources/wordlists`): abgeleitet aus wordfreq (CC BY-SA 4.0), GeoNames (CC BY 4.0) und nam_dict von Jörg Michael (GNU FDL 1.2+), siehe dort `SOURCES.txt`.
 Plugin: spaCy und seine Modelle, das YuNet-Gesichtsmodell und ONNX Runtime stehen unter der MIT-Lizenz; OpenCV, RapidOCR und die PP-OCR-Modelle unter Apache-2.0. NudeNet liefert den AGPL-3.0-Lizenztext mit (die Paket-Metadaten nennen MIT); Abschnitt 13 der GPL-3.0 erlaubt die Kombination mit diesem GPL-3.0-Programm.

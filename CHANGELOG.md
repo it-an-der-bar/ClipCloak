@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.28
+
+- `docs/SECURITY-AUDIT.md`: the security review of 0.1.27 – data flows, all findings with severity and status (fixed / open), accepted risks, verification. Linked from `SECURITY.md` and the README.
+- NER: a person made only of ordinary words ("Bisherige Läufe", "Neue Funktionen") is no longer reported – such a name must start with a first name ("Max Mustermann") or contain a rare word ("Günter Kölpertech"). First-name list (≈ 36,000 names) from nam_dict by Jörg Michael (GNU FDL 1.2+).
+- GitHub release workflow can be started by hand for an existing tag (*Actions › Release › Run workflow*, choose the tag); a second run replaces the assets of the release.
+
 ## 0.1.27
 
 Security review before the public release, and GitHub builds.

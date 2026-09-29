@@ -16,4 +16,5 @@ clipboard contents, mapping files or project files – use made-up data.
   (key from the Windows account via DPAPI, the Linux desktop keyring, or a project passphrase).
 - Detection is heuristic: always check the result before you share sensitive material.
 
-See the *Security notes* section of the README for details.
+See the *Security notes* section of the README for details and
+[docs/SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md) for the last security review (findings and their status).

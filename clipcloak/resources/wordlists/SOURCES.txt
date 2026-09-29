@@ -7,5 +7,10 @@ places.txt.gz  – place names made only of such words (cities with 15,000+ inha
                  1,000+ in Germany/Austria/Switzerland, countries, German states).
                  Derived from GeoNames (https://www.geonames.org/) via geonamescache 3.0.2,
                  license: Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/).
+firstnames.txt.gz – first names (lower case, without accents), to tell a person ("Max Mustermann")
+                 from ordinary words the model took for one ("Bisherige Läufe").
+                 Derived from "nam_dict.txt" by Jörg Michael (distributed with gender-guesser 0.4.0),
+                 license: GNU Free Documentation License 1.2 or later, no Invariant Sections, no
+                 Front-Cover Texts, no Back-Cover Texts (https://www.gnu.org/licenses/fdl-1.2.html).
 
-Rebuild: python tools/make_wordlists.py <wordfreq wheel> <geonamescache wheel>
+Rebuild: python tools/make_wordlists.py <wordfreq wheel> <geonamescache wheel> <gender-guesser wheel>

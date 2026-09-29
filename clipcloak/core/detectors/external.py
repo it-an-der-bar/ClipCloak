@@ -254,10 +254,14 @@ def plausible_entity(text: str, s: int, e: int, typ: str, tokens: list | None):
             ps, pe = int(run[0]["s"]), int(run[-1]["e"])
             if not 2 <= len(text[ps:pe].split()) <= 4:   # "RustDesk-Server" is one word
                 return None
+            if not _person_like(text[ps:pe]):
+                return None
             return ps, pe
         if not 2 <= len(words) <= 4 or not all(_title(w) for w in words):
             return None
         if any(w in STOP_WORDS for w in lower):
+            return None
+        if not _person_like(span):
             return None
         return s, e
 
@@ -289,6 +293,17 @@ def _only_common_words(span: str) -> bool:
     """Every word (also inside "Release-Binaries") is a frequent English/German word."""
     parts = [p for p in _PARTS.findall(span) if p.lower() not in _LINK_WORDS]
     return bool(parts) and bool(wordlists.common_words()) and all(wordlists.is_common_word(p) for p in parts)
+
+
+def _person_like(span: str) -> bool:
+    """A name made only of ordinary words ("Bisherige Läufe", "Neue Funktionen") needs a first
+    name at the start ("Max Mustermann", "Peter Maier"); rare words ("Kölper") pass anyway."""
+    parts = _PARTS.findall(span)
+    if not parts or not wordlists.common_words():
+        return True
+    if not all(wordlists.is_common_word(p) for p in parts):
+        return True
+    return wordlists.is_first_name(parts[0])
 
 
 def _names_place(span: str) -> bool:

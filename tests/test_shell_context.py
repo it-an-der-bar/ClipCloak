@@ -109,3 +109,15 @@ class CommonNounTest(unittest.TestCase):
                           ("Boston", "LOCATION"), ("Frankfurt am Main", "LOCATION"), ("Essen", "LOCATION")):
             with self.subTest(name=name):
                 self.assertIsNotNone(self.check(text, name, typ))
+
+
+class PersonWordsTest(unittest.TestCase):
+    def test_ordinary_words_are_no_person(self):
+        for text in ("Bisherige Läufe", "Neue Funktionen", "Letzte Änderungen"):
+            with self.subTest(text=text):
+                self.assertIsNone(plausible_entity(text, 0, len(text), "PERSON", None))
+
+    def test_names_kept(self):
+        for text in ("Max Mustermann", "Jonas Hartmann", "Günter Kölpertech", "Jane Doe", "Sabine Huber"):
+            with self.subTest(text=text):
+                self.assertIsNotNone(plausible_entity(text, 0, len(text), "PERSON", None))

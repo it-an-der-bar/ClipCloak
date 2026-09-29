@@ -359,6 +359,13 @@ def place_names() -> frozenset:
     return _load("places.txt.gz")
 
 
+def is_first_name(word: str) -> bool:
+    """First names (nam_dict, GNU FDL) – compared lower case and without accents."""
+    import unicodedata
+    folded = "".join(c for c in unicodedata.normalize("NFKD", word.lower()) if not unicodedata.combining(c))
+    return folded in _load("firstnames.txt.gz")
+
+
 def is_common_word(word: str) -> bool:
     """``word`` (any case) or its singular is one of the frequent English/German words."""
     w = word.lower()

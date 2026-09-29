@@ -257,6 +257,8 @@ At start the Log tab shows which central settings were loaded, and names unknown
 
 ## Security notes
 
+The last security review with all findings and their status: [docs/SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md).
+
 - Detection is heuristic. Always check the result (workbench/diff) before sharing sensitive material. For names without a fixed format, use custom terms, known domains, the NER plugin or the LLM check.
 - The session mapping and the history live only in RAM. Projects write mappings, including original values and secrets, to disk:
   - Windows: always encrypted (AES-256-GCM). The key is protected by DPAPI and bound to the user's Windows account, so other users, disk copies or backups cannot read the file. Older plain project files are converted when they are opened. (Can be switched off under Settings › General; not recommended.)
@@ -300,5 +302,5 @@ renames the package, entry scripts, CI variables and documentation in one go.
 ## License
 
 GPL-3.0-only, see [LICENSE](LICENSE). Qt for Python (PySide6) is used under the LGPL-3.0.
-Word lists for the name check (`clipcloak/resources/wordlists`): derived from wordfreq (CC BY-SA 4.0) and GeoNames (CC BY 4.0), see `SOURCES.txt` there.
+Word lists for the name check (`clipcloak/resources/wordlists`): derived from wordfreq (CC BY-SA 4.0), GeoNames (CC BY 4.0) and nam_dict by Jörg Michael (GNU FDL 1.2+), see `SOURCES.txt` there.
 Plugin: spaCy and its models, the YuNet face model and ONNX Runtime are MIT-licensed; OpenCV, RapidOCR and the PP-OCR models are Apache-2.0-licensed. NudeNet ships the AGPL-3.0 license text (its package metadata says MIT); GPL-3.0 section 13 allows combining it with this GPL-3.0 program.

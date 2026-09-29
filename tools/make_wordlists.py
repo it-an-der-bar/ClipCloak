@@ -1,8 +1,9 @@
 """Build the word lists the NER plausibility filter uses (run by hand, the output is committed).
 
-    pip download wordfreq==3.1.1 geonamescache==3.0.2 --no-deps -d wheels
+    pip download wordfreq==3.1.1 geonamescache==3.0.2 gender-guesser==0.4.0 --no-deps -d wheels
     python tools/make_wordlists.py wheels/wordfreq-3.1.1-py3-none-any.whl \
-                                   wheels/geonamescache-3.0.2-py3-none-any.whl
+                                   wheels/geonamescache-3.0.2-py3-none-any.whl \
+                                   wheels/gender_guesser-0.4.0-py2.py3-none-any.whl
 
 clipcloak/resources/wordlists/common.txt.gz
     the most frequent English and German words (lower case). An ORG/LOCATION that the NER
@@ -14,6 +15,11 @@ clipcloak/resources/wordlists/places.txt.gz
     Berlin, Essen, Halle, Kassel, "bad tölz" …), so such a LOCATION is kept. Cities with 15,000+
     inhabitants worldwide and 1,000+ in DE/AT/CH, countries, German states.
     Data: GeoNames via geonamescache, CC BY 4.0 – https://www.geonames.org/
+clipcloak/resources/wordlists/firstnames.txt.gz
+    first names (lower case, without accents), so that a PERSON made only of common words is
+    kept when it starts with a first name ("Max Mustermann") and dropped otherwise
+    ("Bisherige Läufe"). Data: "nam_dict.txt" by Jörg Michael (via gender-guesser),
+    GNU Free Documentation License 1.2+, no invariant sections.
 """
 
 from __future__ import annotations
@@ -79,17 +85,42 @@ def _phrase(name: str) -> str:
     return " ".join(words) if words and all(WORD.match(w) for w in words) else ""
 
 
+def fold(word: str) -> str:
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFKD", word.lower()) if not unicodedata.combining(c))
+
+
+def first_names(whl: Path) -> set[str]:
+    with zipfile.ZipFile(whl) as z:
+        raw = z.read("gender_guesser/data/nam_dict.txt")
+    out: set[str] = set()
+    for bline in raw.split(b"\n"):
+        try:
+            line = bline.decode("utf-8")
+        except UnicodeDecodeError:
+            line = bline.decode("latin-1")
+        code = line[:2].strip()
+        if not code or code.startswith("#") or code == "=" or code not in ("M", "1M", "?M", "F", "1F", "?F", "?"):
+            continue
+        for part in re.split(r"[+\s\-]+", line[3:29].strip()):
+            w = fold(part)
+            if len(w) >= 2 and w.isalpha() and w.isascii():
+                out.add(w)
+    return out
+
+
 def main(argv) -> int:
-    if len(argv) != 3:
+    if len(argv) != 4:
         print(__doc__)
         return 2
-    wf, geo = Path(argv[1]), Path(argv[2])
+    wf, geo, names = Path(argv[1]), Path(argv[2]), Path(argv[3])
     common: set[str] = set()
     for lang in TOP:
         common |= set(wordfreq_words(wf, lang))
     places = {p for p in geonames(geo) if all(w in common for w in p.split())}
     OUT.mkdir(parents=True, exist_ok=True)
-    for name, words in (("common.txt.gz", common), ("places.txt.gz", places)):
+    for name, words in (("common.txt.gz", common), ("places.txt.gz", places),
+                        ("firstnames.txt.gz", first_names(names))):
         buf = io.BytesIO()
         with gzip.GzipFile(fileobj=buf, mode="wb", mtime=0, compresslevel=9) as gz:
             gz.write("\n".join(sorted(words)).encode("utf-8"))
