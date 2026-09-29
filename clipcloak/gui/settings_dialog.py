@@ -43,16 +43,29 @@ class ListEdit(QPlainTextEdit):
 
 
 class TermsTable(QWidget):
-    """Custom terms: term, type, replacement, regex, case sensitive."""
+    """Custom terms: [applies to,] term, type, replacement, regex, case sensitive.
 
-    def __init__(self, parent=None):
+    With ``scopes`` the first column says where a term is stored ("all projects" = config,
+    "project X" = the project file); terms an administrator set are shown read-only.
+    """
+
+    POLICY = "policy"
+
+    def __init__(self, parent=None, scopes: list[tuple[str, str]] | None = None, default_scope: str = ""):
         super().__init__(parent)
-        self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels([t("terms.term"), t("terms.type"), t("terms.replacement"),
-                                              t("terms.regex"), t("terms.case")])
+        self.scopes = scopes or []
+        self.default_scope = default_scope or (self.scopes[0][0] if self.scopes else "")
+        self.off = 1 if self.scopes else 0
+        heads = ([t("terms.scope")] if self.scopes else []) + [
+            t("terms.term"), t("terms.type"), t("terms.replacement"), t("terms.regex"), t("terms.case")]
+        self.table = QTableWidget(0, len(heads))
+        self.table.setHorizontalHeaderLabels(heads)
         self.table.horizontalHeader().setStretchLastSection(False)
-        self.table.setColumnWidth(0, 220)
-        self.table.setColumnWidth(2, 180)
+        if self.scopes:
+            self.table.setColumnWidth(0, 190)
+        self.table.setColumnWidth(self.off, 220)
+        self.table.setColumnWidth(self.off + 2, 180)
+        self.table.setSortingEnabled(False)
         add = QPushButton(t("terms.add"))
         rem = QPushButton(t("terms.remove"))
         add.clicked.connect(lambda: self.add_row({}))
@@ -66,44 +79,91 @@ class TermsTable(QWidget):
         lay.addWidget(self.table)
         lay.addLayout(btns)
 
-    def add_row(self, term: dict):
+    def add_row(self, term: dict, scope: str | None = None):
+        o = self.off
+        scope = scope or self.default_scope
+        readonly = scope == self.POLICY
         r = self.table.rowCount()
         self.table.insertRow(r)
-        self.table.setItem(r, 0, QTableWidgetItem(term.get("term", "")))
+        if self.scopes:
+            sc = QComboBox()
+            if readonly:
+                sc.addItem(t("terms.scope_policy"), self.POLICY)
+                sc.setEnabled(False)
+            else:
+                for key, label in self.scopes:
+                    sc.addItem(label, key)
+                sc.setCurrentIndex(max(0, sc.findData(scope)))
+            self.table.setCellWidget(r, 0, sc)
+        self.table.setItem(r, o, QTableWidgetItem(term.get("term", "")))
         combo = QComboBox()
         combo.addItem(t("terms.type_auto"), "")
         for ty in ALL_TYPES:
             combo.addItem(ty, ty)
         combo.setCurrentIndex(max(0, combo.findData((term.get("type") or "").upper())))
-        self.table.setCellWidget(r, 1, combo)
-        self.table.setItem(r, 2, QTableWidgetItem(term.get("replacement", "")))
-        for col, key in ((3, "regex"), (4, "case_sensitive")):
+        combo.setEnabled(not readonly)
+        self.table.setCellWidget(r, o + 1, combo)
+        self.table.setItem(r, o + 2, QTableWidgetItem(term.get("replacement", "")))
+        for col, key in ((o + 3, "regex"), (o + 4, "case_sensitive")):
             it = QTableWidgetItem()
             it.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
             it.setCheckState(Qt.Checked if term.get(key) else Qt.Unchecked)
             self.table.setItem(r, col, it)
+        if readonly:
+            for col in range(o, o + 5):
+                it = self.table.item(r, col)
+                if it is not None:
+                    it.setFlags(Qt.ItemIsEnabled)
+                    it.setToolTip(t("settings.locked"))
+        return r
+
+    def _scope(self, r: int) -> str:
+        if not self.scopes:
+            return ""
+        return self.table.cellWidget(r, 0).currentData() or self.default_scope
 
     def remove_selected(self):
         for r in sorted({i.row() for i in self.table.selectedIndexes()}, reverse=True):
-            self.table.removeRow(r)
+            if self._scope(r) != self.POLICY:
+                self.table.removeRow(r)
 
-    def set_terms(self, terms):
+    def clear(self):
         self.table.setRowCount(0)
-        for term in terms or []:
-            self.add_row(term)
 
-    def terms(self) -> list[dict]:
+    def set_terms(self, terms, scope: str | None = None):
+        self.clear()
+        self.add_terms(terms, scope)
+
+    def add_terms(self, terms, scope: str | None = None):
+        for term in terms or []:
+            self.add_row(term, scope)
+
+    def select_term(self, text: str) -> bool:
+        o = self.off
+        for r in range(self.table.rowCount()):
+            it = self.table.item(r, o)
+            if it is not None and it.text().strip().lower() == text.strip().lower():
+                self.table.selectRow(r)
+                self.table.scrollToItem(it)
+                return True
+        return False
+
+    def terms(self, scope: str | None = None) -> list[dict]:
+        o = self.off
         out = []
         for r in range(self.table.rowCount()):
-            term = (self.table.item(r, 0).text() if self.table.item(r, 0) else "").strip()
+            sc = self._scope(r)
+            if sc == self.POLICY or (scope is not None and sc != scope):
+                continue
+            term = (self.table.item(r, o).text() if self.table.item(r, o) else "").strip()
             if not term:
                 continue
             out.append({
                 "term": term,
-                "type": self.table.cellWidget(r, 1).currentData() or "",
-                "replacement": (self.table.item(r, 2).text() if self.table.item(r, 2) else "").strip(),
-                "regex": self.table.item(r, 3).checkState() == Qt.Checked,
-                "case_sensitive": self.table.item(r, 4).checkState() == Qt.Checked,
+                "type": self.table.cellWidget(r, o + 1).currentData() or "",
+                "replacement": (self.table.item(r, o + 2).text() if self.table.item(r, o + 2) else "").strip(),
+                "regex": self.table.item(r, o + 3).checkState() == Qt.Checked,
+                "case_sensitive": self.table.item(r, o + 4).checkState() == Qt.Checked,
             })
         return out
 
@@ -132,6 +192,9 @@ class SettingsDialog(QDialog):
             tabs.addTab(self._project(), t("settings.tab.project"))
             if initial_tab == "project":
                 tabs.setCurrentIndex(tabs.count() - 1)
+        if initial_tab and initial_tab.startswith("terms"):
+            tabs.setCurrentIndex(4)                      # Lists › Custom terms
+            self.lists_tabs.setCurrentIndex(0)
         bb = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel | QDialogButtonBox.RestoreDefaults)
         bb.accepted.connect(self._accept)
         bb.rejected.connect(self.reject)
@@ -148,6 +211,9 @@ class SettingsDialog(QDialog):
         self._load()
         self._apply_locks()
         self._baseline = self._collect()
+        self._baseline_prj = self.terms.terms("project")
+        if initial_tab and initial_tab.startswith("terms:"):
+            self.terms.select_term(initial_tab[len("terms:"):])
 
     # ------------------------------------------------------------- policy
     def _lock(self, widget, dotted: str):
@@ -351,8 +417,14 @@ class SettingsDialog(QDialog):
 
     def _lists(self):
         tabs = QTabWidget()
-        self.terms = TermsTable()
+        prj = self.c.project
+        scopes = [("global", t("terms.scope_global"))]
+        if prj is not None:
+            scopes.append(("project", t("terms.scope_project", name=prj.name)))
+        # new terms go where "add as custom term" puts them: into the open project
+        self.terms = TermsTable(scopes=scopes, default_scope="project" if prj is not None else "global")
         tabs.addTab(self._with_help(self.terms, "lists.terms_help", "lists.custom_terms"), t("lists.terms"))
+        self.lists_tabs = tabs
         self.lists = {}
         for key in ("known_domains", "allow_terms", "allow_domains", "allow_ip_ranges",
                     "generic_labels_extra", "extra_tlds", "tracking_params"):
@@ -530,10 +602,9 @@ class SettingsDialog(QDialog):
         self.prj_store_history = QCheckBox(t("settings.project_store_history"))
         self.prj_store_history.setChecked(prj.store_history)
         v.addWidget(self.prj_store_history)
-        v.addWidget(QLabel(t("settings.project_terms")))
-        self.prj_terms = TermsTable()
-        self.prj_terms.set_terms(prj.terms)
-        v.addWidget(self.prj_terms, 2)
+        note = QLabel(t("settings.project_terms_moved", name=prj.name))
+        note.setWordWrap(True)
+        v.addWidget(note)
         v.addWidget(QLabel(t("lists.known_domains")))
         self.prj_domains = ListEdit()
         self.prj_domains.set_items(prj.known_domains)
@@ -587,7 +658,12 @@ class SettingsDialog(QDialog):
         tm = data["processing"].get("type_modes") or {}
         for ty, cb in self.type_modes.items():
             cb.setCurrentIndex(max(0, cb.findData(tm.get(ty, ""))))
-        self.terms.set_terms(data["lists"].get("custom_terms"))
+        policy_terms = self.c.cfg.policy_entries("lists.custom_terms")
+        self.terms.clear()
+        self.terms.add_terms(policy_terms, TermsTable.POLICY)
+        self.terms.add_terms([x for x in data["lists"].get("custom_terms") or [] if x not in policy_terms], "global")
+        if self.c.project is not None:
+            self.terms.add_terms(self.c.project.terms, "project")
         for key, ed in self.lists.items():
             ed.set_items(data["lists"].get(key))
         self._update_ner_status()
@@ -625,7 +701,7 @@ class SettingsDialog(QDialog):
             d["hotkeys"][action] = ed.keySequence().toString(QKeySequence.PortableText)
         d["detectors"]["enabled"] = {did: cb.isChecked() for did, cb in self.det.items()}
         d["processing"]["type_modes"] = {ty: cb.currentData() for ty, cb in self.type_modes.items() if cb.currentData()}
-        d["lists"]["custom_terms"] = self.terms.terms()
+        d["lists"]["custom_terms"] = self.terms.terms("global")
         for key, ed in self.lists.items():
             d["lists"][key] = ed.items()
         d["ner"]["types"] = [ty for ty, cb in self.ner_types.items() if cb.isChecked()]
@@ -635,7 +711,8 @@ class SettingsDialog(QDialog):
 
     def reject(self):
         """Closing without OK: ask before dropping changes (URL, token, …)."""
-        if not getattr(self.c, "_quitting", False) and self._collect() != self._baseline:
+        changed = self._collect() != self._baseline or self.terms.terms("project") != self._baseline_prj
+        if not getattr(self.c, "_quitting", False) and changed:
             ans = QMessageBox.question(self, t("settings.title"), t("settings.unsaved"),
                                        QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
                                        QMessageBox.Save)
@@ -653,8 +730,8 @@ class SettingsDialog(QDialog):
     def _accept(self):
         data = self._collect()
         project_update = None
-        if self.c.project is not None and hasattr(self, "prj_terms"):
-            project_update = {"terms": self.prj_terms.terms(), "known_domains": self.prj_domains.items(),
+        if self.c.project is not None and hasattr(self, "prj_domains"):
+            project_update = {"terms": self.terms.terms("project"), "known_domains": self.prj_domains.items(),
                               "store_history": self.prj_store_history.isChecked()}
         self.c.apply_settings(data, project_update)
         self.accept()

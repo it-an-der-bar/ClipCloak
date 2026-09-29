@@ -241,9 +241,15 @@ def plausible_entity(text: str, s: int, e: int, typ: str, tokens: list | None):
         # a person needs first and last name: leading run of capitalised proper nouns
         if toks:
             run = []
+            named = False                     # the run starts with a known first name
             for t, p, st in zip(toks, pos, stop, strict=True):
                 w = text[int(t["s"]):int(t["e"])]
-                if p == "PROPN" and not st and _title(w) and w.lower() not in STOP_WORDS:
+                first = w.split("-")[0]
+                # the tagger's part of speech is not trusted after a first name: "Anna-Lena Petersen"
+                ok = (p == "PROPN" or (named and _title(w)) or (not run and wordlists.is_first_name(first)))
+                if ok and not st and _title(w) and w.lower() not in STOP_WORDS:
+                    if not run:
+                        named = wordlists.is_first_name(first)
                     run.append(t)
                 elif w in ("-",) and run:
                     continue
@@ -272,18 +278,46 @@ def plausible_entity(text: str, s: int, e: int, typ: str, tokens: list | None):
         return None                         # "Deine Auswahl", "The …"
     if all(w.isupper() for w in words) and not any(w in LEGAL_FORMS for w in lower):
         return None                         # ACCEPT, ANSWER, VPN …
-    if typ == T.LOCATION.value and _is_place(span):
-        return s, e                         # a known place, whatever the tagger says
+    if typ == T.LOCATION.value:
+        # places are only taken from the gazetteer (GeoNames): the model calls far too many
+        # nouns and product names a place ("Kurzbefehle", "Hyprland", "Ollama")
+        return (s, e) if _is_place(span) else None
+    if any(c in span for c in ",;→…|"):
+        return None                         # a list or an arrow, not one name
+    if typ == T.ORG.value:
+        # "Migration für Northwind Traders": ordinary words before a linking word are no part of it
+        link = [i for i, w in enumerate(lower) if w in ("für", "von", "der", "des", "bei", "for", "of", "at")]
+        if link and 0 < link[-1] < len(words) - 1 and all(wordlists.is_common_word(w) for w in words[:link[-1]]) \
+                and not any(w in LEGAL_FORMS for w in lower[:link[-1]]):
+            ns = s + span.find(words[link[-1] + 1], len(" ".join(words[:link[-1] + 1])) - 1)
+            return plausible_entity(text, ns, e, typ, None)
+    if typ == T.ORG.value and not any(w in LEGAL_FORMS for w in lower):
+        if re.search(r"\d|\w\.\w|['’]s\b", span) or lower[0] in MONTHS:
+            return None                     # "Python 3.5.x", "Pool.alloc", "Python’s", "March"
+        if len(words) == 1 and len(words[0]) <= 3:
+            return None                     # "Del", "Esc", "IT"
+        if any(w in TECH_WORDS for w in lower):
+            return None                     # "Proofpoint URL Defense", "Docker API" – products, not customers
     if typ == T.ORG.value and len(words) >= 2 and _names_place(span):
         return s, e                         # "Stadtwerke Kassel", "Sparkasse Hannover"
     if toks and "PROPN" not in pos and not any(w in LEGAL_FORMS for w in lower):
         return None                         # nouns/verbs the model mislabelled
     if not any(w in LEGAL_FORMS for w in lower) and _only_common_words(span):
-        if not (_is_place(span) if typ == T.LOCATION.value else _names_place(span)):
+        if not _names_place(span):
             return None                     # "Roadmap", "Shell-Kommandos", "Diagnose-Dateien", "Chain"
     return s, e
 
 
+MONTHS = set("""
+january february march april may june july august september october november december
+januar februar märz mai juni juli oktober dezember
+""".split())
+TECH_WORDS = set("""
+url uri api apis http https dns tls ssl ssh vpn cli gui sdk ide json yaml xml html css sql rest grpc oauth
+stdout stdin stderr saml ldap smtp imap ftp sftp tcp udp ip ipv4 ipv6 dhcp nat vlan wlan lan wan usb pdf csv
+exe msi dll gpu cpu linter install
+ram ssd hdd os kernel plugin plugins server client cluster container docker image repo git ci cd devops
+""".split())
 _PARTS = re.compile(r"[A-Za-zÀ-ɏß]+")
 _LINK_WORDS = {"des", "der", "die", "das", "dem", "den", "von", "vom", "und", "für", "im", "in", "am",
                "the", "of", "and", "for", "on", "at", "to", "a", "an"}
@@ -307,9 +341,11 @@ def _person_like(span: str) -> bool:
 
 
 def _names_place(span: str) -> bool:
-    """An organisation named after its town is specific: "Stadtwerke Kassel"."""
-    places = wordlists.place_names()
-    return any(w.lower() in places for w in _PARTS.findall(span) if w.lower() not in _LINK_WORDS)
+    """An organisation named after its town is specific: "Stadtwerke Kassel" – but not after a
+    town that is also an English word ("Root Certificates", "University Press")."""
+    places, english = wordlists.place_names(), wordlists.english_words()
+    return any(w.lower() in places and w.lower() not in english
+               for w in _PARTS.findall(span) if w.lower() not in _LINK_WORDS)
 
 
 def _is_place(span: str) -> bool:

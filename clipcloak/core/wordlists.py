@@ -355,13 +355,27 @@ def common_words() -> frozenset:
     return _load("common.txt.gz")
 
 
+def english_words() -> frozenset:
+    return _load("common_en.txt.gz")
+
+
 def place_names() -> frozenset:
     return _load("places.txt.gz")
 
 
+# first names that are also everyday words ("Per Doppelklick", "Will Smith" vs. "will")
+AMBIGUOUS_FIRST_NAMES = set("""
+per will may can mark grant bill chase pat jan mai april june august ob um am an ab so de la le van von
+art hope joy faith rich sunny summer winter lane dean major king rose ray
+""".split())
+
+
 def is_first_name(word: str) -> bool:
-    """First names (nam_dict, GNU FDL) – compared lower case and without accents."""
+    """First names (nam_dict, GNU FDL) – compared lower case and without accents; not the ones
+    that are everyday words as well."""
     import unicodedata
+    if word.lower() in AMBIGUOUS_FIRST_NAMES:
+        return False
     folded = "".join(c for c in unicodedata.normalize("NFKD", word.lower()) if not unicodedata.combining(c))
     return folded in _load("firstnames.txt.gz")
 

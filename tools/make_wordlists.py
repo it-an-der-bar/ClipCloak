@@ -10,9 +10,12 @@ clipcloak/resources/wordlists/common.txt.gz
     model found and that consists only of such words ("Roadmap", "Shell-Kommandos",
     "Diagnose-Dateien", "Chain") is an ordinary noun, not a name.
     Data: wordfreq (Robyn Speer), CC BY-SA 4.0 – https://github.com/rspeer/wordfreq
+clipcloak/resources/wordlists/common_en.txt.gz
+    the 30,000 most frequent English words: a town name that is also an English word ("Root",
+    "Reading", "University") does not make an organisation name specific.
 clipcloak/resources/wordlists/places.txt.gz
-    place names (whole names, words joined by a space) made only of common words (München,
-    Berlin, Essen, Halle, Kassel, "bad tölz" …), so such a LOCATION is kept. Cities with 15,000+
+    place names (whole names, lower case, words joined by a space: "münchen", "bad tölz",
+    "frankfurt am main"). A LOCATION from the NER model is only kept when it is a known place. Cities with 15,000+
     inhabitants worldwide and 1,000+ in DE/AT/CH, countries, German states.
     Data: GeoNames via geonamescache, CC BY 4.0 – https://www.geonames.org/
 clipcloak/resources/wordlists/firstnames.txt.gz
@@ -115,11 +118,15 @@ def main(argv) -> int:
         return 2
     wf, geo, names = Path(argv[1]), Path(argv[2]), Path(argv[3])
     common: set[str] = set()
+    english: set[str] = set()
     for lang in TOP:
-        common |= set(wordfreq_words(wf, lang))
-    places = {p for p in geonames(geo) if all(w in common for w in p.split())}
+        words = set(wordfreq_words(wf, lang))
+        common |= words
+        if lang == "en":
+            english = set(wordfreq_words(wf, lang)[:30_000])
+    places = geonames(geo)
     OUT.mkdir(parents=True, exist_ok=True)
-    for name, words in (("common.txt.gz", common), ("places.txt.gz", places),
+    for name, words in (("common.txt.gz", common), ("common_en.txt.gz", english), ("places.txt.gz", places),
                         ("firstnames.txt.gz", first_names(names))):
         buf = io.BytesIO()
         with gzip.GzipFile(fileobj=buf, mode="wb", mtime=0, compresslevel=9) as gz:

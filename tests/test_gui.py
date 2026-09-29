@@ -477,3 +477,40 @@ class SensitiveClipboardTest(unittest.TestCase):
             if c.main is not None:
                 c.main.deleteLater()
             spin(50)
+
+
+class TermsScopeTest(unittest.TestCase):
+    """Project terms and global terms are edited in one list (Lists › Custom terms)."""
+
+    def test_project_terms_visible_and_editable(self):
+        from clipcloak.gui.app import Controller
+        from clipcloak.gui.settings_dialog import SettingsDialog
+        tmp = tempfile.mkdtemp()
+        cfg = Config(os.path.join(tmp, "config.yaml"))
+        cfg.set("hotkeys", {k: "" for k in cfg.get("hotkeys")})
+        cfg.set("lists.custom_terms", [{"term": "Globalfirma", "type": "", "replacement": "", "regex": False,
+                                        "case_sensitive": False}])
+        c = Controller(app, cfg)
+        c.store = ProjectStore(os.path.join(tmp, "projects"))
+        try:
+            prj = c.store.create("Kunde")
+            c._switch(prj)
+            c.add_custom_term("Projektfirma", "ORG")
+            self.assertEqual([x["term"] for x in c.project.terms], ["Projektfirma"])
+            d = SettingsDialog(c, None, "terms:Projektfirma")
+            self.assertEqual([x["term"] for x in d.terms.terms("global")], ["Globalfirma"])
+            self.assertEqual([x["term"] for x in d.terms.terms("project")], ["Projektfirma"])
+            sel = {i.row() for i in d.terms.table.selectedIndexes()}
+            self.assertEqual(len(sel), 1)
+            r = sel.pop()
+            d.terms.table.item(r, 1).setText("Projektfirma AG")        # edit
+            d.terms.add_row({"term": "Neu"})                            # new rows go to the project
+            d._accept()
+            self.assertEqual([x["term"] for x in c.project.terms], ["Projektfirma AG", "Neu"])
+            self.assertEqual([x["term"] for x in c.cfg.get("lists.custom_terms")], ["Globalfirma"])
+            d.deleteLater()
+        finally:
+            c.shutdown()
+            if c.main is not None:
+                c.main.deleteLater()
+            spin(50)

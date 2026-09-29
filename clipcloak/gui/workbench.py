@@ -341,7 +341,13 @@ class Workbench(QWidget):
         m = QMenu(self)
         a_allow = m.addAction(t("wb.add_allow"))
         a_term = m.addAction(t("wb.add_term"))
+        custom = [self._findings[r] for r in rows if self._findings[r].type == "CUSTOM"]
+        a_edit = m.addAction(t("wb.edit_term")) if custom else None
         chosen = m.exec(self.findings.viewport().mapToGlobal(pos))
+        if chosen is not None and chosen is a_edit:
+            self.c.show_settings("terms:" + custom[0].text)
+            self.analyze()
+            return
         for r in rows:
             f = self._findings[r]
             if chosen is a_allow:

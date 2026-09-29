@@ -289,7 +289,7 @@ To use the plugin from source, run `pip install -r requirements-ner.txt` and
 automatically via `python -m clipcloak.ner_helper`.
 
 Builds run in two CI systems with the same steps: GitHub Actions (`.github/workflows/ci.yml`, `release.yml` –
-release assets on GitHub) and GitLab CI (`.gitlab-ci.yml` – GitLab package registry). Both lint (`ruff check .`)
+release assets on GitHub) and GitLab CI (`.gitlab-ci.yml` – GitLab package registry; off unless the CI/CD variable `GITLAB_BUILDS=on` is set). Both lint (`ruff check .`)
 and test on every push and build and release on version tags `vX.Y.Z`, which must match
 `clipcloak/__init__.py`. `python tools/package_release.py linux|windows|policies vX.Y.Z --dist dist`
 bundles the builds into the tar.gz/ZIP files.

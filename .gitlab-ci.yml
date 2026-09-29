@@ -3,6 +3,13 @@
 # Intermediate pushes only run the test job.
 # The same builds for GitHub: .github/workflows/ (ci.yml, release.yml) – both are kept in sync.
 
+# Switched off for now – GitHub Actions builds the releases. To use this pipeline again, set the
+# CI/CD variable GITLAB_BUILDS=on (Settings › CI/CD › Variables); nothing else has to change.
+workflow:
+  rules:
+    - if: '$GITLAB_BUILDS == "on"'
+    - when: never
+
 stages: [test, build, package, release]
 
 variables:

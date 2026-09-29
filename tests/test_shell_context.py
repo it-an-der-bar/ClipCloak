@@ -100,10 +100,10 @@ class CommonNounTest(unittest.TestCase):
                 self.assertIsNone(self.check(text, name, typ))
 
     def test_real_names_kept(self):
-        text = ("Treffen in München und Kassel, Büro in Musterhausen bei Contoso. "
+        text = ("Treffen in München und Kassel, Büro in Baunatal bei Contoso. "
                 "Die Stadtwerke Kassel und die Acme Maschinenbau GmbH, Sparkasse Hannover, "
                 "Northwind Traders in Boston, Frankfurt am Main, Essen.")
-        for name, typ in (("München", "LOCATION"), ("Kassel", "LOCATION"), ("Musterhausen", "LOCATION"),
+        for name, typ in (("München", "LOCATION"), ("Kassel", "LOCATION"), ("Baunatal", "LOCATION"),
                           ("Contoso", "ORG"), ("Stadtwerke Kassel", "ORG"), ("Acme Maschinenbau GmbH", "ORG"),
                           ("Sparkasse Hannover", "ORG"), ("Northwind Traders", "ORG"),
                           ("Boston", "LOCATION"), ("Frankfurt am Main", "LOCATION"), ("Essen", "LOCATION")):

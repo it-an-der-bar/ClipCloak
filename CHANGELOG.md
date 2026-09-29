@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.29
+
+- GitLab pipeline switched off (GitHub Actions builds the releases); it runs again when the CI/CD variable `GITLAB_BUILDS=on` is set in the GitLab project.
+- **Custom terms of the project are visible and editable again:** *Settings › Lists › Custom terms* shows all terms in one list with a column *Applies to* – "all projects" (config) or "project X" (the project file, where *Add as custom term* puts them); terms set by the administrator are shown read-only. The project tab points there. In the workbench, right click on a CUSTOM finding › *Edit custom term …* opens the list with that term selected.
+
+NER checked against measurements instead of single cases (`tests/test_ner_quality.py`, runs where spaCy is installed):
+- **Places only from the gazetteer**: a LOCATION of the model is kept only when it is a known place (GeoNames: cities 15,000+ worldwide, 1,000+ in DE/AT/CH, countries, German states – ≈ 85,000 names). Nouns and product names the model calls a place ("Kurzbefehle", "Gesäß", "Hyprland", "Ollama") are gone.
+- **Persons**: after a known first name the tagger's part of speech is no longer trusted ("Anna-Lena Petersen" is found although the model tags "Petersen" as a verb); first names that are everyday words ("Per", "Will", "May", "Mark") do not count as a first name.
+- **Organisations**: no lists or arrows (",", "→", "…"), no versions/code ("Python 3.5.x", "Pool.alloc"), no possessives, no months, no single words of up to 3 letters ("Del"), no technical terms ("URL", "API", "stdout" …); ordinary words before a linking word are cut off ("Migration für Northwind Traders" → "Northwind Traders"); a town that is also an English word ("Root") does not make an organisation specific.
+- Result: the German and English UI texts and docs of this repository (≈ 17,000 words): the model reports 1,001 entities, 11 are kept – all of them real names. Gold set of business mails and technical sentences: 16 of 16 names found, no false finding. English package documentation (≈ 90,000 words): 4,534 → 140, mostly real author names; what is left are single-word product names (Thinc, Typer, Cython) – add them to the allowlist if they bother you.
+
 ## 0.1.28
 
 - `docs/SECURITY-AUDIT.md`: the security review of 0.1.27 – data flows, all findings with severity and status (fixed / open), accepted risks, verification. Linked from `SECURITY.md` and the README.
