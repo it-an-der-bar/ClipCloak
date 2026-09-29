@@ -112,6 +112,11 @@ P = [
      "revert and nothing is changed automatically.",
      "Besteht der kopierte Text aus Ersatzwerten dieses Projekts (z. B. die Antwort des LLM), bietet das Popup "
      "Zurückübersetzen an und nichts wird automatisch geändert.", {}),
+    ("watcher.offer_base64", "bool", "watcher", "Offer to decode Base64", "Base64-Dekodierung anbieten",
+     "If the copied text is Base64 of readable text (e.g. a Kubernetes secret), the popup offers to decode it "
+     "and names what the decoded text contains.",
+     "Ist der kopierte Text Base64 eines lesbaren Textes (z. B. ein Kubernetes-Secret), bietet das Popup an, ihn "
+     "zu dekodieren, und nennt, was der dekodierte Text enthält.", {}),
 ]
 
 from clipcloak.core.entities import CATEGORIES as FINDING_CATEGORIES  # noqa: E402

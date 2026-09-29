@@ -191,6 +191,83 @@ class GuiTest(unittest.TestCase):
         self.assertIn("Geheim123", c.clip.read().text)
         c.set_watch_mode("off")
 
+    def test_watcher_offers_base64_decoding(self):
+        c = self.c
+        from clipcloak.core import b64
+        secret = "user: admin\npassword: Geheim123\nhost: 10.88.10.10\n"
+        enc = b64.encode(secret)
+        c.set_watch_mode("always")                   # would change everything at once
+        c.clip.write(enc, None)
+        c._watch_check()
+        self.assertTrue(wait_for(lambda: c._popup is not None))
+        self.assertIn("b64decode", c._popup.buttons)
+        self.assertIn("b64pseudo", c._popup.buttons)     # the decoded text holds a password and an IP
+        from PySide6.QtWidgets import QLabel
+        texts = " ".join(lab.text() for lab in c._popup.findChildren(QLabel))
+        self.assertIn("IPV4", texts)
+        self.assertNotIn("Geheim123", texts)             # the popup names types, never values
+        self.assertEqual(c.clip.read().text, enc)
+        c._popup._choose("b64decode")
+        self.assertTrue(wait_for(lambda: c.clip.read().text == secret))
+        # the decoded text is ours: the watcher does not look at it again
+        c._popup = None
+        c._watch_check()
+        spin(200)
+        self.assertIsNone(c._popup)
+        # decode + pseudonymise
+        c.clip.write(enc, None)
+        c._watch_check()
+        self.assertTrue(wait_for(lambda: c._popup is not None))
+        c._popup._choose("b64pseudo")
+        self.assertTrue(wait_for(lambda: "password:" in (c.clip.read().text or "")
+                                 and "Geheim123" not in c.clip.read().text))
+        self.assertNotIn("10.88.10.10", c.clip.read().text)
+        # switched off: normal behaviour (nothing to find in the Base64 text itself)
+        c.cfg.set("watcher.offer_base64", False)
+        c._popup = None
+        c.clip.write(b64.encode("noch ein Text ohne Daten"), None)
+        c._watch_check()
+        spin(300)
+        self.assertIsNone(c._popup)
+        c.set_watch_mode("off")
+
+    def test_base64_actions(self):
+        c = self.c
+        c.clip.write("hallo welt", None)
+        c.run_action("b64_encode", "hotkey")
+        self.assertEqual(c.clip.read().text, "aGFsbG8gd2VsdA==")
+        c.run_action("b64_decode", "hotkey")
+        self.assertTrue(wait_for(lambda: c.clip.read().text == "hallo welt"))
+        c.run_action("b64_decode", "hotkey")            # not Base64: nothing changes
+        spin(100)
+        self.assertEqual(c.clip.read().text, "hallo welt")
+        c.clip.write("YWRtaW4=", None)                  # short Kubernetes secret
+        c.run_action("b64_decode", "hotkey")
+        self.assertTrue(wait_for(lambda: c.clip.read().text == "admin"))
+
+    def test_workbench_base64(self):
+        c = self.c
+        from PySide6.QtGui import QTextCursor
+        c.show_workbench("aGFsbG8gd2VsdA==")
+        wb = c.main.workbench
+        self.assertTrue(wait_for(lambda: "Base64" in wb.status.text()))
+        self.assertTrue(wb.base64_input(decode=True))
+        self.assertEqual(wb.input.toPlainText(), "hallo welt")
+        # only the selection
+        wb.input.setPlainText("token: YWRtaW4= ende")
+        cur = wb.input.textCursor()
+        cur.setPosition(7)
+        cur.setPosition(15, QTextCursor.KeepAnchor)
+        wb.input.setTextCursor(cur)
+        self.assertTrue(wb.base64_input(decode=True))
+        self.assertEqual(wb.input.toPlainText(), "token: admin ende")
+        self.assertEqual(wb.input.textCursor().selectedText(), "admin")
+        self.assertTrue(wb.base64_input(decode=False))
+        self.assertEqual(wb.input.toPlainText(), "token: YWRtaW4= ende")
+        wb.input.setPlainText("kein base64")
+        self.assertFalse(wb.base64_input(decode=True))
+        self.assertEqual(wb.input.toPlainText(), "kein base64")
+
     def test_real_data_is_not_mistaken_for_a_result(self):
         c = self.c
         c.engine.process("Mail an jonas.hartmann@contoso.com", "pseudonymize")
@@ -410,7 +487,8 @@ class GuiTest(unittest.TestCase):
         self.assertIn("\r\n", pseudo)
         c.process_file(out, "revert", back)
         self.assertTrue(wait_for(lambda: len(c.history.entries) == 2, 60000))
-        self.assertEqual(open(back, encoding="utf-8", newline="").read(), text)
+        with open(back, encoding="utf-8", newline="") as fh:
+            self.assertEqual(fh.read(), text)
 
     def test_project_bar_in_main_window(self):
         c = self.c

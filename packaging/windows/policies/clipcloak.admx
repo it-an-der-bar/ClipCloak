@@ -172,6 +172,12 @@
       <enabledValue><decimal value="1" /></enabledValue>
       <disabledValue><decimal value="0" /></disabledValue>
     </policy>
+    <policy name="P_watcher_offer_base64" class="Both" displayName="$(string.P_watcher_offer_base64)" explainText="$(string.P_watcher_offer_base64_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="watcher.offer_base64">
+      <parentCategory ref="C_watcher" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
     <policy name="P_watcher_categories_tracking" class="Both" displayName="$(string.P_watcher_categories_tracking)" explainText="$(string.P_watcher_categories_tracking_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_categories_tracking)">
       <parentCategory ref="C_watcher" />
       <supportedOn ref="SUPPORTED_0_1_9" />
@@ -779,6 +785,20 @@
       <supportedOn ref="SUPPORTED_0_1_9" />
       <elements>
         <text id="P_hotkeys_screenshot" valueName="hotkeys.screenshot" maxLength="2048" />
+      </elements>
+    </policy>
+    <policy name="P_hotkeys_b64_decode" class="Both" displayName="$(string.P_hotkeys_b64_decode)" explainText="$(string.P_hotkeys_b64_decode_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_hotkeys_b64_decode)">
+      <parentCategory ref="C_hotkeys" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <text id="P_hotkeys_b64_decode" valueName="hotkeys.b64_decode" maxLength="2048" />
+      </elements>
+    </policy>
+    <policy name="P_hotkeys_b64_encode" class="Both" displayName="$(string.P_hotkeys_b64_encode)" explainText="$(string.P_hotkeys_b64_encode_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_hotkeys_b64_encode)">
+      <parentCategory ref="C_hotkeys" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <text id="P_hotkeys_b64_encode" valueName="hotkeys.b64_encode" maxLength="2048" />
       </elements>
     </policy>
     <policy name="P_hotkeys_toggle_watcher" class="Both" displayName="$(string.P_hotkeys_toggle_watcher)" explainText="$(string.P_hotkeys_toggle_watcher_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_hotkeys_toggle_watcher)">

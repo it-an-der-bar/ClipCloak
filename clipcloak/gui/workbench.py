@@ -7,6 +7,7 @@ from PySide6.QtGui import QColor, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QHBoxLayout, QLabel, QMenu, QPlainTextEdit, QPushButton,
                                QSplitter, QTextEdit, QVBoxLayout, QWidget)
 
+from ..core import b64
 from ..core.entities import Result
 from ..core.files import read_text_file, suggest_output_path, write_text_file
 from ..i18n import t
@@ -222,7 +223,8 @@ class Workbench(QWidget):
         def job():
             findings = engine.analyze(text)
             looks, reverted, _real = engine.surrogate_hint(text, findings)
-            return findings, (len(reverted.replacements) if looks else 0)
+            is_b64 = len(text) <= 1_000_000 and b64.decode(text, strict=True) is not None
+            return findings, (len(reverted.replacements) if looks else 0), is_b64
 
         self.c.submit(job, self._show_findings, label=t("job.analyze"), quiet=len(text) < 200_000)
 
@@ -237,7 +239,8 @@ class Workbench(QWidget):
             rb.setStyleSheet("font-weight:bold;" if n else "")
 
     def _show_findings(self, result):
-        findings, pseudo = result if isinstance(result, tuple) else (result, 0)
+        findings, pseudo, *rest = result if isinstance(result, tuple) else (result, 0)
+        is_b64 = bool(rest and rest[0])
         self._mark_pseudonymised(pseudo)
         # one row per distinct value; all occurrences are highlighted in the text
         groups = group_by(findings, lambda f: (f.type, f.text.lower()))
@@ -273,6 +276,8 @@ class Workbench(QWidget):
                             if len(groups) != len(findings) else t("wb.n_findings", n=len(findings)))
         if pseudo:
             self.status.setText(self.status.text() + " · " + t("wb.pseudonymised", n=pseudo))
+        if is_b64:
+            self.status.setText(self.status.text() + " · " + t("wb.is_base64"))
 
     def _select_finding(self):
         rows = {i.row() for i in self.findings.selectedItems()}
@@ -360,14 +365,26 @@ class Workbench(QWidget):
     def _input_menu(self, pos):
         """Standard edit menu plus: mark any text and have it always / never replaced."""
         m = self.input.createStandardContextMenu()
-        sel = self.input.textCursor().selectedText().replace("\u2029", " ").strip()
+        raw_sel = self.input.textCursor().selectedText().replace("\u2029", "\n")
+        sel = raw_sel.replace("\n", " ").strip()
         a_term = a_allow = None
         if sel and len(sel) <= 200:
             short = sel if len(sel) <= 40 else sel[:37] + "…"
             m.addSeparator()
             a_term = m.addAction(t("wb.sel_term", text=short))
             a_allow = m.addAction(t("wb.sel_allow", text=short))
+        # Base64 of the selection, or of the whole input if nothing is selected
+        m.addSeparator()
+        target = raw_sel if raw_sel else self.input.toPlainText()
+        decoded = b64.decode(target) if len(target) <= 5_000_000 else None
+        a_dec = m.addAction(t("wb.b64_decode_sel" if raw_sel else "wb.b64_decode_all"))
+        a_dec.setEnabled(decoded is not None)
+        a_enc = m.addAction(t("wb.b64_encode_sel" if raw_sel else "wb.b64_encode_all"))
+        a_enc.setEnabled(bool(target))
         chosen = m.exec(self.input.viewport().mapToGlobal(pos))
+        if chosen is not None and (chosen is a_dec or chosen is a_enc):
+            self.base64_input(decode=chosen is a_dec)
+            return
         if chosen is not None and chosen is a_term:
             self.c.add_custom_term(sel, "")
             self.c.notify(t("wb.sel_term_done", text=sel, where=self.c.project_label()), force=True)
@@ -375,6 +392,24 @@ class Workbench(QWidget):
         elif chosen is not None and chosen is a_allow:
             self.c.add_allow_term(sel)
             self.analyze()
+
+    def base64_input(self, decode: bool) -> bool:
+        """Decode / encode the selection, or the whole input if nothing is selected (one undo step)."""
+        cur = self.input.textCursor()
+        if not cur.hasSelection():
+            cur.select(QTextCursor.Document)
+        target = cur.selectedText().replace("\u2029", "\n")
+        out = b64.decode(target) if decode else b64.encode(target)
+        if out is None or not target:
+            self.status.setText(t("msg.b64_invalid"))
+            return False
+        start = cur.selectionStart()
+        cur.insertText(out)
+        cur.setPosition(start)
+        cur.setPosition(start + len(out.encode("utf-16-le")) // 2, QTextCursor.KeepAnchor)
+        self.input.setTextCursor(cur)
+        self.status.setText(t("wb.b64_decoded" if decode else "wb.b64_encoded", chars=len(out)))
+        return True
 
     def add_text_as_term(self, text: str, typ: str = "CUSTOM"):
         self.c.add_custom_term(text, typ)

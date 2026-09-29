@@ -355,6 +355,7 @@ class SettingsDialog(QDialog):
                  self._combo("watcher.mode", ["off", "notify", "critical", "always"], "watch."))
         f.addRow(t("settings.watch_action"), self._combo("watcher.action", MODE_CHOICES, "mode."))
         f.addRow("", self._check("watcher.offer_revert", t("settings.offer_revert")))
+        f.addRow("", self._check("watcher.offer_base64", t("settings.offer_base64")))
         f.addRow(t("settings.popup_timeout"), self._spin("watcher.popup_timeout", 0, 600))
         f.addRow(t("settings.max_chars"), self._spin("watcher.max_chars", 1000, 50_000_000))
         from ..core.entities import CATEGORIES

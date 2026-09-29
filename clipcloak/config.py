@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 CONFIG_VERSION = 1
 
 ACTIONS = ["pseudonymize", "anonymize", "redact", "revert", "process", "workbench", "process_file",
-           "redact_image", "screenshot", "toggle_watcher"]
+           "redact_image", "screenshot", "b64_decode", "b64_encode", "toggle_watcher"]
 
 DEFAULTS: dict = {
     "version": CONFIG_VERSION,
@@ -44,6 +44,8 @@ DEFAULTS: dict = {
         "process_file": "",
         "redact_image": "Ctrl+Alt+I",
         "screenshot": "",
+        "b64_decode": "",
+        "b64_encode": "",
         "toggle_watcher": "",
     },
     "watcher": {
@@ -54,6 +56,7 @@ DEFAULTS: dict = {
         "popup_timeout": 12,
         "max_chars": 500_000,
         "offer_revert": True,        # a pseudonymised result (LLM answer) -> popup offers revert, no auto change
+        "offer_base64": True,        # Base64 of readable text -> popup offers to decode it
     },
     "image": {                        # image redaction (detection needs the plugin)
         "faces": True,

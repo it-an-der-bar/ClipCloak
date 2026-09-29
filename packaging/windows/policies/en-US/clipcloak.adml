@@ -82,6 +82,10 @@ If configured, the user cannot change this setting. Setting: watcher.action</str
       <string id="P_watcher_offer_revert_Help">If the copied text consists of this project's replacement values (e.g. the LLM's answer), the popup offers revert and nothing is changed automatically.
 
 If configured, the user cannot change this setting. Setting: watcher.offer_revert</string>
+      <string id="P_watcher_offer_base64">Offer to decode Base64</string>
+      <string id="P_watcher_offer_base64_Help">If the copied text is Base64 of readable text (e.g. a Kubernetes secret), the popup offers to decode it and names what the decoded text contains.
+
+If configured, the user cannot change this setting. Setting: watcher.offer_base64</string>
       <string id="P_watcher_categories_tracking">Category: Origin / tracking in links</string>
       <string id="P_watcher_categories_tracking_Help">Finding types: TRACKING. always change: processed at once; inform: popup; nothing: the watcher ignores them.
 
@@ -407,6 +411,14 @@ If configured, the user cannot change this setting. Setting: hotkeys.redact_imag
       <string id="P_hotkeys_screenshot_Help">Key combination such as Ctrl+Alt+P. Empty: no shortcut.
 
 If configured, the user cannot change this setting. Setting: hotkeys.screenshot</string>
+      <string id="P_hotkeys_b64_decode">Shortcut: Decode Base64 in the clipboard</string>
+      <string id="P_hotkeys_b64_decode_Help">Key combination such as Ctrl+Alt+P. Empty: no shortcut.
+
+If configured, the user cannot change this setting. Setting: hotkeys.b64_decode</string>
+      <string id="P_hotkeys_b64_encode">Shortcut: Encode clipboard as Base64</string>
+      <string id="P_hotkeys_b64_encode_Help">Key combination such as Ctrl+Alt+P. Empty: no shortcut.
+
+If configured, the user cannot change this setting. Setting: hotkeys.b64_encode</string>
       <string id="P_hotkeys_toggle_watcher">Shortcut: Toggle clipboard watcher</string>
       <string id="P_hotkeys_toggle_watcher_Help">Key combination such as Ctrl+Alt+P. Empty: no shortcut.
 
@@ -458,6 +470,8 @@ If configured, the user cannot change this setting. Setting: hotkeys.toggle_watc
       <presentation id="P_hotkeys_process_file"><textBox refId="P_hotkeys_process_file"><label>Shortcut: Process file</label></textBox></presentation>
       <presentation id="P_hotkeys_redact_image"><textBox refId="P_hotkeys_redact_image"><label>Shortcut: Redact image in clipboard …</label></textBox></presentation>
       <presentation id="P_hotkeys_screenshot"><textBox refId="P_hotkeys_screenshot"><label>Shortcut: Screenshot → text (LLM)</label></textBox></presentation>
+      <presentation id="P_hotkeys_b64_decode"><textBox refId="P_hotkeys_b64_decode"><label>Shortcut: Decode Base64 in the clipboard</label></textBox></presentation>
+      <presentation id="P_hotkeys_b64_encode"><textBox refId="P_hotkeys_b64_encode"><label>Shortcut: Encode clipboard as Base64</label></textBox></presentation>
       <presentation id="P_hotkeys_toggle_watcher"><textBox refId="P_hotkeys_toggle_watcher"><label>Shortcut: Toggle clipboard watcher</label></textBox></presentation>
     </presentationTable>
   </resources>

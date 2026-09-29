@@ -21,6 +21,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon
 
 from .. import __version__, i18n, paths
 from ..config import Config, engine_settings
+from ..core import b64
 from ..core.detectors.external import LlmDetector, NerDetector, find_ner_helper
 from ..core.engine import Engine
 from ..core.entities import ALL_TYPES, Result
@@ -323,6 +324,10 @@ class Controller(QObject):
             self.screenshot_to_text()
         elif action == "redact_image":
             self.redact_image()
+        elif action == "b64_decode":
+            self.b64_decode_clipboard()
+        elif action == "b64_encode":
+            self.b64_encode_clipboard()
         elif action == "toggle_watcher":
             cur = self.cfg.get("watcher.mode")
             self.set_watch_mode("off" if cur != "off" else self._last_watch_mode)
@@ -435,6 +440,47 @@ class Controller(QObject):
 
         self.submit(job, done, label=t("job.file", mode=t("mode." + mode), name=os.path.basename(path)))
 
+    def b64_decode_clipboard(self, content: ClipContent | None = None, expect_hash: str | None = None,
+                             then_mode: str | None = None, source: str = "tray"):
+        """Replace Base64 in the clipboard by the decoded text. The decoded text often is a secret
+        (Kubernetes secrets, basic auth), so it is written like a revert result (kept out of clipboard
+        history) and the notification names what it contains. ``then_mode``: process it right away."""
+        content = content if content is not None else self.clip.read()
+        text = content.text
+        if not text:
+            self.notify(t("msg.no_text"), force=True)
+            return
+        decoded = b64.decode(text)
+        if decoded is None:
+            self.notify(t("msg.b64_invalid"), force=True)
+            return
+        if expect_hash is not None and text_hash(self.clip.read().text) != expect_hash:
+            self.notify(t("msg.clip_changed"), error=True)
+            return
+        self.write_clipboard(decoded, None, sensitive=True)
+        event("log.b64_decoded", chars=len(decoded))
+        if then_mode:
+            self.process_clipboard(then_mode, source, ClipContent(text=decoded))
+            return
+        engine = self.engine
+
+        def done(findings):
+            msg = t("msg.b64_decoded", chars=len(decoded))
+            if findings:
+                msg += " – " + t("popup.found_text", summary=_summary(findings))
+            self.notify(msg, force=True)
+
+        self.submit(lambda: engine.analyze(decoded, skip={"llm"}), done, label=t("job.b64"))
+
+    def b64_encode_clipboard(self):
+        text = self.clip.read().text
+        if not text:
+            self.notify(t("msg.no_text"), force=True)
+            return
+        self.write_clipboard(b64.encode(text), None)
+        event("log.b64_encoded", chars=len(text))
+        self.notify(t("msg.b64_encoded", chars=len(text)), force=True)
+
     def write_clipboard(self, text: str, html: str | None, sensitive: bool = False):
         self._own.append(text_hash(text))
         self.clip.write(text, html, sensitive=sensitive)
@@ -543,6 +589,7 @@ class Controller(QObject):
         engine = self.engine
 
         offer_revert = bool(self.cfg.get("watcher.offer_revert", True))
+        offer_b64 = bool(self.cfg.get("watcher.offer_base64", True))
 
         def job():
             # every copy passes here: never send it to an LLM (that runs only on explicit actions)
@@ -550,11 +597,22 @@ class Controller(QObject):
             if offer_revert:
                 looks, reverted, real = engine.surrogate_hint(text, findings)
                 if looks:
-                    return findings, (reverted, real)
-            return findings, None
+                    return findings, (reverted, real), None
+            decoded = b64.decode(text, strict=True) if offer_b64 else None
+            if decoded is not None:
+                return findings, None, (decoded, engine.analyze(decoded, skip={"llm"}))
+            return findings, None, None
 
         def done(r):
-            findings, hint = r
+            findings, hint, base64 = r
+            rules = self.watch_rules(mode)
+            if base64 is not None and not any(rules.get(f.type) == "auto" for f in findings):
+                # Base64 of readable text (a Kubernetes secret …): offer to decode it. Findings that are
+                # changed automatically go first – then the Base64 is gone anyway.
+                decoded, inner = base64
+                event("log.watch_base64", chars=len(decoded), summary=_summary(inner) or "–")
+                self._base64_popup(decoded, inner, [f for f in findings if rules.get(f.type) == "ask"], content, h)
+                return
             if hint is not None:
                 # a pseudonymised result (e.g. the LLM's answer): offer revert, change nothing automatically
                 reverted, real = hint
@@ -564,7 +622,6 @@ class Controller(QObject):
             if not findings:
                 event("log.watch_none")
                 return
-            rules = self.watch_rules(mode)
             auto = [f for f in findings if rules.get(f.type) == "auto"]
             ask = [f for f in findings if rules.get(f.type) == "ask"]
             summary = _summary(findings)
@@ -657,6 +714,23 @@ class Controller(QObject):
                                int(self.cfg.get("watcher.popup_timeout", 12))),
                          lambda key: self._popup_choice(key, content, h))
 
+    def _base64_popup(self, decoded: str, inner, ask, content, h):
+        """``inner``: findings in the decoded text, ``ask``: findings in the Base64 text itself."""
+        from .popup import Popup
+        text = t("popup.b64_text", chars=len(decoded))
+        if inner:
+            text += "\n" + t("popup.b64_contains", summary=_summary(inner))
+        if ask:
+            text += "\n" + t("popup.found_text", summary=_summary(ask))
+        actions = [("b64decode", t("popup.b64_decode"), self.hotkey_text("b64_decode"))]
+        if inner:
+            actions.append(("b64pseudo", t("popup.b64_decode_pseudo"), ""))
+        if ask:
+            actions.append(("pseudonymize", t("mode.pseudonymize"), self.hotkey_text("pseudonymize")))
+        actions.append(("b64details", t("popup.details"), ""))
+        self._show_popup(Popup(t("popup.b64_title"), text, actions, int(self.cfg.get("watcher.popup_timeout", 12))),
+                         lambda key: self._popup_choice(key, content, h, decoded))
+
     def _show_popup(self, popup, handler):
         if self._popup is not None:
             try:
@@ -667,10 +741,14 @@ class Controller(QObject):
         popup.chosen.connect(handler)
         popup.show_near_tray()
 
-    def _popup_choice(self, key, content, h):
+    def _popup_choice(self, key, content, h, decoded: str | None = None):
         self._popup = None
         if key in ("pseudonymize", "anonymize", "redact", "revert"):
             self.process_clipboard(key, "popup", content, h)
+        elif key in ("b64decode", "b64pseudo"):
+            self.b64_decode_clipboard(content, h, "pseudonymize" if key == "b64pseudo" else None, "popup")
+        elif key == "b64details":
+            self.show_workbench(decoded or "")    # look at it without touching the clipboard
         elif key == "details":
             self.show_workbench((content.text if content is not None else self.clip.read().text) or "")
 
@@ -1114,6 +1192,7 @@ class Controller(QObject):
         ui_only.removeHandler(self.log_handler)
         self._save_project_now()
         self.hotkeys.unregister()
+        self._watch_timer.stop()             # a pending check would start a job after the executor is gone
         if self.clip is not None:
             self.clip.stop_watch()
             self.clip.release()

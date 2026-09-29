@@ -82,6 +82,10 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_watcher_offer_revert_Help">Besteht der kopierte Text aus Ersatzwerten dieses Projekts (z. B. die Antwort des LLM), bietet das Popup Zurückübersetzen an und nichts wird automatisch geändert.
 
 Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.offer_revert</string>
+      <string id="P_watcher_offer_base64">Base64-Dekodierung anbieten</string>
+      <string id="P_watcher_offer_base64_Help">Ist der kopierte Text Base64 eines lesbaren Textes (z. B. ein Kubernetes-Secret), bietet das Popup an, ihn zu dekodieren, und nennt, was der dekodierte Text enthält.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.offer_base64</string>
       <string id="P_watcher_categories_tracking">Kategorie: Herkunft / Tracking in Links</string>
       <string id="P_watcher_categories_tracking_Help">Fundtypen: TRACKING. immer ändern: sofort verarbeitet; informieren: Popup; nichts: die Überwachung ignoriert sie.
 
@@ -407,6 +411,14 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_hotkeys_screenshot_Help">Tastenkombination wie Strg+Alt+P (als Ctrl+Alt+P schreiben). Leer: kein Kürzel.
 
 Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: hotkeys.screenshot</string>
+      <string id="P_hotkeys_b64_decode">Tastenkürzel: Base64 in der Zwischenablage dekodieren</string>
+      <string id="P_hotkeys_b64_decode_Help">Tastenkombination wie Strg+Alt+P (als Ctrl+Alt+P schreiben). Leer: kein Kürzel.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: hotkeys.b64_decode</string>
+      <string id="P_hotkeys_b64_encode">Tastenkürzel: Zwischenablage als Base64 kodieren</string>
+      <string id="P_hotkeys_b64_encode_Help">Tastenkombination wie Strg+Alt+P (als Ctrl+Alt+P schreiben). Leer: kein Kürzel.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: hotkeys.b64_encode</string>
       <string id="P_hotkeys_toggle_watcher">Tastenkürzel: Überwachung ein/aus</string>
       <string id="P_hotkeys_toggle_watcher_Help">Tastenkombination wie Strg+Alt+P (als Ctrl+Alt+P schreiben). Leer: kein Kürzel.
 
@@ -458,6 +470,8 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <presentation id="P_hotkeys_process_file"><textBox refId="P_hotkeys_process_file"><label>Tastenkürzel: Datei verarbeiten</label></textBox></presentation>
       <presentation id="P_hotkeys_redact_image"><textBox refId="P_hotkeys_redact_image"><label>Tastenkürzel: Bild in der Zwischenablage schwärzen …</label></textBox></presentation>
       <presentation id="P_hotkeys_screenshot"><textBox refId="P_hotkeys_screenshot"><label>Tastenkürzel: Screenshot → Text (LLM)</label></textBox></presentation>
+      <presentation id="P_hotkeys_b64_decode"><textBox refId="P_hotkeys_b64_decode"><label>Tastenkürzel: Base64 in der Zwischenablage dekodieren</label></textBox></presentation>
+      <presentation id="P_hotkeys_b64_encode"><textBox refId="P_hotkeys_b64_encode"><label>Tastenkürzel: Zwischenablage als Base64 kodieren</label></textBox></presentation>
       <presentation id="P_hotkeys_toggle_watcher"><textBox refId="P_hotkeys_toggle_watcher"><label>Tastenkürzel: Überwachung ein/aus</label></textBox></presentation>
     </presentationTable>
   </resources>

@@ -43,6 +43,10 @@ class Tray(QSystemTrayIcon):
             a.triggered.connect(lambda _=False, x=action: self.c.run_action(x, "tray"))
         m.addAction(t("action.redact_image") + self._hk("redact_image")).triggered.connect(
             lambda: self.c.run_action("redact_image", "tray"))
+        b64_menu = m.addMenu(t("tray.base64"))
+        for action in ("b64_decode", "b64_encode"):
+            a = b64_menu.addAction(t("action." + action) + self._hk(action))
+            a.triggered.connect(lambda _=False, x=action: self.c.run_action(x, "tray"))
         if self.c.cfg.get("llm.enabled"):
             a = m.addAction(t("action.screenshot") + self._hk("screenshot"))
             a.triggered.connect(lambda: self.c.run_action("screenshot", "tray"))

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.30
+
+- **Base64:** when the copied text is Base64 of readable text (standard or URL-safe, with or without padding, also wrapped over lines), the watcher offers *Decode* – and *Decode + pseudonymise* when the decoded text contains something sensitive; the popup names what it contains (types only, no values). *Details* opens the decoded text in the workbench without changing the clipboard. The decoded text is written like a revert result (kept out of clipboard history / cloud clipboard). Findings the watcher changes automatically still go first. Setting `watcher.offer_base64` (Settings › Watcher, on by default; ADMX policy).
+- New actions *Decode Base64 in the clipboard* and *Encode clipboard as Base64* (`b64_decode`, `b64_encode`; tray › Base64, bindable shortcuts, `--action`). The explicit action also decodes short values such as Kubernetes secrets (`YWRtaW4=` → `admin`); the watcher only reacts to 12+ characters (8+ with `=` padding) and ignores hex strings and plain words.
+- Workbench: right click › *Decode Base64* / *Encode as Base64* for the selection or the whole input (one undo step); the status line says when the input is Base64.
+- A clipboard check still pending when the program exits no longer raises an error.
+
 ## 0.1.29
 
 - GitLab pipeline switched off (GitHub Actions builds the releases); it runs again when the CI/CD variable `GITLAB_BUILDS=on` is set in the GitLab project.

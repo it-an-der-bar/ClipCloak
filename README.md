@@ -103,7 +103,7 @@ The language is set under Settings › General › Sprache / Language; the progr
 Projects are switched, created and configured in the bar above the tabs of the main window, in the *Project* menu or in the tray.
 
 All shortcuts are configurable, and additional actions can be bound: process with default mode,
-screenshot → text, toggle watcher. The tray menu contains all actions plus the default mode,
+screenshot → text, Base64 decode/encode, toggle watcher. The tray menu contains all actions plus the default mode,
 the watcher mode, pause, projects, history, mappings and settings.
 
 A typical LLM round trip:
@@ -114,6 +114,14 @@ A typical LLM round trip:
 4. Copy the answer.
 5. Press `Ctrl+Alt+U`.
 6. Paste the answer, which now contains your real values.
+
+**Base64.** When the copied text is Base64 of readable text (a Kubernetes secret, a basic-auth
+value), the watcher offers to decode it and names what the decoded text contains – *Decode* or
+*Decode + pseudonymise*; *Details* opens it in the workbench without touching the clipboard. The
+decoded text is kept out of the clipboard history like a revert result. *Tray › Base64* decodes or
+encodes the clipboard by hand (also short values such as `YWRtaW4=`), and in the workbench a right
+click decodes or encodes the selection or the whole input. Switch the offer off with
+`watcher.offer_base64`.
 
 ### Wayland
 

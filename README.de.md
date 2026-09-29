@@ -104,7 +104,7 @@ Die Sprache stellst du unter Einstellungen › Allgemein › Sprache / Language 
 Projekte wechselst, legst an und konfigurierst du in der Leiste über den Tabs des Hauptfensters, im Menü *Projekt* oder im Tray.
 
 Alle Kürzel sind einstellbar, und weitere Aktionen lassen sich belegen: Verarbeiten im
-Standardmodus, Screenshot → Text, Überwachung ein/aus. Das Tray-Menü enthält alle Aktionen sowie
+Standardmodus, Screenshot → Text, Base64 dekodieren/kodieren, Überwachung ein/aus. Das Tray-Menü enthält alle Aktionen sowie
 Standardmodus, Überwachungsmodus, Pause, Projekte, Verlauf, Zuordnungen und Einstellungen.
 
 So läuft ein typischer LLM-Durchgang:
@@ -115,6 +115,14 @@ So läuft ein typischer LLM-Durchgang:
 4. Die Antwort kopieren.
 5. `Strg+Alt+U` drücken.
 6. Die Antwort einfügen; sie enthält jetzt die echten Werte.
+
+**Base64.** Ist der kopierte Text Base64 eines lesbaren Textes (ein Kubernetes-Secret, ein
+Basic-Auth-Wert), bietet die Überwachung an, ihn zu dekodieren, und nennt, was der dekodierte Text
+enthält – *Dekodieren* oder *Dekodieren + pseudonymisieren*; *Details* öffnet ihn in der Werkbank, ohne
+die Zwischenablage anzufassen. Der dekodierte Text bleibt wie ein zurückübersetztes Ergebnis aus dem
+Zwischenablage-Verlauf heraus. *Tray › Base64* dekodiert oder kodiert die Zwischenablage von Hand (auch
+kurze Werte wie `YWRtaW4=`), und in der Werkbank dekodiert oder kodiert ein Rechtsklick die Auswahl oder
+die ganze Eingabe. Abschalten mit `watcher.offer_base64`.
 
 ### Wayland
 
