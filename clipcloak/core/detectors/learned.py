@@ -47,7 +47,9 @@ class LearnedNameDetector(Detector):
         if not tokens:
             return []
         alt = "|".join(re.escape(k) for k in sorted(tokens, key=len, reverse=True))
-        rx = re.compile(WORD_BOUNDARY_L + "(?:" + alt + ")" + WORD_BOUNDARY_R, re.IGNORECASE)
+        # not a part of a double name or compound: "Anna" in "Anna-Lena", "Max" in "Max-Planck-Institut"
+        rx = re.compile(WORD_BOUNDARY_L + r"(?<![A-Za-zÀ-ɏ]-)(?:" + alt + ")" + WORD_BOUNDARY_R + r"(?!-[A-Za-zÀ-ɏ])",
+                        re.IGNORECASE)
         out = []
         for m in rx.finditer(text):
             w = m.group(0)

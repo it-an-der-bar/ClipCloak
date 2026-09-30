@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.33
+
+- Prose and Markdown no longer give false secrets: backticks and punctuation after a value are no part of it (`` `smbclient -U user%pass`, `` → placeholder "pass", `-pw (plink)` → nothing, `` `Authorization: Bearer` ``, `` `password: …` ``). New test: the READMEs, CHANGELOG, security docs and UI texts contain no secret finding.
+- Learned names no longer match inside double names and compounds ("Anna" in "Anna-Lena", "Max" in "Max-Planck-Institut").
+
 ## 0.1.32
 
 - **Test corpus combinatorial:** every token (≈ 65 formats) in every wrapper (33: alone, sentence, log, punctuation, brackets, quotes, Markdown, JSON, escaped JSON, YAML, `.env`, XML, HTML attribute, header, URL query, webhook URL, CLI, CSV/TSV, comment, split over string literals in Python/JS/Java/VB/PHP) and base64-encoded – 2,184 credentials, all found. 20 technical values that are no secret (UUID, ULID, request id, pod name, JWT header, dates, paths, identifiers …) in the same wrappers – 635 texts, no finding.
@@ -16,7 +21,7 @@ Secret detection measured against a corpus instead of single cases (`tests/test_
 - **gitleaks rule set** (≈ 220 cloud and SaaS providers, MIT) as detector "gitleaks" (on), converted by `tools/make_secret_rules.py`; formats with a fixed prefix (`NRAK-`, `tfp_`, `dnkey-` …) are also found without a key in front. Own rules for Supabase, Groq, Airtable, New Relic, Telegram bots, k3s/RKE2 join tokens, Rancher.
 - **Admin commands:** `net user`/`net use`, SQL `IDENTIFIED BY`/`CREATE|ALTER USER … PASSWORD '…'`/`SET PASSWORD`, redis `requirepass`/`masterauth`/`redis-cli -a`, `ldap* -w`, `openssl … pass:`, `smbclient -U user%pass`, `/p:` (xfreerdp), `-pw` (plink), `-u … -p …` (psexec, docker login), Cisco `password 7`/`secret 5|8|9`, PowerShell `-Password`; password hashes (`$1$ $5$ $6$ $2y$ $apr1$ $y$` …) keep their algorithm in the pseudonym. Keys like `PGPASSWORD`, `rootpassword` count.
 - **Fewer false findings in code and docs:** the secret word must be at the end of the key (`token_offsets`, `token.content`, `password_policy` are no secret); in source code an unquoted value is a variable (`token = self.peek_token()`, `def f(token: Token)`, `a, token = …`); values that name something (`existingSecret: db-credentials`, `"llm.api_key": "API token"`, `'Cookie': 'http.cookies'`) and UI texts stay; hex in URL paths of commits/blobs/gists, file names and SBOM/lock-file hashes stay (webhook URLs are still found); `0x…` number literals in code stay.
-- Unquoted values may contain `#` and `&` (`password=ab#c&d` is found completely; in URLs `&name=` still ends the value).
+- Unquoted values may contain `#` and `&` (a `password=` value with both is found completely; in URLs `&name=` still ends the value).
 - Hex pseudonyms keep upper / lower case consistently.
 - NER: "Azure SAS" is no organisation.
 

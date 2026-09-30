@@ -1,3 +1,3 @@
 """Clipboard redaction, anonymisation and reversible pseudonymisation."""
 
-__version__ = "0.1.32"
+__version__ = "0.1.33"

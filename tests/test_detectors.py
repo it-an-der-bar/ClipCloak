@@ -196,3 +196,11 @@ class PublicKeyTokenTest(unittest.TestCase):
         self.assertFalse([f for f in e.analyze(text) if f.type == "SECRET"])
         found = [f.text for f in e.analyze("x(password=S3cr3t!x)]") if f.type == "SECRET"]
         self.assertEqual(found, ["S3cr3t!x"])
+
+
+class LearnedNamesTest(unittest.TestCase):
+    def test_not_inside_double_names(self):
+        text = "Mail von anna.petersen@kunde.de – Anna-Lena Petersen und Anna Petersen im Max-Planck-Institut"
+        names = [f.text for f in Engine().analyze(text) if f.detector == "learned-names"]
+        self.assertEqual(names.count("Anna"), 1)             # "Anna Petersen", not "Anna-Lena"
+        self.assertEqual(names.count("Petersen"), 2)

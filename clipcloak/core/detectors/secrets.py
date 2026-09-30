@@ -413,6 +413,8 @@ class KeyValueSecretDetector(Detector):
                 s, e = m.start(vg), m.end(vg)
                 if vg == "val2":
                     e = s + _balanced_len(text[s:e])     # "…7798e]](System…" -> "…7798e"
+                    while e > s and text[e - 1] in "`,.;:)" and text[e - 1] not in text[s:e - 1]:
+                        e -= 1                            # Markdown / prose: "`password: …`," "(… Bearer`)"
                     val = text[s:e]
                 if not is_secret_key(key) or is_placeholder(val) or self._names_key(key, val):
                     continue
@@ -451,8 +453,14 @@ class KeyValueSecretDetector(Detector):
         for rx, grp in ((MYSQL_RE, 1), (SSHPASS_RE, 1), (SECURESTRING_RE, 2), (NETRC_RE, 1), (CLI_FLAG_RE, 2),
                         *ADMIN_PATTERNS):
             for m in rx.finditer(text):
-                if not is_placeholder(m.group(grp)) and not m.group(grp).startswith("-"):
-                    out.append(self.mk(m.start(grp), m.end(grp), T.SECRET.value, text, priority=88, kind="cli"))
+                s, e = m.span(grp)
+                # "`smbclient -U user%pass`," / "-pw (plink)" in prose: quotes and punctuation are no part of it
+                while e > s and text[e - 1] in ",.;:)`'\"":
+                    e -= 1
+                val = text[s:e]
+                if not val or val[0] in "-([<{`" or is_placeholder(val) or not_a_secret_value(val):
+                    continue
+                out.append(self.mk(s, e, T.SECRET.value, text, priority=88, kind="cli"))
         return out
 
 

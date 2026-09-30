@@ -81,6 +81,27 @@ class SecretCorpusTest(unittest.TestCase):
                 self.assertRegex(out.rsplit(" ", 1)[1], r"^[0-9A-F]+$")  # upper-case hex stays upper case
 
 
+class DocumentationTest(unittest.TestCase):
+    """The project's own docs: prose full of command lines, key names and examples in backticks."""
+
+    def test_no_secrets_in_the_docs(self):
+        import json
+        from pathlib import Path
+        root = Path(__file__).resolve().parent.parent
+        import re
+        texts = {f: (root / f).read_text("utf-8") for f in ("README.md", "README.de.md", "CHANGELOG.md", "SECURITY.md",
+                                                            "docs/SECURITY-AUDIT.md")}
+        # the before/after demo at the top of the READMEs holds a password on purpose
+        texts = {f: re.sub(r"(?m)^(?:Before|After|Vorher|Nachher) .*$", "", t) for f, t in texts.items()}
+        for lang in ("en", "de"):
+            d = json.loads((root / "clipcloak" / "resources" / "i18n" / f"{lang}.json").read_text("utf-8"))
+            texts[lang + ".json"] = "\n".join(f'"{k}": "{v}"' for k, v in d.items())
+        e = engine()
+        bad = [f"{name}: {f.detector} {f.text!r}" for name, text in texts.items() for f in e.analyze(text)
+               if f.type in ("SECRET", "PRIVATE_KEY")]
+        self.assertEqual(bad, [])
+
+
 class StdlibPrecisionTest(unittest.TestCase):
     """Real code and documentation: the Python standard library of this interpreter."""
 
