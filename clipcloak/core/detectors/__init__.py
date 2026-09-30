@@ -12,10 +12,11 @@ from .tracking import TrackingDetector
 from .network import (DomainDetector, EmailDetector, HostnameDetector, IPv4Detector,
                       IPv6Detector, MacDetector)
 from .secrets import (EntropyDetector, GitleaksDetector, HexSecretDetector, KeyValueSecretDetector, PemDetector,
-                      RandomTokenDetector, TokenDetector)
+                      RandomTokenDetector, SplitStringDetector, TokenDetector)
 
 BUILTIN_DETECTORS: list[type[Detector]] = [
-    PemDetector, TokenDetector, GitleaksDetector, KeyValueSecretDetector, HexSecretDetector, RandomTokenDetector,
+    PemDetector, TokenDetector, SplitStringDetector, GitleaksDetector, KeyValueSecretDetector, HexSecretDetector,
+    RandomTokenDetector,
     EntropyDetector,
     EmailDetector, IPv4Detector, IPv6Detector, MacDetector, DomainDetector,
     HostnameDetector, UserPathDetector, IbanDetector, CardDetector, PhoneDetector,

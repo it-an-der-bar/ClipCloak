@@ -39,6 +39,7 @@ Nachher  selma.pichler@nawidrock.com   srv-dc01.nawidrock.local  10.72.15.100/24
   - Benutzernamen in `C:\Users\…`, `/home/…` und `DOMAIN\user`, Windows-SIDs, IBANs, Kreditkarten, Telefonnummern
   - Secrets:
     - Token-Formate: GitLab, GitHub, AWS, Slack, OpenAI/Anthropic, Stripe, npm, PyPI, Docker, Vault, HF, JWT, Azure SAS, k3s/RKE2, Rancher, Telegram … dazu die ≈ 220 Cloud- und SaaS-Formate des [gitleaks](https://github.com/gitleaks/gitleaks)-Regelsatzes
+    - in Code auf mehrere Strings verteilte Tokens (`"eyJ…." "eyJ…."`, `"…" + "…"`)
     - Zufalls-Tokens unbekannter Formate (ab 30 Zeichen Base62/Base64, mit oder ohne Präfix wie `abc_`) und ein allein kopiertes Passwort oder Token (ab 16 Zeichen, mit Sonderzeichen ab 10)
     - PEM-Private-Keys und -Zertifikate, auch Base64-kodiert (kubeconfig `client-key-data`)
     - Zugangsdaten als Schlüssel/Wert in JSON, YAML, `.env`, INI, XML und Connection-Strings; Base64-Werte, die welche enthalten (`auth` in Dockers `config.json`, Kubernetes-Secrets)

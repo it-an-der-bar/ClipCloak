@@ -343,6 +343,12 @@
       <enabledValue><decimal value="1" /></enabledValue>
       <disabledValue><decimal value="0" /></disabledValue>
     </policy>
+    <policy name="P_detectors_enabled_split_strings" class="Both" displayName="$(string.P_detectors_enabled_split_strings)" explainText="$(string.P_detectors_enabled_split_strings_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="detectors.enabled.split-strings">
+      <parentCategory ref="C_detectors" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
     <policy name="P_detectors_enabled_gitleaks" class="Both" displayName="$(string.P_detectors_enabled_gitleaks)" explainText="$(string.P_detectors_enabled_gitleaks_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="detectors.enabled.gitleaks">
       <parentCategory ref="C_detectors" />
       <supportedOn ref="SUPPORTED_0_1_9" />

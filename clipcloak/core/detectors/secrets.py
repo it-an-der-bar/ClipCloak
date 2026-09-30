@@ -40,7 +40,11 @@ TOKEN_PATTERNS = [
 ]
 _TOKEN_RES = [(n, re.compile(p), k) for n, p, k in TOKEN_PATTERNS]
 
-JWT_RE = re.compile(r"\beyJ[0-9A-Za-z_-]{5,}\.eyJ[0-9A-Za-z_-]{5,}\.[0-9A-Za-z_-]{10,}")
+# signed, or unsigned ("alg": "none" ends with the dot)
+JWT_RE = re.compile(r"\beyJ[0-9A-Za-z_-]{5,}\.eyJ[0-9A-Za-z_-]{5,}\.(?:[0-9A-Za-z_-]{10,}|(?![0-9A-Za-z_-]))")
+# one part of a JWT alone: base64url of a JSON object
+JWT_PART_RE = re.compile(r"(?<![\w.-])eyJ[0-9A-Za-z_-]{16,}={0,2}(?![\w-])")
+JWT_HEADER_KEYS = {"alg", "typ", "kid", "cty", "x5t", "x5t#S256", "x5u", "jku", "jwk", "enc", "zip", "crit", "b64"}
 PEM_RE = re.compile(r"-----BEGIN ([A-Z0-9 ]{3,40})-----(.*?)-----END \1-----", re.S)
 AUTH_HEADER_RE = re.compile(
     r"(?i)\b(?:authorization|proxy-authorization)\s*[:=]\s*[\"']?(?:bearer|basic|token|apikey|digest|negotiate)\s+([A-Za-z0-9._~+/=\-]{8,})")
@@ -231,11 +235,97 @@ class TokenDetector(Detector):
                 e = s + len(val)
                 k = keep if keep is not None else (val.index("-") + 1 if "-" in val else 0)
                 out.append(self.mk(s, e, T.SECRET.value, text, keep_prefix=k, kind=name))
+        jwts = []
         for m in JWT_RE.finditer(text):
             header = m.group(0).split(".", 1)[0]
+            jwts.append((m.start(), m.end()))
             out.append(self.mk(m.start(), m.end(), T.SECRET.value, text, priority=93,
                                keep_prefix=len(header) + 1, kind="jwt"))
+        for m in JWT_PART_RE.finditer(text):
+            if any(a <= m.start() < b for a, b in jwts):
+                continue
+            claims = _jwt_json(m.group(0))
+            if claims is not None and not set(claims) <= JWT_HEADER_KEYS:
+                # the payload of a token (sub, email, tenant …) – the header alone is public
+                out.append(self.mk(m.start(), m.end(), T.SECRET.value, text, priority=93, kind="jwt-part"))
         return out
+
+
+def _jwt_json(part: str) -> dict | None:
+    import base64
+    import json
+    body = part.rstrip("=")
+    try:
+        obj = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
+    except (ValueError, UnicodeDecodeError):
+        return None
+    return obj if isinstance(obj, dict) and obj else None
+
+
+# string literals written in pieces: "eyJhbGci…." "eyJzdWIi…." "sig" (Python), "…" + "…" (JS, Java, C#),
+# "…" & "…" (VB), '…' . '…' (PHP), '…' || '…' (SQL), with a line break in between
+_STR_LIT = re.compile(r"""(?:\b[rRbBuUfF]{1,2})?(["'])((?:(?!\1)[^\\\n]|\\.){4,4000})\1""")
+_STR_JOIN = re.compile(r"\s*(?:\+|&\s*_?|\.|\|\||\\)?\s*")
+
+
+class SplitStringDetector(Detector):
+    """Tokens that code splits over several string literals: the pieces are joined, the token
+    detectors run on the whole, and every piece that belongs to a token is reported."""
+
+    id = "split-strings"
+    types = (T.SECRET.value,)
+    priority = 94
+
+    def find(self, text, ctx):
+        out = []
+        run: list[tuple[int, str]] = []          # (start of the content in text, content)
+        last_end = -1
+        for m in _STR_LIT.finditer(text):
+            body = m.group(2)
+            if re.search(r"\s|\\", body):
+                self._check(run, text, ctx, out)
+                run, last_end = [], -1
+                continue
+            if run and last_end >= 0 and _STR_JOIN.fullmatch(text[last_end:m.start()]):
+                run.append((m.start(2), body))
+            else:
+                self._check(run, text, ctx, out)
+                run = [(m.start(2), body)]
+            last_end = m.end()
+        self._check(run, text, ctx, out)
+        return out
+
+    def _check(self, run, text, ctx, out):
+        if len(run) < 2:
+            return
+        joined = "".join(b for _s, b in run)
+        offsets, pos = [], 0
+        for start, body in run:
+            offsets.append((pos, pos + len(body), start))
+            pos += len(body)
+        found = []
+        found += [f for det in (TokenDetector(), GitleaksDetector()) for f in det.find(joined, ctx)
+                  if f.type == T.SECRET.value]
+        found += [f for f in RandomTokenDetector().find(joined, ctx, whole_ok=False) if f.type == T.SECRET.value]
+        taken: list[tuple[int, int]] = []
+        for f in sorted(found, key=lambda f: (-f.priority, f.start)):
+            # only what really spans pieces – a token inside one piece is found there anyway
+            if sum(1 for fs, fe, _t in offsets if fs < f.end and fe > f.start) < 2:
+                continue
+            if any(a < f.end and f.start < b for a, b in taken):
+                continue                              # the best-known format wins (JWT before a generic rule)
+            taken.append((f.start, f.end))
+            keep_end = f.start + int(f.meta.get("keep_prefix", 0))
+            for fs, fe, tstart in offsets:
+                a, b = max(f.start, fs), min(f.end, fe)
+                if a >= b:
+                    continue
+                kept = max(0, min(keep_end, b) - a)
+                if kept >= b - a:
+                    continue                          # a JWT header: stays
+                s = tstart + (a - fs)
+                out.append(self.mk(s, tstart + (b - fs), T.SECRET.value, text, keep_prefix=kept,
+                                   kind="split-" + str(f.meta.get("kind", ""))))
 
 
 _EDGE_L = re.compile(r"(?:\s|\\[nr])*")
@@ -423,7 +513,7 @@ class HexSecretDetector(Detector):
         return out
 
 
-_TOKEN_CAND = re.compile(r"(?<![A-Za-z0-9+/_\-~=.])([A-Za-z0-9][A-Za-z0-9+/_\-~.]*[A-Za-z0-9+/_\-]={0,2})"
+_TOKEN_CAND = re.compile(r"(?<![A-Za-z0-9+/_\-~.])([A-Za-z0-9][A-Za-z0-9+/_\-~.]*[A-Za-z0-9+/_\-]={0,2})"
                          r"(?![A-Za-z0-9+/_\-~=])")
 _RUNS = re.compile(r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])|\d+")
 _TOKEN_PREFIX = re.compile(r"^(?:[A-Za-z][A-Za-z0-9]{0,9}[_\-.]){1,2}(?=[A-Za-z0-9+/])")
@@ -431,6 +521,15 @@ _TOKEN_PREFIX = re.compile(r"^(?:[A-Za-z][A-Za-z0-9]{0,9}[_\-.]){1,2}(?=[A-Za-z0
 # SSH public keys
 _PUBLIC_BEFORE = re.compile(r"(?i)(?:base64,|\bsha(?:1|256|384|512)[-:]|\bmd5[-:]|\bh1:|"
                             r"\b(?:ssh-(?:rsa|ed25519|dss)|ecdsa-sha2-nistp\d+|sk-ssh-ed25519@openssh\.com)\s+)$")
+# URL path segments after which a random value is a credential: webhooks, invite / reset links
+URL_SECRET_SEGMENTS = {"hook", "hooks", "webhook", "webhooks", "token", "tokens", "key", "keys", "secret", "secrets",
+                       "services", "trigger", "triggers", "apikey", "api-key", "invite", "reset", "callback", "notify"}
+PUBLIC_QUERY_PARAMS = {"list", "v", "id", "ids", "playlist", "index", "page", "t", "s", "si", "ref", "gid", "cid",
+                       "pid", "vid", "sku", "item", "itemid", "product", "article", "doc", "file", "folder",
+                       "path", "sort", "lang", "hl", "gl", "feature", "channel", "user", "u", "tab", "view"}
+_URL_RE = re.compile(r"\b[a-zA-Z][a-zA-Z0-9+.-]*://[^\s\"'<>`]+")
+_URL_SECRET_PATH = re.compile(r"/(?:" + "|".join(sorted(URL_SECRET_SEGMENTS)) + r")/([^?#\s]{16,})", re.I)
+_STRONG_SYMBOLS = set("!#$%&*+=?@^~<>()[]{}|;,")
 _PASSWORD_SYMBOLS = set("!#$%&*+-=?@^_~.,:;<>()[]{}|/\\")
 
 
@@ -485,8 +584,8 @@ def looks_random(body: str, min_len: int = 30) -> bool:
         return False                                   # "8X------…", separators
     classes, mean, wordy = randomness(body)
     has_digit = bool(re.search(r"\d", body))
-    if re.fullmatch(r"[0-9a-fA-F]+", body):
-        return False                                   # hex: the hex detector decides (hashes, ids)
+    if re.fullmatch(r"[0-9a-fA-F]+", re.sub(r"[-_:.]", "", body)):
+        return False                                   # hex (also "00-4bf9…-00f0…-01"): the hex detector decides
     if classes == 3:
         return mean <= 3.0 and wordy < 0.35
     if classes == 2 and not has_digit:                 # only letters, mixed case (hf_…)
@@ -508,10 +607,10 @@ class RandomTokenDetector(Detector):
     types = (T.SECRET.value, T.PRIVATE_KEY.value, T.CERTIFICATE.value)
     priority = 36
 
-    def find(self, text, ctx, _depth: int = 0):
+    def find(self, text, ctx, _depth: int = 0, whole_ok: bool = True):
         out = []
-        stripped = text.strip()
-        whole = 0 < len(stripped) <= 256 and not re.search(r"\s", stripped)
+        stripped = text.strip().strip("<>()[]{}\"'`")
+        whole = whole_ok and 0 < len(stripped) <= 256 and not re.search(r"\s", stripped)
         for m in _TOKEN_CAND.finditer(text):
             s, e = m.span(1)
             cand = m.group(1).rstrip(".~")
@@ -527,8 +626,12 @@ class RandomTokenDetector(Detector):
             ws = text.rfind(" ", 0, s)
             chunk_start = max(ws, text.rfind("\n", 0, s), text.rfind("\t", 0, s)) + 1
             chunk = text[chunk_start:s]
-            if "://" in chunk and not re.search(r"[?&#][^=&#]*=$", chunk):
-                continue                               # part of a URL (path, host) – not a query value
+            if "://" in chunk or "://" in text[s:s + 12]:
+                q = re.search(r"[?&#]([^=&#?]*)=$", chunk)
+                if q is None:
+                    continue                           # URL path: see _url_paths
+                if q.group(1).lower() in PUBLIC_QUERY_PARAMS:
+                    continue                           # ?list=…, ?v=…, ?id=…: public ids
             body = cand[len(prefix):]
             parts = [p for p in body.split("/") if p]
             if len(parts) > 1 and sum(_path_part(p) for p in parts) * 2 >= len(parts):
@@ -539,6 +642,8 @@ class RandomTokenDetector(Detector):
                     out.append(self.mk(s, e, pem, text, kind="base64-pem"))
                 continue
             decoded = b64.decode(body, strict=True)
+            if decoded is not None and decoded.lstrip().startswith("{") and cand.startswith("eyJ"):
+                continue                               # a JWT part: the token detector decides
             if decoded is not None:
                 # base64 of text: a secret only if the text holds one ("user:pass", "password: …")
                 if _depth < 1 and _secret_in(decoded):
@@ -548,10 +653,25 @@ class RandomTokenDetector(Detector):
             if not looks_random(body, min_len):
                 continue
             out.append(self.mk(s, e, T.SECRET.value, text, keep_prefix=len(prefix), kind="random"))
+        self._url_paths(text, out)
         if whole and not any(f.text == stripped for f in out) and self._password_like(stripped):
             s = text.index(stripped)
             out = [self.mk(s, s + len(stripped), T.SECRET.value, text, kind="password")]
         return out
+
+    def _url_paths(self, text: str, out: list) -> None:
+        """Webhook, invite and reset links: the random part after "hooks/", "token/" … is the credential."""
+        for u in _URL_RE.finditer(text):
+            m = _URL_SECRET_PATH.search(u.group(0))
+            if not m:
+                continue
+            val = m.group(1).rstrip("/.,;:)")
+            vs = u.start() + m.start(1)
+            pm = _TOKEN_PREFIX.match(val)
+            prefix = pm.group(0) if pm and len(val) - pm.end() >= 16 else ""
+            if looks_random(val[len(prefix):].replace("/", ""), 24) or re.fullmatch(r"[0-9a-fA-F]{32,}", val):
+                out.append(self.mk(vs, vs + len(val), T.SECRET.value, text, keep_prefix=len(prefix),
+                                   kind="url-secret"))
 
     @staticmethod
     def _password_like(v: str) -> bool:
@@ -562,8 +682,8 @@ class RandomTokenDetector(Detector):
             return False
         if re.fullmatch(r"[^@\s]+@[^@\s]+\.[A-Za-z]{2,}", v):
             return False
-        if not all(c.isalnum() or c in _PASSWORD_SYMBOLS for c in v) or not any(c in _PASSWORD_SYMBOLS for c in v):
-            return False
+        if not all(c.isalnum() or c in _PASSWORD_SYMBOLS for c in v) or not any(c in _STRONG_SYMBOLS for c in v):
+            return False                               # only "-", "_", ".", ":", "/": a slug, id, date, path
         kinds = sum((any(c.islower() for c in v), any(c.isupper() for c in v), any(c.isdigit() for c in v)))
         if kinds < 2:
             return False
@@ -573,8 +693,8 @@ class RandomTokenDetector(Detector):
 
 def _secret_in(text: str) -> bool:
     """Decoded base64: basic-auth "user:password", or something the secret detectors find."""
-    if re.fullmatch(r"[^:\s]{1,64}:[^\s]{4,}", text.strip()):
-        return True
+    if re.fullmatch(r"[\w.@\\+\-]{1,64}:[^\s\"{}]{4,}", text.strip()):
+        return True                                    # user:password (basic auth, docker "auth")
     from .base import DetectorContext
     ctx = DetectorContext()
     for det in (TokenDetector(), PemDetector(), KeyValueSecretDetector(), GitleaksDetector()):

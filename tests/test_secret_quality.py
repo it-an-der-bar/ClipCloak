@@ -1,10 +1,11 @@
 """Secret detection measured against a corpus instead of single cases (tests/secret_corpus.py).
 
-- every credential of the corpus (≈ 60 formats × 4 contexts, admin commands and config files,
-  passwords copied alone) must be gone after redaction – and be found as a secret, not as
-  something else;
-- nothing in the negative corpus (code, logs, manifests, hashes, ids, paths, prose) may be
-  reported as a secret;
+- every credential of the corpus (≈ 65 formats × 33 wrappers – text, code, config, markup, URL,
+  split over string literals in Python/JS/Java/VB/PHP, base64 –, admin commands and config files,
+  JWTs split at the dots, passwords copied alone) must be gone after redaction – and be found as a
+  secret, not as something else;
+- nothing in the negative corpus (code, logs, manifests, hashes, ids, paths, prose, and technical
+  values in the same wrappers) may be reported as a secret;
 - on the Python standard library (code and docs, several MB) at most a handful of findings per MB.
 
 A miss prints the name of the case, so a new format or a regression is visible at once.
@@ -46,7 +47,7 @@ class SecretCorpusTest(unittest.TestCase):
                      if f.type not in SECRET_TYPES and f.text in core and len(f.text) >= 6]
             if left or wrong:
                 misses.append(f"{name}: {'left ' + left[0] if left else ''} {' '.join(wrong)}".strip())
-        self.assertGreater(len(cases), 300)
+        self.assertGreater(len(cases), 2000)
         self.assertEqual(misses, [], f"{len(misses)} of {len(cases)} missed")
 
     def test_nothing_else_is_a_secret(self):

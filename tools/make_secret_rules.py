@@ -85,15 +85,16 @@ def go_to_py(src: str) -> str:
 
 KEY_VALUE = r"""[\x60'"\s=]{0,5}("""
 END = r"""(?:[\x60'"\s;]|\\[nr]|$)"""
+END_CLIPBOARD = r"""(?:[\x60'"\s;&,.:!?)\]}>|<\\]|$)"""
 
 
 def standalone(rule: dict) -> dict | None:
     """Copy of a key/value rule that matches the value alone, if the value has a literal prefix."""
     rx = rule["regex"]
     i = rx.find(KEY_VALUE)
-    if i < 0 or not rx.endswith(END):
+    if i < 0 or not rx.endswith(END_CLIPBOARD):
         return None
-    body = rx[i + len(KEY_VALUE):-len(END)]
+    body = rx[i + len(KEY_VALUE):-len(END_CLIPBOARD)]
     if not body.endswith(")"):
         return None
     body = body[:-1]
@@ -128,6 +129,10 @@ def main(argv) -> int:
         if "regex" not in r:
             continue
         rx = go_to_py(r["regex"])
+        if rx.endswith(END):
+            # gitleaks scans files: a secret ends at a quote, blank or ";". In a clipboard it also ends
+            # at punctuation, a bracket, "&" (URL query) or a backslash (escaped JSON)
+            rx = rx[:-len(END)] + END_CLIPBOARD
         if not compiles(rx):
             continue
         own = re.compile(rx)

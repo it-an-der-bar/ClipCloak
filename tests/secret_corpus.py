@@ -125,16 +125,64 @@ def _random_tokens(g: Gen) -> list[tuple[str, str, str]]:
     return out
 
 
+def _half(tok: str) -> int:
+    return len(tok) // 2
+
+
+def _third(tok: str) -> tuple[int, int]:
+    return len(tok) // 3, 2 * len(tok) // 3
+
+
+# (name, tok -> text). Keys are neutral on purpose ("value", "data", "x"): the token itself must give
+# it away, not a "password:" in front of it.
+WRAPPERS = [
+    ("alone", lambda t: t),
+    ("alone-newline", lambda t: t + "\r\n"),
+    ("sentence", lambda t: f"Hier der Token für den Build: {t} – bitte nicht weitergeben."),
+    ("neutral", lambda t: f"Kannst du das mal eintragen: {t} – danke dir!"),
+    ("log", lambda t: f"2026-09-29T17:02:11Z INFO worker[3]: using {t} for upload"),
+    ("end-of-sentence", lambda t: f"Der Wert ist {t}."),
+    ("comma", lambda t: f"{t}, danach neu starten"),
+    ("parens", lambda t: f"Neuer Wert ({t}) ist aktiv"),
+    ("brackets", lambda t: f"values: [{t}]"),
+    ("angle", lambda t: f"Siehe <{t}> im Ticket"),
+    ("double-quotes", lambda t: f'x = "{t}"'),
+    ("single-quotes", lambda t: f"x = '{t}'"),
+    ("backticks", lambda t: f"Setz `{t}` in die Config"),
+    ("md-block", lambda t: f"```\n{t}\n```"),
+    ("json", lambda t: f'{{"value": "{t}", "n": 1}}'),
+    ("json-escaped", lambda t: f'"{{\\"value\\": \\"{t}\\"}}"'),
+    ("yaml", lambda t: f"spec:\n  data: {t}\n  replicas: 2\n"),
+    ("env", lambda t: f"FOO={t}\nBAR=1\n"),
+    ("xml", lambda t: f"<entry><value>{t}</value></entry>"),
+    ("html-attr", lambda t: f'<div data-x="{t}"></div>'),
+    ("header", lambda t: f"X-Custom: {t}"),
+    ("url-query", lambda t: f"https://api.example.org/v1/items?id=5&q={t}&page=2"),
+    ("url-hook", lambda t: f"https://hooks.example.org/hooks/{t}"),
+    ("cli", lambda t: f"tool run --value {t} --verbose"),
+    ("csv", lambda t: f"id,name,value\n7,build,{t}\n"),
+    ("tsv", lambda t: f"7\tbuild\t{t}\tok"),
+    ("comment", lambda t: f"# alter Wert: {t}\nx = 1"),
+    ("py-split", lambda t: f'value = (\n    "{t[:_half(t)]}"\n    "{t[_half(t):]}"\n)'),
+    ("py-split3", lambda t: f'value = (\n    "{t[:_third(t)[0]]}"\n    "{t[_third(t)[0]:_third(t)[1]]}"\n'
+                            f'    "{t[_third(t)[1]:]}"\n)'),
+    ("js-concat", lambda t: f'const value = "{t[:_half(t)]}" +\n  "{t[_half(t):]}";'),
+    ("java-concat", lambda t: f'String value = "{t[:_half(t)]}" + "{t[_half(t):]}";'),
+    ("vb-concat", lambda t: f'Dim value = "{t[:_half(t)]}" & _\n    "{t[_half(t):]}"'),
+    ("php-concat", lambda t: f"$value = '{t[:_half(t)]}' . '{t[_half(t):]}';"),
+]
+
+
 def positives(seed: int = 4711) -> list[tuple[str, str, str]]:
     g = Gen(seed)
     toks = _vendor(g) + _random_tokens(g)
     out: list[tuple[str, str, str]] = []
-    # alone (the whole clipboard), in a sentence, in a log line, in a sentence without any hint
+    # every token in every wrapper: text, code, config, markup, split over string literals, encoded
     for name, tok, core in toks:
-        out.append((name + "/alone", tok, core))
-        out.append((name + "/sentence", f"Hier der Token für den Build: {tok} – bitte nicht weitergeben.", core))
-        out.append((name + "/log", f"2026-09-29T17:02:11Z INFO worker[3]: using credential {tok} for upload", core))
-        out.append((name + "/neutral", f"Kannst du das mal eintragen: {tok} – danke dir!", core))
+        for wname, wrap in WRAPPERS:
+            out.append((f"{name}/{wname}", wrap(tok), core))
+        enc = base64.b64encode(tok.encode()).decode()
+        out.append((f"{name}/base64", f"value: {enc}", enc))
     # 4. contexts
     pw = g.password(18)
     ctx = [
@@ -219,7 +267,30 @@ def positives(seed: int = 4711) -> list[tuple[str, str, str]]:
     ]
     for name, tpl, v in ctx:
         out.append(("ctx-" + name, tpl.format(v=v), v))
+    out += _jwt_cases(g)
     return out
+
+
+def _b64json(obj) -> str:
+    import json
+    return base64.urlsafe_b64encode(json.dumps(obj, separators=(",", ":")).encode()).decode().rstrip("=")
+
+
+def _jwt_cases(g: Gen) -> list[tuple[str, str, str]]:
+    """JWTs as code and docs carry them: split at the dots, only the payload, unsigned."""
+    head = _b64json({"alg": "HS256", "typ": "JWT"})
+    payload = _b64json({"sub": g.s(LOWNUM, 8), "company": "Kölpertechnis GmbH", "exp": 1893456789})
+    sig = g.b64(32, urlsafe=True, pad=False)
+    split = f'# JWT für Testzwecke\njwt_token = (\n    "{head}."\n    "{payload}."\n    "{sig}"\n)\n'
+    words_sig = f'jwt_token = (\n    "{head}."\n    "{payload}."\n    "test-signature-not-real"\n)\n'
+    return [
+        ("jwt-split-at-dots/payload", split, payload),
+        ("jwt-split-at-dots/signature", split, sig),
+        ("jwt-split-word-signature/payload", words_sig, payload),
+        ("jwt-payload-alone", f"payload: {payload}", payload),
+        ("jwt-unsigned", f"token={head}.{payload}.", payload),
+        ("jwt-bearer-split", f'headers = {{"Authorization": "Bearer {head}." +\n    "{payload}.{sig}"}}', payload),
+    ]
 
 
 NEGATIVES: list[tuple[str, str]] = [
@@ -342,5 +413,25 @@ NEGATIVES += [
 ]
 
 
+# values that look technical but are no secret – in every wrapper except "alone" (a lone value in the
+# clipboard is treated as a password / token on purpose), "sentence" ("Token: …" says it is one) and
+# "url-hook" (a random value after /hooks/ is the webhook secret)
+NEG_VALUES = [
+    "AbstractSingletonProxyFactoryBean", "test_watcher_offers_revert_for_pseudonymised_result",
+    "cert-manager-cainjector-6cc9b5f678-zq7vn", "6f1e2d3c-4b5a-4968-8776-a5b4c3d2e1f0", "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "/usr/share/icons/hicolor/scalable/apps/org.gnome.Settings.svg", "org.springframework.beans.factory.support",
+    "python3-pyside6.qtwidgets", "v0.1.30-rc.2+build.20260929", "MAX_CONCURRENT_BACKGROUND_JOBS_PER_WORKER",
+    "Donaudampfschifffahrtsgesellschaft", "srv-dc01.corp.example.org", "req_011CfXgMam6bUwon1XQdg4M9",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", "ContainerRegistryPasswordCredentials", "getElementsByTagNameNS",
+    "ghcr.io/example/api:v1.4.2", "Microsoft.WindowsTerminal_8wekyb3d8bbwe", "2026-09-29T17:02:11.123456Z",
+    "sha256:3f1c9a7e5b2d8c4f6a0e9b7d5c3a1f8e6d4b2c0a9f7e5d3b1c9a7e5b3d1f9c7a",
+]
+
+
 def negatives() -> list[tuple[str, str]]:
-    return list(NEGATIVES)
+    out = list(NEGATIVES)
+    for v in NEG_VALUES:
+        for wname, wrap in WRAPPERS:
+            if not wname.startswith("alone") and wname not in ("sentence", "url-hook"):
+                out.append((f"value:{v[:24]}/{wname}", wrap(v)))
+    return out

@@ -60,6 +60,7 @@
  "det.phone": "Phone numbers",
  "det.random-tokens": "Random tokens of unknown formats (30+ characters, password copied alone)",
  "det.sid": "Windows domain SIDs",
+ "det.split-strings": "Tokens split over several string literals in code (\"…\" \"…\", \"…\" + \"…\")",
  "det.tokens": "Known token formats (GitLab, GitHub, AWS, JWT …)",
  "det.tracking": "Tracking in links (utm_*, click ids, Safe Links …) – removed",
  "det.userpath": "User names in paths / DOMAIN\\user",

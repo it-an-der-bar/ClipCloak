@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.32
+
+- **Test corpus combinatorial:** every token (≈ 65 formats) in every wrapper (33: alone, sentence, log, punctuation, brackets, quotes, Markdown, JSON, escaped JSON, YAML, `.env`, XML, HTML attribute, header, URL query, webhook URL, CLI, CSV/TSV, comment, split over string literals in Python/JS/Java/VB/PHP) and base64-encoded – 2,184 credentials, all found. 20 technical values that are no secret (UUID, ULID, request id, pod name, JWT header, dates, paths, identifiers …) in the same wrappers – 635 texts, no finding.
+- **Tokens split over string literals** (new detector "split-strings", on): `("eyJhbGci….", "eyJzdWIi….", "sig")`, `"…" + "…"`, `"…" & _`, `'…' . '…'` – the pieces are joined, and every piece that belongs to a token is replaced; the JWT header stays.
+- **JWT:** the payload alone (`eyJ…` that decodes to claims) is a secret, the header alone is not; unsigned JWTs (`….….`) are found.
+- Found at the end of a sentence, before `,` `)` `]` `>` `&` and in escaped JSON also for the gitleaks formats (DigitalOcean, Databricks, Pulumi …); random tokens after `=` (`.env`, URL query – not for public parameters such as `?list=`, `?v=`, `?id=`), after `/hooks/`, `/token/`, `/reset/` … in URLs.
+- A value copied alone counts as a password only with a real symbol (`!#$%&*+=?@^~` …) – slugs, ids, dates and paths with `-` `_` `.` `:` `/` do not.
+
 ## 0.1.31
 
 Secret detection measured against a corpus instead of single cases (`tests/test_secret_quality.py`, `tests/secret_corpus.py`):

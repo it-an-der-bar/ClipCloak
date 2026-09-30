@@ -39,6 +39,7 @@ After   selma.pichler@nawidrock.com   srv-dc01.nawidrock.local  10.72.15.100/24 
   - user names in `C:\Users\…`, `/home/…` and `DOMAIN\user`, Windows SIDs, IBANs, credit cards, phone numbers
   - secrets:
     - token formats: GitLab, GitHub, AWS, Slack, OpenAI/Anthropic, Stripe, npm, PyPI, Docker, Vault, HF, JWT, Azure SAS, k3s/RKE2, Rancher, Telegram … plus the ≈ 220 cloud and SaaS formats of the [gitleaks](https://github.com/gitleaks/gitleaks) rule set
+    - tokens split over several string literals in code (`"eyJ…." "eyJ…."`, `"…" + "…"`)
     - random tokens of unknown formats (30+ characters of base62/base64, with or without a prefix such as `abc_`), and a password or token copied alone (from 16 characters, with symbols from 10)
     - PEM private keys and certificates, also base64-encoded (kubeconfig `client-key-data`)
     - key/value credentials in JSON, YAML, `.env`, INI, XML and connection strings; base64 values that contain one (`auth` in Docker's `config.json`, Kubernetes secrets)

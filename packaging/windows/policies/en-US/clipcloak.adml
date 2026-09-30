@@ -157,6 +157,10 @@ If configured, the user cannot change this setting. Setting: detectors.enabled.p
       <string id="P_detectors_enabled_tokens_Help">Enable or disable this detector.
 
 If configured, the user cannot change this setting. Setting: detectors.enabled.tokens</string>
+      <string id="P_detectors_enabled_split_strings">Detector: Tokens split over several string literals in code ("…" "…", "…" + "…")</string>
+      <string id="P_detectors_enabled_split_strings_Help">Enable or disable this detector.
+
+If configured, the user cannot change this setting. Setting: detectors.enabled.split-strings</string>
       <string id="P_detectors_enabled_gitleaks">Detector: Credential formats of ≈ 220 cloud and SaaS providers (gitleaks rule set)</string>
       <string id="P_detectors_enabled_gitleaks_Help">Enable or disable this detector.
 

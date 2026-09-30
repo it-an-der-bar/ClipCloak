@@ -157,6 +157,10 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_detectors_enabled_tokens_Help">Diese Erkennung ein- oder ausschalten.
 
 Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: detectors.enabled.tokens</string>
+      <string id="P_detectors_enabled_split_strings">Erkennung: In Code auf mehrere Strings verteilte Tokens ("…" "…", "…" + "…")</string>
+      <string id="P_detectors_enabled_split_strings_Help">Diese Erkennung ein- oder ausschalten.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: detectors.enabled.split-strings</string>
       <string id="P_detectors_enabled_gitleaks">Erkennung: Zugangsdaten-Formate von ≈ 220 Cloud- und SaaS-Anbietern (gitleaks-Regelsatz)</string>
       <string id="P_detectors_enabled_gitleaks_Help">Diese Erkennung ein- oder ausschalten.
 
