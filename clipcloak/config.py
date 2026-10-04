@@ -57,6 +57,8 @@ DEFAULTS: dict = {
         "max_chars": 500_000,
         "offer_revert": True,        # a pseudonymised result (LLM answer) -> popup offers revert, no auto change
         "offer_base64": True,        # Base64 of readable text -> popup offers to decode it
+        # a password / token copied alone (password manager): removed from the clipboard after n seconds, 0 = off
+        "clear_secret_after": 60,
     },
     "image": {                        # image redaction (detection needs the plugin)
         "faces": True,

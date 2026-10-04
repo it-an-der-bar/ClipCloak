@@ -82,6 +82,10 @@ If configured, the user cannot change this setting. Setting: watcher.action</str
       <string id="P_watcher_offer_revert_Help">If the copied text consists of this project's replacement values (e.g. the LLM's answer), the popup offers revert and nothing is changed automatically.
 
 If configured, the user cannot change this setting. Setting: watcher.offer_revert</string>
+      <string id="P_watcher_clear_secret_after">Remove a password copied alone after (s)</string>
+      <string id="P_watcher_clear_secret_after_Help">If the clipboard holds only one password or token (copied from a password manager), it is removed from the clipboard after this many seconds – only if it is still there. 0 = off.
+
+If configured, the user cannot change this setting. Setting: watcher.clear_secret_after</string>
       <string id="P_watcher_offer_base64">Offer to decode Base64</string>
       <string id="P_watcher_offer_base64_Help">If the copied text is Base64 of readable text (e.g. a Kubernetes secret), the popup offers to decode it and names what the decoded text contains.
 
@@ -443,6 +447,7 @@ If configured, the user cannot change this setting. Setting: hotkeys.toggle_watc
       <presentation id="P_processing_redact_template"><textBox refId="P_processing_redact_template"><label>Redaction text</label></textBox></presentation>
       <presentation id="P_watcher_mode"><dropdownList refId="P_watcher_mode" noSort="true">Watcher mode</dropdownList></presentation>
       <presentation id="P_watcher_action"><dropdownList refId="P_watcher_action" noSort="true">Action for automatic changes</dropdownList></presentation>
+      <presentation id="P_watcher_clear_secret_after"><decimalTextBox refId="P_watcher_clear_secret_after">Remove a password copied alone after (s)</decimalTextBox></presentation>
       <presentation id="P_watcher_categories_tracking"><dropdownList refId="P_watcher_categories_tracking" noSort="true">Category: Origin / tracking in links</dropdownList></presentation>
       <presentation id="P_watcher_categories_secrets"><dropdownList refId="P_watcher_categories_secrets" noSort="true">Category: Secrets and keys</dropdownList></presentation>
       <presentation id="P_watcher_categories_finance"><dropdownList refId="P_watcher_categories_finance" noSort="true">Category: Bank and card data</dropdownList></presentation>

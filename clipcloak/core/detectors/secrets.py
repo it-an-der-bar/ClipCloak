@@ -360,6 +360,22 @@ class PemDetector(Detector):
         return out
 
 
+def _kv_matches(rx, text: str):
+    """Like finditer, but "srv01: password: x" yields both pairs: a value that is itself a key
+    ("password:") does not swallow the pair that follows."""
+    pos = 0
+    while pos <= len(text):
+        m = rx.search(text, pos)
+        if m is None:
+            return
+        yield m
+        v2 = m.groupdict().get("val2")
+        if v2 is not None and (v2.endswith(":") or (m.end("val2") < len(text) and text[m.end("val2")] == "=")):
+            pos = m.start("val2")
+        else:
+            pos = m.end() if m.end() > m.start() else m.end() + 1
+
+
 class KeyValueSecretDetector(Detector):
     id = "kv-secrets"
     types = (T.SECRET.value,)
@@ -407,7 +423,7 @@ class KeyValueSecretDetector(Detector):
         seen: set[tuple[int, int]] = set()
         code = looks_like_code(text)
         for rx in KV_PATTERNS:
-            for m in rx.finditer(text):
+            for m in _kv_matches(rx, text):
                 vg = "val" if m.groupdict().get("val") is not None else "val2"
                 key, val = m.group("key"), m.group(vg)
                 s, e = m.start(vg), m.end(vg)

@@ -57,6 +57,22 @@ def _counts(counts: dict) -> str:
     return ", ".join(f"{k} ×{v}" for k, v in sorted(counts.items(), key=lambda kv: -kv[1]))
 
 
+SECRET_TYPES = ("SECRET", "PRIVATE_KEY")
+
+
+def lone_secret(text: str, findings):
+    """The finding if the clipboard holds exactly one secret and nothing else (a password or token
+    copied from a password manager), else None."""
+    stripped = text.strip()
+    if len(findings) != 1 or not stripped or len(stripped) > 4096:
+        return None
+    f = findings[0]
+    if f.type not in SECRET_TYPES:
+        return None
+    lead = len(text) - len(text.lstrip())
+    return f if f.start <= lead and f.end >= lead + len(stripped) else None
+
+
 def text_hash(text: str | None) -> str:
     return hashlib.sha256((text or "").encode("utf-8", "surrogatepass")).hexdigest()
 
@@ -118,6 +134,11 @@ class Controller(QObject):
         self.main = None
         self._watch_timer = QTimer(self, singleShot=True, interval=200)
         self._watch_timer.timeout.connect(self._watch_check)
+        # a password copied alone is removed from the clipboard after watcher.clear_secret_after seconds
+        self._clear_timer = QTimer(self, singleShot=True)
+        self._clear_timer.timeout.connect(self._clear_secret)
+        self._clear_hash: str | None = None
+        self._clear_kept: str | None = None     # "keep" for this content: not asked again
         self._save_timer = QTimer(self, singleShot=True, interval=1500)
         self._save_timer.timeout.connect(self._save_project_now)
         self._pause_timer = QTimer(self, singleShot=True)
@@ -603,6 +624,8 @@ class Controller(QObject):
                 return findings, None, (decoded, engine.analyze(decoded, skip={"llm"}))
             return findings, None, None
 
+        clear_after = int(self.cfg.get("watcher.clear_secret_after", 0) or 0)
+
         def done(r):
             findings, hint, base64 = r
             rules = self.watch_rules(mode)
@@ -612,6 +635,15 @@ class Controller(QObject):
                 decoded, inner = base64
                 event("log.watch_base64", chars=len(decoded), summary=_summary(inner) or "–")
                 self._base64_popup(decoded, inner, [f for f in findings if rules.get(f.type) == "ask"], content, h)
+                return
+            lone = lone_secret(text, findings) if clear_after > 0 and hint is None else None
+            if lone is not None and h in (self._clear_kept, self._clear_hash):
+                return                               # already handled (kept, or the timer runs)
+            if lone is not None:
+                # copied from a password manager: no automatic change (it is meant to be pasted somewhere),
+                # but it leaves the clipboard after a while
+                event("log.watch_lone_secret", typ=lone.type, s=clear_after)
+                self._schedule_clear(h, clear_after, content)
                 return
             if hint is not None:
                 # a pseudonymised result (e.g. the LLM's answer): offer revert, change nothing automatically
@@ -713,6 +745,41 @@ class Controller(QObject):
         self._show_popup(Popup(t("popup.pseudo_title"), text, actions,
                                int(self.cfg.get("watcher.popup_timeout", 12))),
                          lambda key: self._popup_choice(key, content, h))
+
+    def _schedule_clear(self, h: str, seconds: int, content):
+        from .popup import Popup
+        self._clear_hash = h
+        self._clear_timer.start(seconds * 1000)
+        actions = [("clear_now", t("popup.clear_now"), ""), ("keep", t("popup.clear_keep"), ""),
+                   ("pseudonymize", t("mode.pseudonymize"), self.hotkey_text("pseudonymize"))]
+        self._show_popup(Popup(t("popup.lone_secret_title"), t("popup.lone_secret_text", s=seconds), actions,
+                               int(self.cfg.get("watcher.popup_timeout", 12))),
+                         lambda key: self._clear_choice(key, content, h))
+
+    def _clear_choice(self, key, content, h):
+        self._popup = None
+        if key == "clear_now":
+            self._clear_secret()
+        elif key == "keep":
+            self._clear_timer.stop()
+            self._clear_hash = None
+            self._clear_kept = h
+            event("log.clear_kept")
+        elif key == "pseudonymize":
+            self._clear_timer.stop()
+            self._clear_hash = None
+            self.process_clipboard("pseudonymize", "popup", content, h)
+
+    def _clear_secret(self):
+        """Remove the password from the clipboard – only if it is still the one that was copied."""
+        self._clear_timer.stop()
+        h, self._clear_hash = self._clear_hash, None
+        if h is None or text_hash(self.clip.read().text) != h:
+            return
+        self._own.append(text_hash(""))
+        self.clip.clear()
+        event("log.clear_done")
+        self.notify(t("msg.secret_cleared"))
 
     def _base64_popup(self, decoded: str, inner, ask, content, h):
         """``inner``: findings in the decoded text, ``ask``: findings in the Base64 text itself."""
@@ -1193,6 +1260,8 @@ class Controller(QObject):
         self._save_project_now()
         self.hotkeys.unregister()
         self._watch_timer.stop()             # a pending check would start a job after the executor is gone
+        if self._clear_hash is not None:
+            self._clear_secret()              # a password waiting to be removed does not outlive the program
         if self.clip is not None:
             self.clip.stop_watch()
             self.clip.release()

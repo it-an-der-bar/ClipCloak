@@ -257,6 +257,8 @@ def positives(seed: int = 4711) -> list[tuple[str, str, str]]:
         ("gh-actions-log", "Run curl -H 'PRIVATE-TOKEN: {v}' https://gitlab.example.org/api/v4/projects", g.s(B62 + "-_", 26)),
         ("powershell-param", "Invoke-Sqlcmd -ServerInstance sql01 -Username sa -Password '{v}' -Query 'SELECT 1'", pw),
         ("new-localuser", '$pw = ConvertTo-SecureString -String "{v}" -AsPlainText -Force', pw),
+        ("chained-keys", "Login für srv01: password: {v}", pw),
+        ("chained-keys-de", "Zugang Firewall: Passwort: {v} (bitte ändern)", pw),
         ("pw-alone", "{v}", g.password(20)),
         ("pw-alone-12", "{v}", g.password(12)),
         ("token-alone-20", "{v}", g.s(B62, 20)),

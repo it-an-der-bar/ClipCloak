@@ -112,6 +112,12 @@ P = [
      "revert and nothing is changed automatically.",
      "Besteht der kopierte Text aus Ersatzwerten dieses Projekts (z. B. die Antwort des LLM), bietet das Popup "
      "Zurückübersetzen an und nichts wird automatisch geändert.", {}),
+    ("watcher.clear_secret_after", "decimal", "watcher", "Remove a password copied alone after (s)",
+     "Allein kopiertes Passwort entfernen nach (s)",
+     "If the clipboard holds only one password or token (copied from a password manager), it is removed from the "
+     "clipboard after this many seconds – only if it is still there. 0 = off.",
+     "Enthält die Zwischenablage nur ein Passwort oder Token (aus dem Passwortmanager kopiert), wird es nach so vielen "
+     "Sekunden aus der Zwischenablage entfernt – nur wenn es noch drin ist. 0 = aus.", {"min": 0, "max": 3600}),
     ("watcher.offer_base64", "bool", "watcher", "Offer to decode Base64", "Base64-Dekodierung anbieten",
      "If the copied text is Base64 of readable text (e.g. a Kubernetes secret), the popup offers to decode it "
      "and names what the decoded text contains.",

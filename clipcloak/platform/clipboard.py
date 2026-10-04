@@ -49,6 +49,9 @@ class ClipboardBackend(QObject):
     def write_image(self, img: QImage) -> None:  # pragma: no cover
         raise NotImplementedError
 
+    def clear(self) -> None:
+        self.write("")
+
     def can_watch(self) -> bool:
         return True
 
@@ -139,6 +142,10 @@ class QtClipboard(ClipboardBackend):
         self.cb.setImage(img)              # QMimeData created on the C++ side
         self._last_text = None
 
+    def clear(self) -> None:
+        self.cb.clear()
+        self._last_text = None
+
     def release(self) -> None:
         """Replace a Python-created QMimeData before the interpreter shuts down.
 
@@ -219,6 +226,12 @@ class WlClipboard(ClipboardBackend):
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
         except (OSError, subprocess.TimeoutExpired) as exc:
             log.error("wl-copy failed: %s", exc)
+
+    def clear(self) -> None:
+        try:
+            subprocess.run(["wl-copy", "--clear"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            log.error("wl-copy --clear failed: %s", exc)
 
     def start_watch(self) -> bool:
         if self._proc is not None:

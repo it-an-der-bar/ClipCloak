@@ -119,6 +119,13 @@ So läuft ein typischer LLM-Durchgang:
 5. `Strg+Alt+U` drücken.
 6. Die Antwort einfügen; sie enthält jetzt die echten Werte.
 
+**Allein kopiertes Passwort.** Enthält die Zwischenablage nur ein Passwort oder Token (das übliche Kopieren
+aus dem Passwortmanager), ändert die Überwachung nichts – es soll ja eingefügt werden –, entfernt es aber nach
+60 Sekunden aus der Zwischenablage, sofern es noch drin ist. Das Popup bietet *Jetzt entfernen*, *Behalten*
+und *Pseudonymisieren*. Einstellung: *Einstellungen › Überwachung › Allein kopiertes Passwort entfernen nach*
+(`watcher.clear_secret_after`, 0 = aus; auch als ADMX-Richtlinie). Ein noch wartendes Passwort wird beim
+Beenden des Programms entfernt.
+
 **Base64.** Ist der kopierte Text Base64 eines lesbaren Textes (ein Kubernetes-Secret, ein
 Basic-Auth-Wert), bietet die Überwachung an, ihn zu dekodieren, und nennt, was der dekodierte Text
 enthält – *Dekodieren* oder *Dekodieren + pseudonymisieren*; *Details* öffnet ihn in der Werkbank, ohne

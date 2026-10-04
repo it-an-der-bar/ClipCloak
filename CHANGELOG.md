@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.34
+
+- **Password copied alone is removed from the clipboard** (password manager): if the clipboard holds nothing but one password or token, the watcher does not change it (it is meant to be pasted), shows *Remove now / Keep / Pseudonymise* and removes it after 60 s – only if it is still in the clipboard; something copied in between stays. "Keep" is remembered for that content. A pending removal happens at exit. Setting `watcher.clear_secret_after` (seconds, 0 = off; Settings › Watcher, ADMX). Works with the Qt clipboard and wl-clipboard (`wl-copy --clear`).
+- Key/value pairs in a row no longer hide each other: in "Login für srv01: password: …" the password was taken as the value of "srv01" and missed.
+
 ## 0.1.33
 
 - Prose and Markdown no longer give false secrets: backticks and punctuation after a value are no part of it (`` `smbclient -U user%pass`, `` → placeholder "pass", `-pw (plink)` → nothing, `` `Authorization: Bearer` ``, `` `password: …` ``). New test: the READMEs, CHANGELOG, security docs and UI texts contain no secret finding.

@@ -232,6 +232,51 @@ class GuiTest(unittest.TestCase):
         self.assertIsNone(c._popup)
         c.set_watch_mode("off")
 
+    def test_password_copied_alone_is_removed(self):
+        c = self.c
+        c.set_watch_mode("critical")
+        c.cfg.set("watcher.clear_secret_after", 1)
+        pw = "aj8t#7IW-+2m!e@?Vr3q"
+        c.clip.write(pw, None)
+        c._watch_check()
+        self.assertTrue(wait_for(lambda: c._popup is not None))
+        self.assertIn("clear_now", c._popup.buttons)
+        self.assertEqual(c.clip.read().text, pw)            # nothing changed automatically
+        self.assertTrue(wait_for(lambda: not c.clip.read().text, 3000))
+        # copied something else in the meantime: that stays
+        c._popup = None
+        c.clip.write(pw, None)
+        c._watch_check()
+        self.assertTrue(wait_for(lambda: c._clear_hash is not None))
+        c.clip.write("etwas anderes", None)
+        spin(1500)
+        self.assertEqual(c.clip.read().text, "etwas anderes")
+        # "keep"
+        c._popup = None
+        c.clip.write(pw, None)
+        c._watch_check()
+        self.assertTrue(wait_for(lambda: c._popup is not None))
+        c._popup._choose("keep")
+        spin(1500)
+        self.assertEqual(c.clip.read().text, pw)
+        # with context it is no lone password: the usual popup, no timer
+        c._popup = None
+        c.clip.write("Login für srv01: password: " + pw, None)
+        c._watch_check()
+        self.assertTrue(wait_for(lambda: c._popup is not None))
+        self.assertNotIn("clear_now", c._popup.buttons)
+        self.assertIsNone(c._clear_hash)
+        c._popup._choose("")
+        c.set_watch_mode("off")
+
+    def test_lone_secret(self):
+        from clipcloak.gui.app import lone_secret
+        e = self.c.engine
+        for text, lone in (("  aj8t#7IW-+2m!e@?Vr3q\n", True), ("gh" + "p_" + "a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8", True),
+                           ("password: aj8t#7IW-+2m!e@?Vr3q", False), ("Hallo Welt", False),
+                           ("aj8t#7IW-+2m!e@?Vr3q 10.0.0.5", False)):
+            self.assertEqual(lone_secret(text, e.analyze(text)) is not None, lone, text)
+
     def test_base64_actions(self):
         c = self.c
         c.clip.write("hallo welt", None)

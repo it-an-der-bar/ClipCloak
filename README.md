@@ -118,6 +118,12 @@ A typical LLM round trip:
 5. Press `Ctrl+Alt+U`.
 6. Paste the answer, which now contains your real values.
 
+**Password copied alone.** If the clipboard holds nothing but one password or token (the usual copy from a
+password manager), the watcher changes nothing – it is meant to be pasted – but removes it from the clipboard
+after 60 seconds, only if it is still there. The popup offers *Remove now*, *Keep* and *Pseudonymise*.
+Setting: *Settings › Watcher › Remove a password copied alone after* (`watcher.clear_secret_after`, 0 = off;
+also an ADMX policy). A password still waiting is removed when the program exits.
+
 **Base64.** When the copied text is Base64 of readable text (a Kubernetes secret, a basic-auth
 value), the watcher offers to decode it and names what the decoded text contains – *Decode* or
 *Decode + pseudonymise*; *Details* opens it in the workbench without touching the clipboard. The

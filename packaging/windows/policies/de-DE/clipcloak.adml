@@ -82,6 +82,10 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_watcher_offer_revert_Help">Besteht der kopierte Text aus Ersatzwerten dieses Projekts (z. B. die Antwort des LLM), bietet das Popup Zurückübersetzen an und nichts wird automatisch geändert.
 
 Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.offer_revert</string>
+      <string id="P_watcher_clear_secret_after">Allein kopiertes Passwort entfernen nach (s)</string>
+      <string id="P_watcher_clear_secret_after_Help">Enthält die Zwischenablage nur ein Passwort oder Token (aus dem Passwortmanager kopiert), wird es nach so vielen Sekunden aus der Zwischenablage entfernt – nur wenn es noch drin ist. 0 = aus.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: watcher.clear_secret_after</string>
       <string id="P_watcher_offer_base64">Base64-Dekodierung anbieten</string>
       <string id="P_watcher_offer_base64_Help">Ist der kopierte Text Base64 eines lesbaren Textes (z. B. ein Kubernetes-Secret), bietet das Popup an, ihn zu dekodieren, und nennt, was der dekodierte Text enthält.
 
@@ -443,6 +447,7 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <presentation id="P_processing_redact_template"><textBox refId="P_processing_redact_template"><label>Schwärzungstext</label></textBox></presentation>
       <presentation id="P_watcher_mode"><dropdownList refId="P_watcher_mode" noSort="true">Überwachungsmodus</dropdownList></presentation>
       <presentation id="P_watcher_action"><dropdownList refId="P_watcher_action" noSort="true">Aktion bei automatischer Änderung</dropdownList></presentation>
+      <presentation id="P_watcher_clear_secret_after"><decimalTextBox refId="P_watcher_clear_secret_after">Allein kopiertes Passwort entfernen nach (s)</decimalTextBox></presentation>
       <presentation id="P_watcher_categories_tracking"><dropdownList refId="P_watcher_categories_tracking" noSort="true">Kategorie: Herkunft / Tracking in Links</dropdownList></presentation>
       <presentation id="P_watcher_categories_secrets"><dropdownList refId="P_watcher_categories_secrets" noSort="true">Kategorie: Secrets und Schlüssel</dropdownList></presentation>
       <presentation id="P_watcher_categories_finance"><dropdownList refId="P_watcher_categories_finance" noSort="true">Kategorie: Bank- und Kartendaten</dropdownList></presentation>

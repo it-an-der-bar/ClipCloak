@@ -172,6 +172,13 @@
       <enabledValue><decimal value="1" /></enabledValue>
       <disabledValue><decimal value="0" /></disabledValue>
     </policy>
+    <policy name="P_watcher_clear_secret_after" class="Both" displayName="$(string.P_watcher_clear_secret_after)" explainText="$(string.P_watcher_clear_secret_after_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_watcher_clear_secret_after)">
+      <parentCategory ref="C_watcher" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <decimal id="P_watcher_clear_secret_after" valueName="watcher.clear_secret_after" required="true" minValue="0" maxValue="3600" />
+      </elements>
+    </policy>
     <policy name="P_watcher_offer_base64" class="Both" displayName="$(string.P_watcher_offer_base64)" explainText="$(string.P_watcher_offer_base64_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="watcher.offer_base64">
       <parentCategory ref="C_watcher" />
       <supportedOn ref="SUPPORTED_0_1_9" />
