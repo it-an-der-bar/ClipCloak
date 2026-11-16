@@ -33,6 +33,9 @@
     <category name="C_image" displayName="$(string.C_image)">
       <parentCategory ref="C_clipcloak" />
     </category>
+    <category name="C_pdf" displayName="$(string.C_pdf)">
+      <parentCategory ref="C_clipcloak" />
+    </category>
     <category name="C_hotkeys" displayName="$(string.C_hotkeys)">
       <parentCategory ref="C_clipcloak" />
     </category>
@@ -749,6 +752,42 @@
       <enabledValue><decimal value="1" /></enabledValue>
       <disabledValue><decimal value="0" /></disabledValue>
     </policy>
+    <policy name="P_pdf_mode" class="Both" displayName="$(string.P_pdf_mode)" explainText="$(string.P_pdf_mode_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_pdf_mode)">
+      <parentCategory ref="C_pdf" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <enum id="P_pdf_mode" valueName="pdf.mode" required="true">
+          <item displayName="$(string.P_pdf_mode_redact)">
+            <value><string>redact</string></value>
+          </item>
+          <item displayName="$(string.P_pdf_mode_pseudonymize)">
+            <value><string>pseudonymize</string></value>
+          </item>
+          <item displayName="$(string.P_pdf_mode_anonymize)">
+            <value><string>anonymize</string></value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="P_pdf_images" class="Both" displayName="$(string.P_pdf_images)" explainText="$(string.P_pdf_images_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="pdf.images">
+      <parentCategory ref="C_pdf" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="P_pdf_rasterize" class="Both" displayName="$(string.P_pdf_rasterize)" explainText="$(string.P_pdf_rasterize_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" valueName="pdf.rasterize">
+      <parentCategory ref="C_pdf" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="P_pdf_dpi" class="Both" displayName="$(string.P_pdf_dpi)" explainText="$(string.P_pdf_dpi_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_pdf_dpi)">
+      <parentCategory ref="C_pdf" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <decimal id="P_pdf_dpi" valueName="pdf.dpi" required="true" minValue="72" maxValue="600" />
+      </elements>
+    </policy>
     <policy name="P_hotkeys_pseudonymize" class="Both" displayName="$(string.P_hotkeys_pseudonymize)" explainText="$(string.P_hotkeys_pseudonymize_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_hotkeys_pseudonymize)">
       <parentCategory ref="C_hotkeys" />
       <supportedOn ref="SUPPORTED_0_1_9" />
@@ -803,6 +842,13 @@
       <supportedOn ref="SUPPORTED_0_1_9" />
       <elements>
         <text id="P_hotkeys_redact_image" valueName="hotkeys.redact_image" maxLength="2048" />
+      </elements>
+    </policy>
+    <policy name="P_hotkeys_redact_pdf" class="Both" displayName="$(string.P_hotkeys_redact_pdf)" explainText="$(string.P_hotkeys_redact_pdf_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_hotkeys_redact_pdf)">
+      <parentCategory ref="C_hotkeys" />
+      <supportedOn ref="SUPPORTED_0_1_9" />
+      <elements>
+        <text id="P_hotkeys_redact_pdf" valueName="hotkeys.redact_pdf" maxLength="2048" />
       </elements>
     </policy>
     <policy name="P_hotkeys_screenshot" class="Both" displayName="$(string.P_hotkeys_screenshot)" explainText="$(string.P_hotkeys_screenshot_Help)" key="SOFTWARE\Policies\it-an-der-bar\ClipCloak" presentation="$(presentation.P_hotkeys_screenshot)">

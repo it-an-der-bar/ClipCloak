@@ -43,6 +43,8 @@ class Tray(QSystemTrayIcon):
             a.triggered.connect(lambda _=False, x=action: self.c.run_action(x, "tray"))
         m.addAction(t("action.redact_image") + self._hk("redact_image")).triggered.connect(
             lambda: self.c.run_action("redact_image", "tray"))
+        m.addAction(t("action.redact_pdf") + self._hk("redact_pdf")).triggered.connect(
+            lambda: self.c.run_action("redact_pdf", "tray"))
         b64_menu = m.addMenu(t("tray.base64"))
         for action in ("b64_decode", "b64_encode"):
             a = b64_menu.addAction(t("action." + action) + self._hk(action))

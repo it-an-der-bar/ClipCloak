@@ -52,6 +52,7 @@ After   selma.pichler@nawidrock.com   srv-dc01.nawidrock.local  10.72.15.100/24 
   - long hex strings standing alone (32+ characters: API keys, tokens, webhook secrets) – format-preserving; image digests (`@sha256:…`), `commit …` and `sha256sum` output stay.
   - key and certificate identifiers (optional, off by default – Settings › Detection): .NET `PublicKeyToken=…` of own assemblies, certificate thumbprints and serial numbers, SSH host key fingerprints (`SHA256:…`, `MD5:…`), GPG fingerprints/key ids. Not secret, but they identify a vendor or server. Microsoft/.NET framework tokens (`7cec85d7bea7798e`, `b77a5c561934e089` …) identify nobody and are never reported. Replacements keep the format (hex stays hex, separators stay).
   - your own **custom terms** (literal or regex, with optional type or fixed replacement), known domains and allowlists
+- **PDF.** The *PDF* tab redacts PDF files for real: the text, image pixels and graphics under the boxes are removed from the file, together with metadata, comments, form fields, attachments and JavaScript; the result is checked afterwards. See [PDF](#pdf).
 - **Images.** The *Image* tab hides faces (mosaic), sensitive text such as IP addresses, e-mail addresses and tokens in screenshots (black), and QR codes/barcodes (black). Areas can be added, moved and resized by hand; the result is a new, flat image without metadata. See [Images](#images).
 - **Optional plugin.** A separate helper program finds free-form person and company names (spaCy, German/English models) and faces, text and codes in images (OpenCV with the YuNet face model, RapidOCR). It runs fully locally, and the main program stays small.
 - **Optional LLM features** (OpenAI-compatible endpoint, e.g. vLLM, Ollama, LiteLLM):
@@ -160,6 +161,7 @@ clipcloak process [--mode M] [--project P] [--in F] [--out F]
 clipcloak revert  --project P [--passphrase-env VAR] [--in F] [--out F]
 clipcloak analyze [--in F]             findings as JSON
 clipcloak projects                     list projects
+clipcloak pdf IN.pdf [-o OUT.pdf] [--mode M] [--rasterize] [--pdf-password-env VAR]
 ```
 
 `process`/`revert` read stdin and write stdout. On Windows use `--in`/`--out`, because the
@@ -187,6 +189,32 @@ With the watcher on, copying an image shows a popup *Redact image*.
 3. **Result:** to the clipboard or into a PNG/JPEG file. It is a new, flat image: the covered pixels are gone and no metadata of the source is carried over.
 
 Pixelated or blurred *text* can often be reconstructed (e.g. with [Unredacter](https://bishopfox.com/tools/unredacter)), so text and codes are covered in black by default; mosaic is meant for faces. Automatic detection is a help, not a guarantee – always check the image. Without the plugin, areas can still be drawn by hand. Settings › Images switches the detectors and effects.
+
+## PDF
+
+A painted-over black box is no redaction: the text under it can still be copied. The *PDF* tab
+(*Redact PDF…* in the tray and the File menu; *Process file …* with a PDF; drag & drop) removes it.
+
+1. **PDF:** open a file; a protected PDF asks for its password (the result has none).
+2. **Detect:** the text of every page – also invisible text (OCR layers of scans) and text outside
+   the visible area – runs through the same detectors as clipboard text; every finding gets a box
+   per line. Images (scans, screenshots, photos) go to the plugin like in the *Image* tab: faces,
+   nudity, QR codes and text by OCR. Without the plugin the tab says how many images were not
+   analysed. Check every page (`PgUp`/`PgDn`), draw boxes with the mouse, *Del* deletes one.
+3. **Save:** a new file next to the original (`name.redacted.pdf`):
+   - text under the boxes is removed, image pixels are blanked, line art that is covered is removed;
+   - *redact*: black boxes; *pseudonymise* / *anonymise*: the replacement in a white box (the
+     pseudonyms are in the mappings, like for text);
+   - metadata and XMP, comments and other annotations, links, form fields, attachments,
+     JavaScript and thumbnails are removed; bookmark titles are processed like text;
+   - the file is written anew, without older revisions;
+   - *pages as images*: every page becomes an image – certainly no text left, but not searchable
+     and larger;
+   - afterwards the file is read again: if a redacted text can still be extracted, a warning
+     says so.
+
+`clipcloak pdf IN.pdf` does the same without the GUI (text layer only; images need the plugin in the
+GUI). Settings › Images › PDF: default mode, analysing images, pages as images, resolution.
 
 ## Plugin (names and images)
 
@@ -320,5 +348,6 @@ renames the package, entry scripts, CI variables and documentation in one go.
 
 GPL-3.0-only, see [LICENSE](LICENSE). Qt for Python (PySide6) is used under the LGPL-3.0.
 Word lists for the name check (`clipcloak/resources/wordlists`): derived from wordfreq (CC BY-SA 4.0), GeoNames (CC BY 4.0) and nam_dict by Jörg Michael (GNU FDL 1.2+), see `SOURCES.txt` there.
+PDF redaction uses [PyMuPDF](https://github.com/pymupdf/PyMuPDF) (Artifex, GNU AGPL 3.0); the binaries bundle it under the AGPL's terms, which are compatible with GPL 3.0 (GPLv3 §13).
 Credential formats (`clipcloak/resources/secret_rules.json`): converted from the gitleaks rule set, Copyright (c) 2019 Zachary Rice, MIT license (`secret_rules.LICENSE.txt`); rebuild with `tools/make_secret_rules.py`.
 Plugin: spaCy and its models, the YuNet face model and ONNX Runtime are MIT-licensed; OpenCV, RapidOCR and the PP-OCR models are Apache-2.0-licensed. NudeNet ships the AGPL-3.0 license text (its package metadata says MIT); GPL-3.0 section 13 allows combining it with this GPL-3.0 program.

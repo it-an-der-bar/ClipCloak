@@ -547,6 +547,11 @@ class SettingsDialog(QDialog):
         warn.setWordWrap(True)
         warn.setStyleSheet("color:#c0392b")
         f.addRow(warn)
+        f.addRow(QLabel("<b>" + t("pdf.settings") + "</b>"))
+        f.addRow(t("pdf.set_mode"), self._combo("pdf.mode", ["redact", "pseudonymize", "anonymize"], "pdf.mode."))
+        f.addRow("", self._check("pdf.images", t("pdf.set_images")))
+        f.addRow("", self._check("pdf.rasterize", t("pdf.set_rasterize")))
+        f.addRow(t("pdf.set_dpi"), self._spin("pdf.dpi", 72, 600, " dpi"))
         return w
 
     @staticmethod

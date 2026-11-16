@@ -52,6 +52,7 @@ Nachher  selma.pichler@nawidrock.com   srv-dc01.nawidrock.local  10.72.15.100/24
   - lange Hex-Zeichenketten, die für sich stehen (ab 32 Zeichen: API-Keys, Tokens, Webhook-Secrets) – formatgleich ersetzt; Image-Digests (`@sha256:…`), `commit …` und `sha256sum`-Ausgaben bleiben.
   - Schlüssel- und Zertifikats-Kennungen (optional, standardmäßig aus – Einstellungen › Erkennung): .NET-`PublicKeyToken=…` eigener Assemblies, Zertifikats-Thumbprints und Seriennummern, SSH-Host-Key-Fingerprints (`SHA256:…`, `MD5:…`), GPG-Fingerprints/Key-IDs. Nicht geheim, identifizieren aber Hersteller oder Server. Microsoft-/.NET-Framework-Tokens (`7cec85d7bea7798e`, `b77a5c561934e089` …) identifizieren niemanden und werden nie gemeldet. Ersetzt wird formatgleich (Hex bleibt Hex, Trennzeichen bleiben).
   - **eigene Begriffe** (wörtlich oder Regex, mit optionalem Typ oder fester Ersetzung), bekannte Domains und Ausnahmelisten
+- **PDF.** Der Reiter *PDF* schwärzt PDF-Dateien richtig: Text, Bildpixel und Grafik unter den Kästen werden aus der Datei entfernt, dazu Metadaten, Kommentare, Formularfelder, Anhänge und JavaScript; das Ergebnis wird danach geprüft. Siehe [PDF](#pdf).
 - **Bilder.** Der Reiter *Bild* verdeckt Gesichter (Mosaik), sensiblen Text wie IP-Adressen, E-Mail-Adressen und Tokens in Screenshots (schwarz) sowie QR-Codes/Barcodes (schwarz). Bereiche lassen sich von Hand ergänzen, verschieben und in der Größe ändern; das Ergebnis ist ein neues, flaches Bild ohne Metadaten. Siehe [Bilder](#bilder).
 - **Optionales Plugin.** Ein separates Hilfsprogramm findet Personen- und Firmennamen ohne festes Format (spaCy, deutsches/englisches Modell) sowie Gesichter, Text und Codes in Bildern (OpenCV mit dem YuNet-Gesichtsmodell, RapidOCR). Es läuft komplett lokal, und das Hauptprogramm bleibt schlank.
 - **Optionale LLM-Funktionen** (OpenAI-kompatibler Endpunkt, z. B. vLLM, Ollama, LiteLLM):
@@ -162,6 +163,7 @@ clipcloak process [--mode M] [--project P] [--in F] [--out F]
 clipcloak revert  --project P [--passphrase-env VAR] [--in F] [--out F]
 clipcloak analyze [--in F]             Funde als JSON
 clipcloak projects                     Projekte auflisten
+clipcloak pdf IN.pdf [-o OUT.pdf] [--mode M] [--rasterize] [--pdf-password-env VAR]
 ```
 
 `process`/`revert` lesen stdin und schreiben stdout. Unter Windows `--in`/`--out` verwenden, weil
@@ -189,6 +191,35 @@ Zwischenablage dort. Mit eingeschalteter Überwachung erscheint beim Kopieren ei
 3. **Ergebnis:** in die Zwischenablage oder als PNG/JPEG-Datei. Es ist ein neues, flaches Bild: die verdeckten Pixel sind weg, Metadaten der Quelle werden nicht übernommen.
 
 Verpixelter oder weichgezeichneter *Text* lässt sich oft zurückrechnen (z. B. mit [Unredacter](https://bishopfox.com/tools/unredacter)), daher werden Text und Codes standardmäßig schwarz verdeckt; Mosaik ist für Gesichter gedacht. Die automatische Erkennung ist eine Hilfe, keine Garantie – das Bild immer prüfen. Ohne Plugin lassen sich Bereiche von Hand aufziehen. Einstellungen › Bilder schaltet Erkennungen und Effekte.
+
+## PDF
+
+Ein darübergemalter schwarzer Kasten ist keine Schwärzung: der Text darunter lässt sich weiter
+kopieren. Der Reiter *PDF* (*PDF schwärzen…* im Tray und im Menü Datei; *Datei verarbeiten …* mit
+einem PDF; Drag & Drop) entfernt ihn.
+
+1. **PDF:** Datei öffnen; ein geschütztes PDF fragt nach dem Passwort (das Ergebnis hat keins).
+2. **Erkennen:** der Text jeder Seite – auch unsichtbarer Text (OCR-Ebenen von Scans) und Text
+   außerhalb des sichtbaren Bereichs – läuft durch dieselben Erkennungen wie Text in der
+   Zwischenablage; jeder Fund bekommt einen Kasten pro Zeile. Bilder (Scans, Screenshots, Fotos) gehen
+   wie im Reiter *Bild* an das Plugin: Gesichter, Nacktheit, QR-Codes und Text per OCR. Ohne Plugin
+   sagt der Reiter, wie viele Bilder nicht analysiert wurden. Jede Seite prüfen (`Bild↑`/`Bild↓`),
+   Kästen mit der Maus aufziehen, *Entf* löscht einen.
+3. **Speichern:** eine neue Datei neben dem Original (`name.redacted.pdf`):
+   - Text unter den Kästen wird entfernt, Bildpixel werden geleert, verdeckte Grafik entfernt;
+   - *schwärzen*: schwarze Kästen; *pseudonymisieren* / *anonymisieren*: der Ersatzwert in einem
+     weißen Kasten (die Pseudonyme stehen wie bei Text in den Zuordnungen);
+   - Metadaten und XMP, Kommentare und andere Anmerkungen, Links, Formularfelder, Anhänge,
+     JavaScript und Vorschaubilder werden entfernt; Lesezeichen-Titel werden wie Text verarbeitet;
+   - die Datei wird neu geschrieben, ohne ältere Fassungen;
+   - *Seiten als Bild*: jede Seite wird ein Bild – sicher kein Text mehr, aber nicht durchsuchbar
+     und größer;
+   - danach wird die Datei erneut gelesen: lässt sich ein geschwärzter Text noch auslesen, gibt es
+     eine Warnung.
+
+`clipcloak pdf IN.pdf` macht dasselbe ohne Oberfläche (nur die Textebene; Bilder brauchen das Plugin
+in der Oberfläche). Einstellungen › Bilder › PDF: Standardmodus, Bilder analysieren, Seiten als Bild,
+Auflösung.
 
 ## Plugin (Namen und Bilder)
 
@@ -324,5 +355,6 @@ benennt Paket, Startskripte, CI-Variablen und Doku in einem Schritt um.
 
 GPL-3.0-only, siehe [LICENSE](LICENSE). Qt for Python (PySide6) wird unter der LGPL-3.0 genutzt.
 Wortlisten für die Namensprüfung (`clipcloak/resources/wordlists`): abgeleitet aus wordfreq (CC BY-SA 4.0), GeoNames (CC BY 4.0) und nam_dict von Jörg Michael (GNU FDL 1.2+), siehe dort `SOURCES.txt`.
+Das PDF-Schwärzen nutzt [PyMuPDF](https://github.com/pymupdf/PyMuPDF) (Artifex, GNU AGPL 3.0); die Binaries enthalten es unter den Bedingungen der AGPL, die mit GPL 3.0 vereinbar sind (GPLv3 §13).
 Zugangsdaten-Formate (`clipcloak/resources/secret_rules.json`): umgewandelt aus dem gitleaks-Regelsatz, Copyright (c) 2019 Zachary Rice, MIT-Lizenz (`secret_rules.LICENSE.txt`); neu erzeugen mit `tools/make_secret_rules.py`.
 Plugin: spaCy und seine Modelle, das YuNet-Gesichtsmodell und ONNX Runtime stehen unter der MIT-Lizenz; OpenCV, RapidOCR und die PP-OCR-Modelle unter Apache-2.0. NudeNet liefert den AGPL-3.0-Lizenztext mit (die Paket-Metadaten nennen MIT); Abschnitt 13 der GPL-3.0 erlaubt die Kombination mit diesem GPL-3.0-Programm.

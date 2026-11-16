@@ -36,6 +36,7 @@ CATEGORIES = {
     "llm": ("LLM", "LLM"),
     "ner": ("NER plugin", "NER-Plugin"),
     "image": ("Images", "Bilder"),
+    "pdf": ("PDF", "PDF"),
     "hotkeys": ("Shortcuts", "Tastenkürzel"),
 }
 
@@ -237,6 +238,22 @@ P += [
      "Bei kopierten Bildern Schwärzen anbieten",
      "The clipboard watcher shows a popup \"Redact image\" when an image is copied.",
      "Die Überwachung zeigt beim Kopieren eines Bildes ein Popup \"Bild schwärzen\".", {}),
+    ("pdf.mode", "enum", "pdf", "PDF: default mode", "PDF: Standardmodus",
+     "redact: black boxes. pseudonymise / anonymise: the replacement in a white box. In every mode the text "
+     "under the box is removed from the file.",
+     "Schwärzen: schwarze Kästen. Pseudonymisieren / Anonymisieren: der Ersatzwert in einem weißen Kasten. In "
+     "jedem Modus wird der Text unter dem Kasten aus der Datei entfernt.",
+     {"choices": ["redact", "pseudonymize", "anonymize"], "labels": choice("pdf.mode.")}),
+    ("pdf.images", "bool", "pdf", "PDF: analyse images (plugin)", "PDF: Bilder analysieren (Plugin)",
+     "Scans and screenshots inside PDFs are checked for faces, codes and text (OCR) by the plugin.",
+     "Scans und Screenshots in PDFs werden vom Plugin auf Gesichter, Codes und Text (OCR) geprüft.", {}),
+    ("pdf.rasterize", "bool", "pdf", "PDF: pages as images", "PDF: Seiten als Bild",
+     "Every page of the result is an image: certainly no text left in the file, but not searchable and larger.",
+     "Jede Seite des Ergebnisses ist ein Bild: sicher kein Text mehr in der Datei, aber nicht durchsuchbar und größer.",
+     {}),
+    ("pdf.dpi", "decimal", "pdf", "PDF: resolution (dpi)", "PDF: Auflösung (dpi)",
+     "Resolution for images analysed by the plugin and for pages as images (72-600).",
+     "Auflösung für vom Plugin analysierte Bilder und für Seiten als Bild (72-600).", {"min": 72, "max": 600}),
 ]
 
 for action in ACTIONS:

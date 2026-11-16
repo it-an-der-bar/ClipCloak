@@ -60,6 +60,49 @@ def _counts(counts: dict) -> str:
 SECRET_TYPES = ("SECRET", "PRIVATE_KEY")
 
 
+def analyse_image(client, b64: str, w: int, h: int, settings, analyze, step=None):
+    """Faces, nudity, codes and sensitive text of one PNG image via the plugin -> (regions, counts).
+    Raises RuntimeError / TimeoutError / OSError / ValueError from the plugin."""
+    from ..core.imageredact import code_regions, face_regions, nudity_regions, text_regions
+    steps = [k for k, on in (("faces", settings.faces), ("nudity", settings.nudity),
+                             ("codes", settings.codes), ("text", settings.text)) if on]
+    regions, counts = [], {}
+
+    def go(key):
+        if step is not None:
+            step(key, steps.index(key) + 1, len(steps))
+
+    if settings.faces:
+        go("faces")
+        boxes = client.request({"op": "faces", "image": b64}, timeout=180).get("boxes", [])
+        regions += face_regions(boxes, settings, w, h)
+        counts["faces"] = len(boxes)
+    if settings.nudity:
+        go("nudity")
+        try:
+            boxes = client.request({"op": "nudity", "image": b64}, timeout=180).get("boxes", [])
+        except RuntimeError as exc:           # plugin of 0.1.11 has no nudity model
+            if "unknown op" not in str(exc):
+                raise
+            boxes = []
+            counts["nudity_missing"] = True
+        regions += nudity_regions(boxes, settings, w, h)
+        counts["nudity"] = len(boxes)
+    if settings.codes:
+        go("codes")
+        boxes = client.request({"op": "codes", "image": b64}, timeout=180).get("boxes", [])
+        regions += code_regions(boxes, settings, w, h)
+        counts["codes"] = len(boxes)
+    if settings.text:
+        go("text")
+        lines = client.request({"op": "ocr", "image": b64}, timeout=300).get("boxes", [])
+        found = text_regions(lines, analyze, settings, w, h)
+        regions += found
+        counts["lines"] = len(lines)
+        counts["text"] = len(found)
+    return regions, counts
+
+
 def lone_secret(text: str, findings):
     """The finding if the clipboard holds exactly one secret and nothing else (a password or token
     copied from a password manager), else None."""
@@ -345,6 +388,8 @@ class Controller(QObject):
             self.screenshot_to_text()
         elif action == "redact_image":
             self.redact_image()
+        elif action == "redact_pdf":
+            self.redact_pdf()
         elif action == "b64_decode":
             self.b64_decode_clipboard()
         elif action == "b64_encode":
@@ -427,6 +472,9 @@ class Controller(QObject):
             path, _ = QFileDialog.getOpenFileName(parent, t("file.choose"))
             if not path:
                 return
+        if path.lower().endswith(".pdf"):
+            self.redact_pdf(path)                 # PDFs: the PDF tab (boxes on the pages), not text processing
+            return
         if mode is None:
             box = QMessageBox(parent)
             box.setWindowTitle(APP_DISPLAY_NAME)
@@ -929,13 +977,18 @@ class Controller(QObject):
         self.show_main("image")
         self.main.image.set_image(img, detect=True)
 
+    def redact_pdf(self, path: str | None = None):
+        """Open the PDF tab with a file (asks for one if none is given) and detect."""
+        self.show_main("pdf")
+        self.main.pdf.open_file(path)
+
     def detect_image_regions(self, qimage, callback):
         """Faces, codes and sensitive text in ``qimage`` via the plugin -> callback((regions, message))."""
         import base64
 
         from PySide6.QtCore import QBuffer, QByteArray, QIODevice
 
-        from ..core.imageredact import ImageSettings, code_regions, face_regions, nudity_regions, text_regions
+        from ..core.imageredact import ImageSettings
         ba = QByteArray()
         buf = QBuffer(ba)
         buf.open(QIODevice.WriteOnly)
@@ -950,43 +1003,12 @@ class Controller(QObject):
             callback((None, t("img.no_plugin", helper=APP_NAME + "-ner")))
             return
 
-        steps = [k for k, on in (("faces", settings.faces), ("nudity", settings.nudity),
-                                 ("codes", settings.codes), ("text", settings.text)) if on]
-
-        def step(key):
-            self.image_progress.emit(t("img.step." + key, i=steps.index(key) + 1, n=len(steps)))
+        def step(key, i, n):
+            self.image_progress.emit(t("img.step." + key, i=i, n=n))
 
         def job():
-            regions, counts = [], {}
             try:
-                if settings.faces:
-                    step("faces")
-                    boxes = client.request({"op": "faces", "image": b64}, timeout=180).get("boxes", [])
-                    regions += face_regions(boxes, settings, w, h)
-                    counts["faces"] = len(boxes)
-                if settings.nudity:
-                    step("nudity")
-                    try:
-                        boxes = client.request({"op": "nudity", "image": b64}, timeout=180).get("boxes", [])
-                    except RuntimeError as exc:           # plugin of 0.1.11 has no nudity model
-                        if "unknown op" not in str(exc):
-                            raise
-                        boxes = []
-                        counts["nudity_missing"] = True
-                    regions += nudity_regions(boxes, settings, w, h)
-                    counts["nudity"] = len(boxes)
-                if settings.codes:
-                    step("codes")
-                    boxes = client.request({"op": "codes", "image": b64}, timeout=180).get("boxes", [])
-                    regions += code_regions(boxes, settings, w, h)
-                    counts["codes"] = len(boxes)
-                if settings.text:
-                    step("text")
-                    lines = client.request({"op": "ocr", "image": b64}, timeout=300).get("boxes", [])
-                    found = text_regions(lines, engine.analyze, settings, w, h)
-                    regions += found
-                    counts["lines"] = len(lines)
-                    counts["text"] = len(found)
+                regions, counts = analyse_image(client, b64, w, h, settings, engine.analyze, step)
             except (RuntimeError, TimeoutError, OSError, ValueError) as exc:
                 msg = str(exc)
                 if "unknown op" in msg:

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.35
+
+- **PDF redaction** (tab *PDF*, action *Redact PDF…*, *Process file* with a PDF, drag & drop, CLI `clipcloak pdf`): the text of every page – also invisible OCR layers and text outside the visible area – runs through the detectors; images (scans, screenshots) go to the plugin (faces, nudity, codes, OCR text). Boxes per page can be checked, deleted and drawn by hand. Saving removes the text, image pixels and covered line art under the boxes for real, plus metadata/XMP, annotations, links, form fields, attachments, JavaScript and thumbnails; bookmark titles are processed like text; the file is written anew (no older revisions) and without password. Modes: black boxes, or pseudonym / anonymised value in a white box. Option *pages as images*. Afterwards the result is read again and a warning names redacted text that can still be extracted. Rotated pages and protected PDFs are handled. Settings › Images › PDF (`pdf.mode`, `pdf.images`, `pdf.rasterize`, `pdf.dpi`; ADMX).
+- New dependency PyMuPDF (AGPL-3.0, compatible with GPL-3.0); PyInstaller bundles it without extra options.
+
 ## 0.1.34
 
 - **Password copied alone is removed from the clipboard** (password manager): if the clipboard holds nothing but one password or token, the watcher does not change it (it is meant to be pasted), shows *Remove now / Keep / Pseudonymise* and removes it after 60 s – only if it is still in the clipboard; something copied in between stays. "Keep" is remembered for that content. A pending removal happens at exit. Setting `watcher.clear_secret_after` (seconds, 0 = off; Settings › Watcher, ADMX). Works with the Qt clipboard and wl-clipboard (`wl-copy --clear`).

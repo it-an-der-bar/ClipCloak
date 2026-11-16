@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 CONFIG_VERSION = 1
 
 ACTIONS = ["pseudonymize", "anonymize", "redact", "revert", "process", "workbench", "process_file",
-           "redact_image", "screenshot", "b64_decode", "b64_encode", "toggle_watcher"]
+           "redact_image", "redact_pdf", "screenshot", "b64_decode", "b64_encode", "toggle_watcher"]
 
 DEFAULTS: dict = {
     "version": CONFIG_VERSION,
@@ -44,6 +44,7 @@ DEFAULTS: dict = {
         "process_file": "",
         "redact_image": "Ctrl+Alt+I",
         "screenshot": "",
+        "redact_pdf": "",
         "b64_decode": "",
         "b64_encode": "",
         "toggle_watcher": "",
@@ -73,6 +74,12 @@ DEFAULTS: dict = {
         "face_margin": 20,            # extra margin around faces, % of the face size (0-200)
         "nudity_margin": 12,          # the same for nudity
         "watch": True,                # watcher offers "Redact image" for images
+    },
+    "pdf": {                          # PDF redaction (tab "PDF", action "redact_pdf", CLI "pdf")
+        "mode": "redact",             # redact (black boxes) | pseudonymize | anonymize (replacement in a white box)
+        "images": True,               # analyse images in PDFs (scans, screenshots) with the plugin
+        "rasterize": False,           # every page as an image: certainly no text left, not searchable
+        "dpi": 150,                   # resolution for images sent to the plugin and for rasterized pages
     },
     "clipboard": {
         "backend": "auto",           # auto | qt | wl-clipboard

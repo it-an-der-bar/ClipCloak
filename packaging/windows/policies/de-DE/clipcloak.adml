@@ -14,6 +14,7 @@
       <string id="C_llm">LLM</string>
       <string id="C_ner">NER-Plugin</string>
       <string id="C_image">Bilder</string>
+      <string id="C_pdf">PDF</string>
       <string id="C_hotkeys">Tastenkürzel</string>
       <string id="P_general_language">Sprache</string>
       <string id="P_general_language_Help">Sprache der Oberfläche.
@@ -391,6 +392,25 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_image_watch_Help">Die Überwachung zeigt beim Kopieren eines Bildes ein Popup "Bild schwärzen".
 
 Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: image.watch</string>
+      <string id="P_pdf_mode">PDF: Standardmodus</string>
+      <string id="P_pdf_mode_Help">Schwärzen: schwarze Kästen. Pseudonymisieren / Anonymisieren: der Ersatzwert in einem weißen Kasten. In jedem Modus wird der Text unter dem Kasten aus der Datei entfernt.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: pdf.mode</string>
+      <string id="P_pdf_mode_redact">schwärzen (schwarz)</string>
+      <string id="P_pdf_mode_pseudonymize">pseudonymisieren (Ersatzwert)</string>
+      <string id="P_pdf_mode_anonymize">anonymisieren (Ersatzwert)</string>
+      <string id="P_pdf_images">PDF: Bilder analysieren (Plugin)</string>
+      <string id="P_pdf_images_Help">Scans und Screenshots in PDFs werden vom Plugin auf Gesichter, Codes und Text (OCR) geprüft.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: pdf.images</string>
+      <string id="P_pdf_rasterize">PDF: Seiten als Bild</string>
+      <string id="P_pdf_rasterize_Help">Jede Seite des Ergebnisses ist ein Bild: sicher kein Text mehr in der Datei, aber nicht durchsuchbar und größer.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: pdf.rasterize</string>
+      <string id="P_pdf_dpi">PDF: Auflösung (dpi)</string>
+      <string id="P_pdf_dpi_Help">Auflösung für vom Plugin analysierte Bilder und für Seiten als Bild (72-600).
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: pdf.dpi</string>
       <string id="P_hotkeys_pseudonymize">Tastenkürzel: Zwischenablage pseudonymisieren</string>
       <string id="P_hotkeys_pseudonymize_Help">Tastenkombination wie Strg+Alt+P (als Ctrl+Alt+P schreiben). Leer: kein Kürzel.
 
@@ -423,6 +443,10 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <string id="P_hotkeys_redact_image_Help">Tastenkombination wie Strg+Alt+P (als Ctrl+Alt+P schreiben). Leer: kein Kürzel.
 
 Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: hotkeys.redact_image</string>
+      <string id="P_hotkeys_redact_pdf">Tastenkürzel: PDF schwärzen…</string>
+      <string id="P_hotkeys_redact_pdf_Help">Tastenkombination wie Strg+Alt+P (als Ctrl+Alt+P schreiben). Leer: kein Kürzel.
+
+Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung: hotkeys.redact_pdf</string>
       <string id="P_hotkeys_screenshot">Tastenkürzel: Screenshot → Text (LLM)</string>
       <string id="P_hotkeys_screenshot_Help">Tastenkombination wie Strg+Alt+P (als Ctrl+Alt+P schreiben). Leer: kein Kürzel.
 
@@ -478,6 +502,8 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <presentation id="P_image_code_effect"><dropdownList refId="P_image_code_effect" noSort="true">Effekt für Codes</dropdownList></presentation>
       <presentation id="P_image_face_margin"><decimalTextBox refId="P_image_face_margin">Zusätzlicher Rand um Gesichter (%)</decimalTextBox></presentation>
       <presentation id="P_image_nudity_margin"><decimalTextBox refId="P_image_nudity_margin">Zusätzlicher Rand um Nacktheit (%)</decimalTextBox></presentation>
+      <presentation id="P_pdf_mode"><dropdownList refId="P_pdf_mode" noSort="true">PDF: Standardmodus</dropdownList></presentation>
+      <presentation id="P_pdf_dpi"><decimalTextBox refId="P_pdf_dpi">PDF: Auflösung (dpi)</decimalTextBox></presentation>
       <presentation id="P_hotkeys_pseudonymize"><textBox refId="P_hotkeys_pseudonymize"><label>Tastenkürzel: Zwischenablage pseudonymisieren</label></textBox></presentation>
       <presentation id="P_hotkeys_anonymize"><textBox refId="P_hotkeys_anonymize"><label>Tastenkürzel: Zwischenablage anonymisieren</label></textBox></presentation>
       <presentation id="P_hotkeys_redact"><textBox refId="P_hotkeys_redact"><label>Tastenkürzel: Zwischenablage schwärzen</label></textBox></presentation>
@@ -486,6 +512,7 @@ Wenn konfiguriert, kann der Benutzer die Einstellung nicht ändern. Einstellung:
       <presentation id="P_hotkeys_workbench"><textBox refId="P_hotkeys_workbench"><label>Tastenkürzel: Werkbank öffnen</label></textBox></presentation>
       <presentation id="P_hotkeys_process_file"><textBox refId="P_hotkeys_process_file"><label>Tastenkürzel: Datei verarbeiten</label></textBox></presentation>
       <presentation id="P_hotkeys_redact_image"><textBox refId="P_hotkeys_redact_image"><label>Tastenkürzel: Bild in der Zwischenablage schwärzen …</label></textBox></presentation>
+      <presentation id="P_hotkeys_redact_pdf"><textBox refId="P_hotkeys_redact_pdf"><label>Tastenkürzel: PDF schwärzen…</label></textBox></presentation>
       <presentation id="P_hotkeys_screenshot"><textBox refId="P_hotkeys_screenshot"><label>Tastenkürzel: Screenshot → Text (LLM)</label></textBox></presentation>
       <presentation id="P_hotkeys_b64_decode"><textBox refId="P_hotkeys_b64_decode"><label>Tastenkürzel: Base64 in der Zwischenablage dekodieren</label></textBox></presentation>
       <presentation id="P_hotkeys_b64_encode"><textBox refId="P_hotkeys_b64_encode"><label>Tastenkürzel: Zwischenablage als Base64 kodieren</label></textBox></presentation>

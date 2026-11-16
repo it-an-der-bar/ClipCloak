@@ -1,5 +1,6 @@
 # Runtime dependencies of the main application
 PySide6-Essentials>=6.9,<7
 PyYAML>=6.0
+PyMuPDF>=1.24             # PDF redaction (AGPL-3.0, compatible with this GPL-3.0 program)
 cryptography>=42
 secretstorage>=3.3; sys_platform == "linux"   # Linux: project key in the desktop keyring

@@ -14,9 +14,9 @@ from . import __version__, paths
 from .meta import APP_DISPLAY_NAME, APP_NAME, APP_ORG
 
 ACTION_CHOICES = ["pseudonymize", "anonymize", "redact", "revert", "process", "workbench", "process_file",
-                  "redact_image", "screenshot", "b64_decode", "b64_encode", "toggle_watcher", "show", "history",
-                  "mappings", "settings", "restart", "quit"]
-HEADLESS = ("process", "revert", "analyze", "projects")
+                  "redact_image", "redact_pdf", "screenshot", "b64_decode", "b64_encode", "toggle_watcher", "show",
+                  "history", "mappings", "settings", "restart", "quit"]
+HEADLESS = ("process", "revert", "analyze", "projects", "pdf")
 
 
 def _fix_std_streams(headless: bool) -> None:
@@ -84,6 +84,15 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("analyze", help="list findings as JSON")
     io(sp)
     sub.add_parser("projects", help="list projects")
+    sp = sub.add_parser("pdf", help="redact a PDF file (text layer; images need the GUI with the plugin)")
+    sp.add_argument("pdf_in", metavar="IN.pdf")
+    sp.add_argument("-o", "--out", dest="pdf_out", help="output file (default: IN.redacted.pdf)")
+    sp.add_argument("--mode", choices=["redact", "pseudonymize", "anonymize"], help="default: config pdf.mode")
+    sp.add_argument("--rasterize", action="store_true", help="every page as an image (no text left)")
+    sp.add_argument("--dpi", type=int, help="resolution for --rasterize (default: config pdf.dpi)")
+    sp.add_argument("--pdf-password-env", help="environment variable holding the PDF's password")
+    sp.add_argument("--project", help="use the mappings of this project")
+    sp.add_argument("--passphrase-env", help="environment variable holding the project passphrase")
     return p
 
 
@@ -154,6 +163,8 @@ def headless(args) -> int:
         from .llm.client import LLMClient, LLMSettings
         engine.add_detector(LlmDetector(LLMClient(LLMSettings.from_config(cfg.get("llm"))),
                                         cfg.get("llm.detect_types") or ["PERSON", "ORG"]))
+    if args.command == "pdf":
+        return _pdf(args, cfg, engine, store, prj)
     text = _read_input(args)
     if args.command == "analyze":
         warnings: list[str] = []
@@ -178,6 +189,43 @@ def headless(args) -> int:
             h.load_list(prj.history)
             h.add(res, "cli", prj.name)
             prj.history = h.to_list()
+        store.save(prj)
+    return 0
+
+
+def _pdf(args, cfg, engine, store, prj) -> int:
+    from .core import pdfredact as pr
+    if not pr.available():
+        print("error: PDF redaction needs PyMuPDF (pip install pymupdf)", file=sys.stderr)
+        return 2
+    src = args.pdf_in
+    dst = args.pdf_out or os.path.splitext(src)[0] + ".redacted.pdf"
+    if os.path.abspath(src) == os.path.abspath(dst):
+        print("error: the output must be a new file", file=sys.stderr)
+        return 2
+    mode = args.mode or cfg.get("pdf.mode", "redact")
+    pw = os.environ.get(args.pdf_password_env) if args.pdf_password_env else None
+    try:
+        rep = pr.redact_pdf(src, dst, engine, mode, rasterize=args.rasterize or bool(cfg.get("pdf.rasterize")),
+                            dpi=args.dpi or int(cfg.get("pdf.dpi", 150) or 150), password=pw)
+    except pr.PdfPasswordError:
+        print("error: the PDF is protected – use --pdf-password-env", file=sys.stderr)
+        return 2
+    except pr.PdfError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    counts = ", ".join(f"{k} {v}" for k, v in sorted(rep.counts.items())) or "nothing found"
+    print(f"{dst}: {rep.pages} page(s), {rep.regions} box(es) – {counts}", file=sys.stderr)
+    for w in rep.warnings:
+        print("warning:", w, file=sys.stderr)
+    if rep.images_total:
+        print(f"warning: {rep.images_total} image(s) not analysed (faces, text in scans) – check them in the GUI "
+              "(tab PDF), where the plugin analyses them", file=sys.stderr)
+    if rep.leftovers:
+        print(f"error: {len(rep.leftovers)} redacted text(s) can still be extracted from {dst} – use --rasterize",
+              file=sys.stderr)
+        return 3
+    if prj is not None:
         store.save(prj)
     return 0
 

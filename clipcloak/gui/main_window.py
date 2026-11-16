@@ -12,10 +12,11 @@ from .project_bar import ProjectBar, fill_project_menu
 from .history_view import HistoryView
 from .image_view import ImageView
 from .log_view import LogView
+from .pdf_view import PdfView
 from .mapping_view import MappingView
 from .workbench import Workbench
 
-TABS = ["workbench", "image", "history", "mappings", "log"]
+TABS = ["workbench", "image", "pdf", "history", "mappings", "log"]
 
 
 class MainWindow(QMainWindow):
@@ -33,6 +34,9 @@ class MainWindow(QMainWindow):
         self.image.status.connect(lambda msg: self.statusBar().showMessage(msg, 8000))
         self.tabs.addTab(self.workbench, t("tab.workbench"))
         self.tabs.addTab(self.image, t("tab.image"))
+        self.pdf = PdfView(controller)
+        self.pdf.status.connect(lambda msg: self.statusBar().showMessage(msg, 8000))
+        self.tabs.addTab(self.pdf, t("tab.pdf"))
         self.tabs.addTab(self.history, t("tab.history"))
         self.tabs.addTab(self.mappings, t("tab.mappings"))
         self.log = LogView(controller.log_handler)
@@ -56,6 +60,7 @@ class MainWindow(QMainWindow):
         m = self.menuBar()
         f = m.addMenu(t("menu.file"))
         f.addAction(t("file.menu")).triggered.connect(lambda: controller.process_file())
+        f.addAction(t("action.redact_pdf")).triggered.connect(lambda: controller.redact_pdf())
         f.addSeparator()
         f.addAction(t("tray.settings")).triggered.connect(controller.show_settings)
         f.addSeparator()

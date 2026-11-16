@@ -14,6 +14,7 @@
       <string id="C_llm">LLM</string>
       <string id="C_ner">NER plugin</string>
       <string id="C_image">Images</string>
+      <string id="C_pdf">PDF</string>
       <string id="C_hotkeys">Shortcuts</string>
       <string id="P_general_language">Language</string>
       <string id="P_general_language_Help">Language of the user interface.
@@ -391,6 +392,25 @@ If configured, the user cannot change this setting. Setting: image.nudity_margin
       <string id="P_image_watch_Help">The clipboard watcher shows a popup "Redact image" when an image is copied.
 
 If configured, the user cannot change this setting. Setting: image.watch</string>
+      <string id="P_pdf_mode">PDF: default mode</string>
+      <string id="P_pdf_mode_Help">redact: black boxes. pseudonymise / anonymise: the replacement in a white box. In every mode the text under the box is removed from the file.
+
+If configured, the user cannot change this setting. Setting: pdf.mode</string>
+      <string id="P_pdf_mode_redact">redact (black)</string>
+      <string id="P_pdf_mode_pseudonymize">pseudonymise (replacement)</string>
+      <string id="P_pdf_mode_anonymize">anonymise (replacement)</string>
+      <string id="P_pdf_images">PDF: analyse images (plugin)</string>
+      <string id="P_pdf_images_Help">Scans and screenshots inside PDFs are checked for faces, codes and text (OCR) by the plugin.
+
+If configured, the user cannot change this setting. Setting: pdf.images</string>
+      <string id="P_pdf_rasterize">PDF: pages as images</string>
+      <string id="P_pdf_rasterize_Help">Every page of the result is an image: certainly no text left in the file, but not searchable and larger.
+
+If configured, the user cannot change this setting. Setting: pdf.rasterize</string>
+      <string id="P_pdf_dpi">PDF: resolution (dpi)</string>
+      <string id="P_pdf_dpi_Help">Resolution for images analysed by the plugin and for pages as images (72-600).
+
+If configured, the user cannot change this setting. Setting: pdf.dpi</string>
       <string id="P_hotkeys_pseudonymize">Shortcut: Pseudonymise clipboard</string>
       <string id="P_hotkeys_pseudonymize_Help">Key combination such as Ctrl+Alt+P. Empty: no shortcut.
 
@@ -423,6 +443,10 @@ If configured, the user cannot change this setting. Setting: hotkeys.process_fil
       <string id="P_hotkeys_redact_image_Help">Key combination such as Ctrl+Alt+P. Empty: no shortcut.
 
 If configured, the user cannot change this setting. Setting: hotkeys.redact_image</string>
+      <string id="P_hotkeys_redact_pdf">Shortcut: Redact PDF…</string>
+      <string id="P_hotkeys_redact_pdf_Help">Key combination such as Ctrl+Alt+P. Empty: no shortcut.
+
+If configured, the user cannot change this setting. Setting: hotkeys.redact_pdf</string>
       <string id="P_hotkeys_screenshot">Shortcut: Screenshot → text (LLM)</string>
       <string id="P_hotkeys_screenshot_Help">Key combination such as Ctrl+Alt+P. Empty: no shortcut.
 
@@ -478,6 +502,8 @@ If configured, the user cannot change this setting. Setting: hotkeys.toggle_watc
       <presentation id="P_image_code_effect"><dropdownList refId="P_image_code_effect" noSort="true">Effect for codes</dropdownList></presentation>
       <presentation id="P_image_face_margin"><decimalTextBox refId="P_image_face_margin">Extra margin around faces (%)</decimalTextBox></presentation>
       <presentation id="P_image_nudity_margin"><decimalTextBox refId="P_image_nudity_margin">Extra margin around nudity (%)</decimalTextBox></presentation>
+      <presentation id="P_pdf_mode"><dropdownList refId="P_pdf_mode" noSort="true">PDF: default mode</dropdownList></presentation>
+      <presentation id="P_pdf_dpi"><decimalTextBox refId="P_pdf_dpi">PDF: resolution (dpi)</decimalTextBox></presentation>
       <presentation id="P_hotkeys_pseudonymize"><textBox refId="P_hotkeys_pseudonymize"><label>Shortcut: Pseudonymise clipboard</label></textBox></presentation>
       <presentation id="P_hotkeys_anonymize"><textBox refId="P_hotkeys_anonymize"><label>Shortcut: Anonymise clipboard</label></textBox></presentation>
       <presentation id="P_hotkeys_redact"><textBox refId="P_hotkeys_redact"><label>Shortcut: Redact clipboard</label></textBox></presentation>
@@ -486,6 +512,7 @@ If configured, the user cannot change this setting. Setting: hotkeys.toggle_watc
       <presentation id="P_hotkeys_workbench"><textBox refId="P_hotkeys_workbench"><label>Shortcut: Open workbench</label></textBox></presentation>
       <presentation id="P_hotkeys_process_file"><textBox refId="P_hotkeys_process_file"><label>Shortcut: Process file</label></textBox></presentation>
       <presentation id="P_hotkeys_redact_image"><textBox refId="P_hotkeys_redact_image"><label>Shortcut: Redact image in clipboard …</label></textBox></presentation>
+      <presentation id="P_hotkeys_redact_pdf"><textBox refId="P_hotkeys_redact_pdf"><label>Shortcut: Redact PDF…</label></textBox></presentation>
       <presentation id="P_hotkeys_screenshot"><textBox refId="P_hotkeys_screenshot"><label>Shortcut: Screenshot → text (LLM)</label></textBox></presentation>
       <presentation id="P_hotkeys_b64_decode"><textBox refId="P_hotkeys_b64_decode"><label>Shortcut: Decode Base64 in the clipboard</label></textBox></presentation>
       <presentation id="P_hotkeys_b64_encode"><textBox refId="P_hotkeys_b64_encode"><label>Shortcut: Encode clipboard as Base64</label></textBox></presentation>
